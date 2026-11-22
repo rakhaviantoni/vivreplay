@@ -151,6 +151,7 @@ export function MarketSocialSyndicationDialog({
   const [scheduleMode, setScheduleMode] = useState<'now' | 'schedule'>('now');
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
   const [scheduledTime, setScheduledTime] = useState('19:00');
+  const [includeSoldPrice, setIncludeSoldPrice] = useState(false);
 
   // Actions
   const [publishing, setPublishing] = useState(false);
@@ -564,6 +565,7 @@ export function MarketSocialSyndicationDialog({
           text: caption,
           mediaUrls: resolvedMediaUrls,
           scheduledAt,
+          includeSoldPrice,
         }),
       });
       const data = (await res.json()) as {
@@ -1440,6 +1442,32 @@ export function MarketSocialSyndicationDialog({
                     </p>
                   </div>
                 </div>
+              </section>
+
+              {/* Auto-Sync Status Option */}
+              <section className="market-social-panel p-3.5">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeSoldPrice}
+                    onChange={(e) => setIncludeSoldPrice(e.target.checked)}
+                    className="mt-0.5 size-4 rounded border-border accent-primary shrink-0 cursor-pointer"
+                  />
+                  <div className="min-w-0">
+                    <span className="block text-xs font-semibold text-foreground">
+                      {t(
+                        'Include sold price in automatic BOOKED / SOLD updates',
+                        'Sertakan harga terjual pada pembaruan status BOOKED / SOLD otomatis'
+                      )}
+                    </span>
+                    <span className="block text-[11px] text-muted-foreground mt-0.5">
+                      {t(
+                        'Facebook Page updates the post caption; Instagram & Threads post an automatic status comment.',
+                        'Halaman Facebook memperbarui caption; Instagram & Threads mengirim komentar status otomatis.'
+                      )}
+                    </span>
+                  </div>
+                </label>
               </section>
 
               {/* Publication Checklist */}

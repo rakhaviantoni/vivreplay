@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
     text?: string;
     mediaUrls?: string[];
     scheduledAt?: string | null;
+    includeSoldPrice?: boolean;
   } | null;
 
   if (!body?.text?.trim()) {
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
       text: body.text.trim(),
       mediaUrls: body.mediaUrls ?? [],
       scheduledAt: body.scheduledAt,
+      includeSoldPrice: Boolean(body.includeSoldPrice),
     });
 
     return NextResponse.json(result);

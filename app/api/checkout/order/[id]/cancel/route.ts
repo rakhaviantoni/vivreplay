@@ -1,15 +1,16 @@
 import {db,errorResponse,HttpError,user} from '@/lib/server/store';
 import {parseCheckoutTimestamp} from '@/lib/server/ipaymu';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
+import {syncSocialListingStage} from '@/lib/server/postforme';
 
-type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;status:string;paymentId:string|null;expiresAt:string|null;details:string;title:string|null};
+type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;status:string;paymentId:string|null;expiresAt:string|null;details:string;title:string|null};
 
 export async function POST(_request:Request,{params}:{params:Promise<{id:string}>}){
   try{
     const profile=await user();
     const {id}=await params;
     const database=db();
-    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.status,o.payment_id AS paymentId,o.expires_at AS expiresAt,o.details,l.title
+    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.status,o.payment_id AS paymentId,o.expires_at AS expiresAt,o.details,l.title
       FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<OrderRow>();
     if(!order||(order.buyerId!==profile.id&&order.sellerId!==profile.id))throw new HttpError(404,'Order was not found.');
     if(order.kind!=='MARKET')throw new HttpError(400,'Only Market orders can be cancelled here.');
@@ -27,6 +28,13 @@ export async function POST(_request:Request,{params}:{params:Promise<{id:string}
     if(!result.meta.changes)throw new HttpError(409,'This order changed before it could be cancelled. Refresh and check its status.');
     const recipient=order.buyerId===profile.id?order.sellerId:order.buyerId;
     if(recipient)await sendMarketEmail(recipient,'order-cancelled',order.title||'Market order',order.id);
+    try{
+      const parsedItems=JSON.parse(order.items||'[]') as Array<{listingId?:string}>;
+      const listingIds=[...new Set([order.listingId,...parsedItems.map(item=>item.listingId)].filter((lid):lid is string=>Boolean(lid)))];
+      if(listingIds.length){
+        await syncSocialListingStage({listingIds,stage:'AVAILABLE'});
+      }
+    }catch{}
     return Response.json({ok:true,status:'CANCELLED'});
   }catch(error){return errorResponse(error)}
 }

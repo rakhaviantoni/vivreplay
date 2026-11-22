@@ -499,6 +499,7 @@ export async function publishOrScheduleDrop({
   text,
   mediaUrls = [],
   scheduledAt,
+  includeSoldPrice = false,
 }: {
   sellerId: string;
   listingId?: string | null;
@@ -506,6 +507,7 @@ export async function publishOrScheduleDrop({
   text: string;
   mediaUrls?: string[];
   scheduledAt?: string | null;
+  includeSoldPrice?: boolean;
 }): Promise<PublishResult> {
   const apiKey = getPostForMeApiKey();
   const db = database();
@@ -585,8 +587,8 @@ export async function publishOrScheduleDrop({
       try {
         await db
           .prepare(
-            `INSERT INTO social_publish_logs (id, seller_id, listing_id, platform, status, post_id, scheduled_at, published_at, caption)
-             VALUES (?, ?, ?, ?, 'SCHEDULED', ?, ?, NULL, ?)`
+            `INSERT INTO social_publish_logs (id, seller_id, listing_id, platform, status, post_id, scheduled_at, published_at, caption, include_sold_price)
+             VALUES (?, ?, ?, ?, 'SCHEDULED', ?, ?, NULL, ?, ?)`
           )
           .bind(
             logId,
@@ -595,7 +597,8 @@ export async function publishOrScheduleDrop({
             selectedAccounts.map((a) => a.platform).join(','),
             `sched_${Date.now()}`,
             new Date(scheduledAt).toISOString(),
-            text
+            text,
+            includeSoldPrice ? 1 : 0
           )
           .run();
       } catch {
@@ -656,8 +659,8 @@ export async function publishOrScheduleDrop({
         try {
           await db
             .prepare(
-              `INSERT INTO social_publish_logs (id, seller_id, listing_id, platform, status, post_id, scheduled_at, published_at, caption)
-               VALUES (?, ?, ?, ?, 'PUBLISHED', ?, NULL, ?, ?)`
+              `INSERT INTO social_publish_logs (id, seller_id, listing_id, platform, status, post_id, scheduled_at, published_at, caption, include_sold_price)
+               VALUES (?, ?, ?, ?, 'PUBLISHED', ?, NULL, ?, ?, ?)`
             )
             .bind(
               itemLogId,
@@ -666,7 +669,8 @@ export async function publishOrScheduleDrop({
               acc.platform,
               res.postId,
               new Date().toISOString(),
-              text
+              text,
+              includeSoldPrice ? 1 : 0
             )
             .run();
         } catch {
@@ -1001,4 +1005,170 @@ export async function deleteOrUnlinkSocialPublishLog(
     .run();
 
   return { success: true, remoteDeleted };
+}
+
+export type SocialListingStage = 'BOOKED' | 'SOLD' | 'AVAILABLE';
+
+function formatStageStatusLine(
+  stage: SocialListingStage,
+  includeSoldPrice: boolean,
+  soldPrice?: number | null
+): string {
+  if (stage === 'BOOKED') {
+    return 'BOOKED on VivrePlay (awaiting payment)';
+  }
+  if (stage === 'SOLD') {
+    if (includeSoldPrice && soldPrice && soldPrice > 0) {
+      return `SOLD on VivrePlay for Rp ${Math.round(soldPrice).toLocaleString('id-ID')}`;
+    }
+    return 'SOLD on VivrePlay';
+  }
+  return 'AVAILABLE AGAIN on VivrePlay';
+}
+
+function stripPreviousStageBanner(caption: string): string {
+  return caption
+    .replace(/^\[(BOOKED|SOLD|AVAILABLE AGAIN)[^\]]*\]\s*\n*/i, '')
+    .trim();
+}
+
+export async function syncSocialListingStage({
+  listingIds,
+  stage,
+  soldPrice,
+}: {
+  listingIds: string[];
+  stage: SocialListingStage;
+  soldPrice?: number | null;
+}): Promise<void> {
+  const uniqueIds = [...new Set(listingIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return;
+
+  const db = database();
+  for (const listingId of uniqueIds) {
+    try {
+      const logsRes = await db
+        .prepare(
+          `SELECT id, seller_id AS sellerId, platform, post_id AS postId, caption,
+                  COALESCE(include_sold_price, 0) AS includeSoldPrice,
+                  last_synced_stage AS lastSyncedStage
+           FROM social_publish_logs
+           WHERE listing_id = ? AND status = 'PUBLISHED' AND post_id IS NOT NULL
+             AND (last_synced_stage IS NULL OR last_synced_stage != ?)`
+        )
+        .bind(listingId, stage)
+        .all<{
+          id: string;
+          sellerId: string;
+          platform: string;
+          postId: string;
+          caption: string | null;
+          includeSoldPrice: number;
+          lastSyncedStage: string | null;
+        }>();
+
+      const logs = logsRes.results ?? [];
+      if (logs.length === 0) continue;
+
+      for (const log of logs) {
+        const p = log.platform.split(',')[0]?.trim().toLowerCase() ?? log.platform.toLowerCase();
+        const acc = await db
+          .prepare(
+            `SELECT id, platform, platform_account_id AS platformAccountId, username,
+                    access_token AS accessToken, refresh_token AS refreshToken
+             FROM seller_social_connections
+             WHERE seller_id = ? AND LOWER(platform) = ?
+             LIMIT 1`
+          )
+          .bind(log.sellerId, p)
+          .first<StoredSocialAccount>();
+
+        if (!acc?.accessToken) continue;
+
+        const statusLine = formatStageStatusLine(stage, Boolean(log.includeSoldPrice), soldPrice);
+        let synced = false;
+
+        if (p === 'facebook') {
+          const baseCaption = stripPreviousStageBanner(log.caption ?? '');
+          const updatedMessage = baseCaption ? `[${statusLine}]\n\n${baseCaption}` : `[${statusLine}]`;
+          const fbRes = await fetch(
+            `https://graph.facebook.com/v22.0/${encodeURIComponent(log.postId)}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                message: updatedMessage,
+                access_token: acc.accessToken,
+              }).toString(),
+              signal: AbortSignal.timeout(5000),
+            }
+          ).catch(() => null);
+          if (fbRes?.ok) {
+            synced = true;
+            await db
+              .prepare(`UPDATE social_publish_logs SET caption = ? WHERE id = ?`)
+              .bind(updatedMessage, log.id)
+              .run()
+              .catch(() => {});
+          }
+        } else if (p === 'instagram') {
+          const host = acc.refreshToken === 'ig_login' ? 'graph.instagram.com' : 'graph.facebook.com';
+          const igRes = await fetch(
+            `https://${host}/v22.0/${encodeURIComponent(log.postId)}/comments`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                message: statusLine,
+                access_token: acc.accessToken,
+              }).toString(),
+              signal: AbortSignal.timeout(5000),
+            }
+          ).catch(() => null);
+          if (igRes?.ok) synced = true;
+        } else if (p === 'threads') {
+          const createRes = await fetch(
+            `https://graph.threads.net/v1.0/${encodeURIComponent(acc.platformAccountId)}/threads`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                media_type: 'TEXT',
+                text: statusLine,
+                reply_to_id: log.postId,
+                access_token: acc.accessToken,
+              }).toString(),
+              signal: AbortSignal.timeout(5000),
+            }
+          ).catch(() => null);
+          const createData = (await createRes?.json().catch(() => null)) as { id?: string } | null;
+          if (createRes?.ok && createData?.id) {
+            const pubRes = await fetch(
+              `https://graph.threads.net/v1.0/${encodeURIComponent(acc.platformAccountId)}/threads_publish`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                  creation_id: createData.id,
+                  access_token: acc.accessToken,
+                }).toString(),
+                signal: AbortSignal.timeout(5000),
+              }
+            ).catch(() => null);
+            if (pubRes?.ok) synced = true;
+          }
+        }
+
+        if (synced) {
+          await db
+            .prepare(`UPDATE social_publish_logs SET last_synced_stage = ? WHERE id = ?`)
+            .bind(stage, log.id)
+            .run()
+            .catch(() => {});
+        }
+      }
+    } catch {
+      // Never block order/checkout lifecycle on social sync failures
+    }
+  }
 }

@@ -1,5 +1,6 @@
 import {db,HttpError} from '@/lib/server/store';
 import {MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR} from '@/lib/market/policy';
+import {syncSocialListingStage} from '@/lib/server/postforme';
 
 type FulfillableOrder={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;paymentId:string|null};
 
@@ -43,5 +44,15 @@ export async function fulfillCheckoutOrder(database:ReturnType<typeof db>,order:
   if(selectedJson!=='[]')statements.push(database.prepare(`UPDATE collectible_instances SET deleted_at=CASE WHEN quantity-COALESCE((SELECT SUM(CAST(json_extract(item.value,'$.quantity') AS INTEGER)) FROM json_each(?) item WHERE json_extract(item.value,'$.instanceId')=collectible_instances.id),0)<=0 THEN CURRENT_TIMESTAMP ELSE deleted_at END,quantity=MAX(1,quantity-COALESCE((SELECT SUM(CAST(json_extract(item.value,'$.quantity') AS INTEGER)) FROM json_each(?) item WHERE json_extract(item.value,'$.instanceId')=collectible_instances.id),0)) WHERE owner_id=? AND id IN (SELECT json_extract(item.value,'$.instanceId') FROM json_each(?) item WHERE json_extract(item.value,'$.instanceId') IS NOT NULL) AND EXISTS(SELECT 1 FROM checkout_orders WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?)`).bind(selectedJson,selectedJson,order.sellerId,selectedJson,order.id,claim));
   statements.push(database.prepare("UPDATE checkout_orders SET status='PAID',details=json_remove(details,'$.fulfillmentClaim'),paid_at=COALESCE(paid_at,CURRENT_TIMESTAMP),fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?").bind(order.id,claim));
   const results=await database.batch(statements);
-  return Boolean(results[0]?.meta.changes);
+  const changed=Boolean(results[0]?.meta.changes);
+  if(changed){
+    try{
+      const soldRows=await database.prepare(`SELECT id FROM listings WHERE id IN (${listingIds.map(()=>'?').join(',')}) AND status='SOLD'`).bind(...listingIds).all<{id:string}>();
+      const soldIds=(soldRows.results??[]).map(row=>row.id);
+      if(soldIds.length){
+        await syncSocialListingStage({listingIds:soldIds,stage:'SOLD',soldPrice:order.subtotal});
+      }
+    }catch{}
+  }
+  return changed;
 }
