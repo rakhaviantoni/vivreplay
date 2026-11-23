@@ -11,8 +11,21 @@ import {
   type AuctionBidRecord,
   type AuctionSummary,
 } from '@/lib/market/auction';
-import {MarketTimestamp} from './market-timestamp';
 import {IdrInput} from '@/components/ui/idr-input';
+
+function formatBidTimestamp(raw:string,locale:'EN'|'ID'){
+  const normalized=/[zZ]|[+-]\d{2}:?\d{2}$/.test(raw)?raw:`${raw.replace(' ','T')}Z`;
+  const date=new Date(normalized);
+  if(Number.isNaN(date.getTime()))return{label:raw,title:raw,iso:raw};
+  const intlLocale=locale==='ID'?'id-ID':'en-US';
+  const now=new Date();
+  const sameDay=date.getFullYear()===now.getFullYear()&&date.getMonth()===now.getMonth()&&date.getDate()===now.getDate();
+  const label=sameDay
+    ?new Intl.DateTimeFormat(intlLocale,{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(date)
+    :new Intl.DateTimeFormat(intlLocale,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(date);
+  const title=new Intl.DateTimeFormat(intlLocale,{dateStyle:'medium',timeStyle:'medium',hour12:false}).format(date);
+  return{label,title,iso:date.toISOString()};
+}
 
 function formatCountdown(remainingMs:number,locale:'EN'|'ID'){
   if(remainingMs<=0)return locale==='ID'?'Berakhir':'Ended';
@@ -348,20 +361,23 @@ export function MarketAuctionPanel({
         <div className="market-auction-history">
           <h4>{locale==='ID'?'Riwayat bid terbaru':'Recent bids'}</h4>
           <ul>
-            {bids.map((bid,idx)=>(
-              <li key={bid.id} className={idx===0?'is-top':''}>
-                <span className="market-auction-history-bidder">
-                  {bid.bidderUsername?(
-                    <Link href={`/players/${encodeURIComponent(bid.bidderUsername)}`}>{bid.bidderName}</Link>
-                  ):(
-                    <span>{bid.bidderName}</span>
-                  )}
-                  {bid.bidderVerified&&<SealCheck size={13} weight="fill" className="market-bidder-verified" aria-label={locale==='ID'?'Akun terhubung ke media sosial':'Social-connected account'}/>}
-                </span>
-                <small><MarketTimestamp value={bid.createdAt}/></small>
-                <strong>{formatMoney(bid.amount,currency)}</strong>
-              </li>
-            ))}
+            {bids.map((bid,idx)=>{
+              const ts=formatBidTimestamp(bid.createdAt,locale);
+              return (
+                <li key={bid.id} className={idx===0?'is-top':''}>
+                  <span className="market-auction-history-bidder">
+                    {bid.bidderUsername?(
+                      <Link href={`/players/${encodeURIComponent(bid.bidderUsername)}`}>{bid.bidderName}</Link>
+                    ):(
+                      <span>{bid.bidderName}</span>
+                    )}
+                    {bid.bidderVerified&&<SealCheck size={13} weight="fill" className="market-bidder-verified" aria-label={locale==='ID'?'Akun terhubung ke media sosial':'Social-connected account'}/>}
+                  </span>
+                  <small><time dateTime={ts.iso} title={ts.title}>{ts.label}</time></small>
+                  <strong>{formatMoney(bid.amount,currency)}</strong>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
