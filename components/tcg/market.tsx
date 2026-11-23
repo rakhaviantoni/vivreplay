@@ -749,7 +749,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
   const [auctionIncrement,setAuctionIncrement]=useState('10000');
   const [auctionBuyNowPrice,setAuctionBuyNowPrice]=useState('');
   const [cardOpenBid,setCardOpenBid]=useState('');
-  const [auctionBundleMode,setAuctionBundleMode]=useState<'separate'|'lot'>('separate');
+  const [auctionBundleMode,setAuctionBundleMode]=useState<'separate'|'multi'|'lot'>('separate');
   const [editingBundleCard,setEditingBundleCard]=useState(false);
   const [auctionDurationMode,setAuctionDurationMode]=useState<'ROLLING_24H'|'ROLLING_48H'|'FIXED'>('ROLLING_24H');
   const [auctionFixedHours,setAuctionFixedHours]=useState('48');
@@ -1536,18 +1536,36 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
       const primary=bundleCards[0];
       const firstProduct=bundleProducts[0];
       const listingName=primary?.card.name??firstProduct?.title??'Bundle';
+      const isMultiSlotAuction=listingType==='WTA'&&auctionBundleMode==='multi'&&bundleCards.length>1;
+      const multiSlotEntries=isMultiSlotAuction?bundleCards.map((item,idx)=>{
+        const cfg=item.auction??{startingBid:item.unitAmount||1000,buyNowPrice:null,minIncrement:10000,durationMode:'ROLLING_24H' as const,fixedMode:'preset' as const,fixedHours:'48',fixedEndsAt:''};
+        const dupCount=bundleCards.filter((other,otherIdx)=>otherIdx<idx&&other.printing.id===item.printing.id).length;
+        const itemKey=dupCount>0?`${item.printing.id}:${idx}`:item.printing.id;
+        return {item,cfg,itemKey};
+      }):[];
+      const effectiveAmount=isMultiSlotAuction?Math.min(...multiSlotEntries.map(e=>e.cfg.startingBid)):Number(listingPrice);
       const response=await fetch('/api/listings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
         instanceId:primary?.instanceId,
         title:listingTitle||listingName,
-        amount:Number(listingPrice),
+        amount:effectiveAmount,
         quantity:totalQty,
         city:listingType==='WTB'?buyerCity:(listingCity||'Jakarta'),
         type:listingType,
         negotiable:listingType==='WTA'?false:listingNegotiable,
-        ...(listingType==='WTA'?{auction:{startingBid:Number(listingPrice),buyNowPrice:auctionBuyNowPrice?Number(auctionBuyNowPrice):null,minIncrement:Math.max(1000,Number(auctionIncrement)||10000),durationMode:auctionDurationMode,...(auctionDurationMode==='FIXED'?(auctionFixedMode==='custom'&&auctionFixedEndsAt?{fixedEndsAt:new Date(auctionFixedEndsAt).toISOString()}:{fixedHours:Math.min(168,Math.max(1,Number(auctionFixedHours)||48))}):{})}}:{}),
-        items:[...bundleCards.map(item=>({
+        ...(isMultiSlotAuction
+          ?{auctions:multiSlotEntries.map(({cfg,itemKey})=>({
+              itemKey,
+              startingBid:cfg.startingBid,
+              buyNowPrice:cfg.buyNowPrice,
+              minIncrement:cfg.minIncrement,
+              durationMode:cfg.durationMode,
+              ...(cfg.durationMode==='FIXED'?(cfg.fixedMode==='custom'&&cfg.fixedEndsAt?{fixedEndsAt:new Date(cfg.fixedEndsAt).toISOString()}:{fixedHours:Math.min(168,Math.max(1,Number(cfg.fixedHours)||48))}):{}),
+            }))}
+          :listingType==='WTA'?{auction:{startingBid:Number(listingPrice),buyNowPrice:auctionBuyNowPrice?Number(auctionBuyNowPrice):null,minIncrement:Math.max(1000,Number(auctionIncrement)||10000),durationMode:auctionDurationMode,...(auctionDurationMode==='FIXED'?(auctionFixedMode==='custom'&&auctionFixedEndsAt?{fixedEndsAt:new Date(auctionFixedEndsAt).toISOString()}:{fixedHours:Math.min(168,Math.max(1,Number(auctionFixedHours)||48))}):{})}}:{}),
+        items:[...bundleCards.map((item,idx)=>({
           instanceId:item.instanceId,
           printingId:item.printing.id,
+          ...(isMultiSlotAuction?{itemKey:multiSlotEntries[idx]?.itemKey}:{}),
           quantity:item.quantity,
           ...(item.productType==='RAW'?{condition:item.condition}:{}),
           productType:item.productType,
@@ -1556,7 +1574,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
           certification:item.certification,
           slabLabelStyle:item.slabLabelStyle,
           ...(item.photoIds?.length?{photoIds:item.photoIds}:{}),
-          unitAmount:item.unitAmount,
+          unitAmount:isMultiSlotAuction?(multiSlotEntries[idx]?.cfg.startingBid??item.unitAmount):item.unitAmount,
         })),...bundleProducts.map(item=>({
           productType:item.productType,
           productId:item.productId,
@@ -1821,9 +1839,13 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                     </div>
                     <div className="market-feed-trade">
                       <div className="market-feed-status">
-                        <b>{listing.type==='WTA'?<Gavel size={12} aria-hidden="true"/>:fullySold||fullyReserved||listing.type==='WTS'?<Store size={12} aria-hidden="true"/>:<Search size={12} aria-hidden="true"/>}{listing.type==='WTA'?(totalCards>1?(locale==='ID'?'Lot lelang':'Auction lot'):(locale==='ID'?'Lelang':'Auction')):fullySold?(locale==='ID'?'Baru terjual':'Just sold'):fullyReserved?(locale==='ID'?'Dipesan':'Reserved'):listing.type==='WTB'?(locale==='ID'?'Dicari':'Buying'):(locale==='ID'?'Dijual':'Selling')}</b>
+                        <b>{listing.type==='WTA'?<Gavel size={12} aria-hidden="true"/>:fullySold||fullyReserved||listing.type==='WTS'?<Store size={12} aria-hidden="true"/>:<Search size={12} aria-hidden="true"/>}{listing.type==='WTA'?(listing.auctions&&listing.auctions.length>1?(locale==='ID'?`${listing.auctions.length} lelang`:`${listing.auctions.length} auctions`):totalCards>1?(locale==='ID'?'Lot lelang':'Auction lot'):(locale==='ID'?'Lelang':'Auction')):fullySold?(locale==='ID'?'Baru terjual':'Just sold'):fullyReserved?(locale==='ID'?'Dipesan':'Reserved'):listing.type==='WTB'?(locale==='ID'?'Dicari':'Buying'):(locale==='ID'?'Dijual':'Selling')}</b>
                         {listing.type==='WTA'&&listing.auction&&(()=>{
-                          const a=listing.auction;
+                          const slots=listing.auctions?.length?listing.auctions:[listing.auction];
+                          const totalBids=slots.reduce((sum,s)=>sum+(s.bidCount||0),0);
+                          const activeSlots=slots.filter(s=>s.status==='ACTIVE'&&Date.parse(s.endsAt)>Date.now());
+                          const nearestSlot=(activeSlots.length?activeSlots:slots).reduce((best,cur)=>Date.parse(cur.endsAt)<Date.parse(best.endsAt)?cur:best,slots[0]);
+                          const a=nearestSlot;
                           const remainingMs=Date.parse(a.endsAt)-Date.now();
                           const totalMin=Math.max(0,Math.floor(remainingMs/60000));
                           const days=Math.floor(totalMin/1440);
@@ -1837,9 +1859,9 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                           const livePrice=a.bidCount>0?a.currentBid:(a.startingBid||listing.amount);
                           const isEndingSoon=a.status==='ACTIVE'&&remainingMs>0&&remainingMs<=2*60*60*1000;
                           const isNearBin=a.status==='ACTIVE'&&Boolean(a.buyNowPrice)&&a.bidCount>0&&livePrice>=(a.buyNowPrice??0)*0.85;
-                          const isHot=a.status==='ACTIVE'&&a.bidCount>=5;
+                          const isHot=a.status==='ACTIVE'&&totalBids>=5;
                           return <>
-                            <span className="market-feed-held-count">{a.bidCount>0?(locale==='ID'?`${a.bidCount} bid`:`${a.bidCount} ${a.bidCount===1?'bid':'bids'}`):(locale==='ID'?'Belum ada bid':'No bids yet')}</span>
+                            <span className="market-feed-held-count">{totalBids>0?(locale==='ID'?`${totalBids} bid`:`${totalBids} ${totalBids===1?'bid':'bids'}`):(locale==='ID'?'Belum ada bid':'No bids yet')}</span>
                             <span className="market-feed-auction-timer">{timeLabel}</span>
                             {isEndingSoon?<span className="market-feed-auction-tag is-ending">{locale==='ID'?'Segera berakhir':'Ending soon'}</span>:isNearBin?<span className="market-feed-auction-tag is-close-bin">{locale==='ID'?'Dekat Buy Out':'Near Buy Out'}</span>:isHot?<span className="market-feed-auction-tag is-hot">{locale==='ID'?'Ramai':'Hot'}</span>:null}
                           </>;
@@ -1848,10 +1870,17 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                       </div>
                       <div className="market-feed-price">
                         {listing.type==='WTA'&&listing.auction?(
+                          listing.auctions&&listing.auctions.length>1?(
+                            <strong>
+                              {locale==='ID'?'Mulai ':'From '}
+                              {formatMoney(Math.min(...listing.auctions.map(s=>s.bidCount>0?s.currentBid:s.startingBid)),listing.currency)}
+                            </strong>
+                          ):(
                           <strong>
                             {formatMoney(listing.auction.bidCount>0?listing.auction.currentBid:(listing.auction.startingBid||listing.amount),listing.currency)}
                             {listing.auction.buyNowPrice&&<span className="market-feed-bin-inline"> / BIN {formatMoney(listing.auction.buyNowPrice,listing.currency)}</span>}
                           </strong>
+                          )
                         ):(
                           <strong>{listing.amount>0?formatMoney(listing.amount,listing.currency):(locale==='ID'?'Harga belum diatur':'Price not set')}</strong>
                         )}
@@ -2436,13 +2465,16 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                 {listingType==='WTA'&&bundleCards.length>1&&(
                   <div className="market-auction-bundle-mode">
                     <div className="market-category-switch market-sealed-kind-switch" role="group" aria-label={locale==='ID'?'Mode lelang bundel':'Bundle auction mode'}>
-                      <button type="button" className={auctionBundleMode==='separate'?'is-active':''} aria-pressed={auctionBundleMode==='separate'} onClick={()=>setAuctionBundleMode('separate')}>{locale==='ID'?'Lelang per kartu':'Separate per card'}</button>
-                      <button type="button" className={auctionBundleMode==='lot'?'is-active':''} aria-pressed={auctionBundleMode==='lot'} onClick={()=>setAuctionBundleMode('lot')}>{locale==='ID'?'1 lot gabungan':'Combined lot'}</button>
+                      <button type="button" className={auctionBundleMode==='separate'?'is-active':''} aria-pressed={auctionBundleMode==='separate'} onClick={()=>setAuctionBundleMode('separate')}>{locale==='ID'?'Listing terpisah':'Separate listings'}</button>
+                      <button type="button" className={auctionBundleMode==='multi'?'is-active':''} aria-pressed={auctionBundleMode==='multi'} onClick={()=>setAuctionBundleMode('multi')}>{locale==='ID'?'1 listing multi-kartu':'1 multi-card listing'}</button>
+                      <button type="button" className={auctionBundleMode==='lot'?'is-active':''} aria-pressed={auctionBundleMode==='lot'} onClick={()=>setAuctionBundleMode('lot')}>{locale==='ID'?'1 lot gabungan':'1 combined lot'}</button>
                     </div>
                     <p className="market-bundle-limit-note">
                       {auctionBundleMode==='separate'
-                        ?(locale==='ID'?`Setiap kartu di atas akan diterbitkan sebagai ${bundleCards.length} lelang terpisah sesuai Open Bid, Buy Out, kelipatan, dan durasi masing-masing.`:`Each card above will be published as ${bundleCards.length} separate auctions using its own Open Bid, Buy Out, increment, and end rule.`)
-                        :(locale==='ID'?'Semua kartu dilelang bersama dalam 1 lot dengan satu Open Bid, Buy Out, dan timer bersama.':'All cards are auctioned together as 1 lot with one shared Open Bid, Buy Out, and timer.')}
+                        ?(locale==='ID'?`Setiap kartu di atas akan diterbitkan sebagai ${bundleCards.length} listing lelang terpisah.`:`Each card above will be published as ${bundleCards.length} separate auction listings.`)
+                        :auctionBundleMode==='multi'
+                          ?(locale==='ID'?'Semua kartu diterbitkan dalam 1 halaman listing, dan pembeli dapat memasang bid terpisah pada setiap kartu.':'All cards are published in 1 listing page, and buyers can bid independently on each card.')
+                          :(locale==='ID'?'Semua kartu dilelang bersama dalam 1 lot dengan satu Open Bid, Buy Out, dan timer bersama.':'All cards are auctioned together as 1 lot with one shared Open Bid, Buy Out, and timer.')}
                     </p>
                   </div>
                 )}
@@ -2528,7 +2560,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                   </div>
                 )}
                 <div className="form-row market-review-listing-inputs">
-                  {!(listingType==='WTA'&&bundleCards.length>1&&auctionBundleMode==='separate')&&(
+                  {!(listingType==='WTA'&&bundleCards.length>1&&auctionBundleMode!=='lot')&&(
                   <label className="market-review-price-label">
                     <span>{listingType==='WTA'?(locale==='ID'?'Open Bid / Bid Awal (IDR)':'Open Bid / Starting Bid (IDR)'):listingType==='WTB'?(locale==='ID'?'Total anggaran (IDR)':'Total budget (IDR)'):(locale==='ID'?'Total harga listing (IDR)':'Total listing price (IDR)')}</span>
                     <div className="market-currency-input-wrap">
@@ -2580,7 +2612,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                     </>
                   ):(
                     <>
-                      {auctionBundleMode==='separate'&&bundleCards.length>1?(
+                      {(auctionBundleMode!=='lot'&&bundleCards.length>1)?(
                         <span className="market-sell-fee-estimate">
                           {locale==='ID'
                             ?`Biaya layanan Market ${listingFeePercent}% dihitung dari harga bid menang (atau Buy Out) masing-masing lelang.`

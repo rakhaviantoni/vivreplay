@@ -6,7 +6,7 @@ import type {Card} from '@/packages/card-data/catalog';
 import type {CollectionItem,SavedDeck,Listing} from '@/packages/domain';
 import {normalizeListingItemPrices} from '@/lib/market/normalize-listing-prices';
 import {generalMarketCategoryLabel} from '@/lib/market/general-products';
-import {getAuctionSummaryMap} from '@/lib/server/auctions';
+import {getAuctionSlotsMap} from '@/lib/server/auctions';
 import {getActiveBoostMap} from '@/lib/server/listing-boosts';
 export function db(){if(!env.DB)throw new Error('Persistent storage is unavailable. Please retry shortly.');return env.DB;}
 function defaultUsername(email: string | undefined, id: string): string {
@@ -308,8 +308,8 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
   }
 
   const wtaIds=rows.filter(row=>row.type==='WTA').map(row=>row.id);
-  const [auctionSummaries,boostMap]=await Promise.all([
-    wtaIds.length?getAuctionSummaryMap(db(),wtaIds):Promise.resolve(new Map()),
+  const [auctionSlots,boostMap]=await Promise.all([
+    wtaIds.length?getAuctionSlotsMap(db(),wtaIds):Promise.resolve(new Map()),
     getActiveBoostMap(db(),rows.map(row=>row.id)),
   ]);
 
@@ -377,7 +377,7 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
       shippingOptionCount:couriers.size,
       shippingCouriers:[...couriers],
       boostedUntil:boostMap.get(r.id)??null,
-      ...(r.type==='WTA'&&auctionSummaries.has(r.id)?{auction:auctionSummaries.get(r.id)}:{}),
+      ...(r.type==='WTA'&&auctionSlots.has(r.id)?{auction:auctionSlots.get(r.id)![0],auctions:auctionSlots.get(r.id)}:{}),
     } satisfies Listing;
   });
   if(!listingIds?.length){

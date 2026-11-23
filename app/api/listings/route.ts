@@ -12,7 +12,7 @@ import {createAuctionForListing} from '@/lib/server/auctions';
 import {validateFixedAuctionEndsAt} from '@/lib/market/auction';
 import {recordMarketActivity} from '@/lib/server/market-activity-progress';
 
-const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),productType:z.enum(['RAW','GRADED']).optional(),gradingCompany:z.string().trim().max(40).optional(),grade:z.string().trim().max(20).optional(),certification:z.string().trim().max(100).optional(),slabLabelStyle:z.enum(['clear','standard']).optional(),unitAmount:z.number().int().nonnegative().optional(),photoIds:z.array(z.string().min(1).max(120)).max(6).optional()});
+const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),itemKey:z.string().trim().min(1).max(160).optional(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),productType:z.enum(['RAW','GRADED']).optional(),gradingCompany:z.string().trim().max(40).optional(),grade:z.string().trim().max(20).optional(),certification:z.string().trim().max(100).optional(),slabLabelStyle:z.enum(['clear','standard']).optional(),unitAmount:z.number().int().nonnegative().optional(),photoIds:z.array(z.string().min(1).max(120)).max(6).optional()});
 const auctionSchema=z.object({
   startingBid:z.number().int().min(1000).max(100000000000),
   buyNowPrice:z.number().int().min(1000).max(100000000000).nullable().optional(),
@@ -21,7 +21,7 @@ const auctionSchema=z.object({
   fixedHours:z.number().int().min(1).max(168).optional(),
   fixedEndsAt:z.string().trim().max(64).optional(),
 });
-const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(MARKET_ABSOLUTE_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB','WTA']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional(),auction:auctionSchema.optional()});
+const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(MARKET_ABSOLUTE_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB','WTA']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional(),auction:auctionSchema.optional(),auctions:z.array(auctionSchema.extend({itemKey:z.string().trim().min(1).max(160)})).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional()});
 
 function labelStyleFromSubgrades(value:string|Record<string,unknown>|null|undefined):'clear'|'standard'{
   try{
@@ -189,26 +189,36 @@ export async function POST(request:Request){
     let createdAuction=null;
     let finalExpiresAt=expiresAt;
     if(value.type==='WTA'){
-      const auctionInput=value.auction??{startingBid:value.amount,minIncrement:10000,durationMode:'ROLLING_24H' as const};
-      const startingBid=auctionInput.startingBid||value.amount;
-      if(auctionInput.buyNowPrice&&auctionInput.buyNowPrice<=startingBid){
-        throw new HttpError(400,'Buy Out price must be higher than the starting bid.');
+      const slotInputs=value.auctions?.length
+        ?value.auctions
+        :[{...(value.auction??{startingBid:value.amount,minIncrement:10000,durationMode:'ROLLING_24H' as const}),itemKey:'__LOT__'}];
+      for(const slot of slotInputs){
+        const startingBid=slot.startingBid||value.amount;
+        if(slot.buyNowPrice&&slot.buyNowPrice<=startingBid){
+          throw new HttpError(400,'Buy Out price must be higher than the starting bid.');
+        }
+        if(slot.durationMode==='FIXED'&&slot.fixedEndsAt){
+          const check=validateFixedAuctionEndsAt(slot.fixedEndsAt);
+          if(!check.ok)throw new HttpError(400,check.error);
+        }
       }
-      if(auctionInput.durationMode==='FIXED'&&auctionInput.fixedEndsAt){
-        const check=validateFixedAuctionEndsAt(auctionInput.fixedEndsAt);
-        if(!check.ok)throw new HttpError(400,check.error);
+      const createdSlots=[];
+      for(const slot of slotInputs){
+        const created=await createAuctionForListing(database,{
+          listingId:id,
+          itemKey:slot.itemKey,
+          sellerId:profile.id,
+          startingBid:slot.startingBid||value.amount,
+          buyNowPrice:slot.buyNowPrice??null,
+          minIncrement:slot.minIncrement??10000,
+          durationMode:slot.durationMode??'ROLLING_24H',
+          fixedHours:slot.fixedHours,
+          fixedEndsAt:slot.fixedEndsAt,
+        });
+        createdSlots.push(created);
       }
-      createdAuction=await createAuctionForListing(database,{
-        listingId:id,
-        sellerId:profile.id,
-        startingBid,
-        buyNowPrice:auctionInput.buyNowPrice??null,
-        minIncrement:auctionInput.minIncrement??10000,
-        durationMode:auctionInput.durationMode??'ROLLING_24H',
-        fixedHours:auctionInput.fixedHours,
-        fixedEndsAt:auctionInput.fixedEndsAt,
-      });
-      finalExpiresAt=createdAuction.endsAt;
+      createdAuction=createdSlots[0]??null;
+      finalExpiresAt=createdSlots.map(s=>s.endsAt).sort().at(-1)??expiresAt;
       await database.prepare('UPDATE listings SET expires_at=?,negotiable=0 WHERE id=?').bind(finalExpiresAt,id).run();
     }
     await recordMarketActivity(database,profile.id,'listing_published',id);

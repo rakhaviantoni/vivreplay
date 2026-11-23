@@ -10,8 +10,11 @@ import {
   type AuctionSummary,
 } from '@/lib/market/auction';
 import {HttpError,db as database} from './store';
+import {sendMarketEmail,sendMarketEmailOnce} from './market-notifications';
 
 type DB=ReturnType<typeof database>;
+
+export const DEFAULT_AUCTION_ITEM_KEY='__LOT__';
 
 let schemaInitialized=false;
 
@@ -19,7 +22,8 @@ export async function ensureAuctionSchema(db:DB){
   if(schemaInitialized)return;
   await db.batch([
     db.prepare(`CREATE TABLE IF NOT EXISTS market_auctions (
-      listing_id TEXT PRIMARY KEY REFERENCES listings(id) ON DELETE CASCADE,
+      listing_id TEXT NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+      item_key TEXT NOT NULL DEFAULT '__LOT__',
       seller_id TEXT NOT NULL,
       starting_bid INTEGER NOT NULL,
       buy_now_price INTEGER,
@@ -33,31 +37,65 @@ export async function ensureAuctionSchema(db:DB){
       status TEXT NOT NULL DEFAULT 'ACTIVE',
       winner_order_id TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (listing_id, item_key)
     )`),
     db.prepare(`CREATE TABLE IF NOT EXISTS market_auction_bids (
       id TEXT PRIMARY KEY,
       listing_id TEXT NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+      item_key TEXT NOT NULL DEFAULT '__LOT__',
       bidder_id TEXT NOT NULL,
       bidder_name TEXT NOT NULL,
       amount INTEGER NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`),
-    db.prepare('CREATE INDEX IF NOT EXISTS idx_market_auction_bids_listing ON market_auction_bids(listing_id,created_at DESC)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_market_auction_bids_listing ON market_auction_bids(listing_id,item_key,created_at DESC)'),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_market_auctions_status_ends ON market_auctions(status,ends_at)'),
   ]);
   await db.prepare('ALTER TABLE market_auctions ADD COLUMN buy_now_price INTEGER').run().catch(()=>undefined);
+  await db.prepare(`ALTER TABLE market_auction_bids ADD COLUMN item_key TEXT NOT NULL DEFAULT '__LOT__'`).run().catch(()=>undefined);
+  const cols=(await db.prepare('PRAGMA table_info(market_auctions)').all<{name:string}>()).results??[];
+  if(!cols.some(col=>col.name==='item_key')){
+    await db.batch([
+      db.prepare(`CREATE TABLE market_auctions_v2 (
+        listing_id TEXT NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+        item_key TEXT NOT NULL DEFAULT '__LOT__',
+        seller_id TEXT NOT NULL,
+        starting_bid INTEGER NOT NULL,
+        buy_now_price INTEGER,
+        min_increment INTEGER NOT NULL DEFAULT 10000,
+        current_bid INTEGER NOT NULL DEFAULT 0,
+        highest_bidder_id TEXT,
+        highest_bidder_name TEXT,
+        bid_count INTEGER NOT NULL DEFAULT 0,
+        duration_mode TEXT NOT NULL DEFAULT 'ROLLING_24H',
+        ends_at TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'ACTIVE',
+        winner_order_id TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (listing_id, item_key)
+      )`),
+      db.prepare(`INSERT INTO market_auctions_v2 (listing_id,item_key,seller_id,starting_bid,buy_now_price,min_increment,current_bid,highest_bidder_id,highest_bidder_name,bid_count,duration_mode,ends_at,status,winner_order_id,created_at,updated_at)
+        SELECT listing_id,'__LOT__',seller_id,starting_bid,buy_now_price,min_increment,current_bid,highest_bidder_id,highest_bidder_name,bid_count,duration_mode,ends_at,status,winner_order_id,created_at,updated_at FROM market_auctions`),
+      db.prepare('DROP TABLE market_auctions'),
+      db.prepare('ALTER TABLE market_auctions_v2 RENAME TO market_auctions'),
+      db.prepare('CREATE INDEX IF NOT EXISTS idx_market_auctions_status_ends ON market_auctions(status,ends_at)'),
+    ]);
+  }
   schemaInitialized=true;
 }
 
-export function getAuctionRoomStub(listingId:string){
+export function getAuctionRoomStub(listingId:string,itemKey:string=DEFAULT_AUCTION_ITEM_KEY){
   const ns=env.AUCTION_ROOM;
   if(!ns)return null;
-  return ns.get(ns.idFromName(listingId));
+  const roomName=itemKey===DEFAULT_AUCTION_ITEM_KEY?listingId:`${listingId}:${itemKey}`;
+  return ns.get(ns.idFromName(roomName));
 }
 
 function toSummary(row:{
   listingId:string;
+  itemKey?:string|null;
   sellerId:string;
   startingBid:number;
   buyNowPrice?:number|null;
@@ -73,6 +111,7 @@ function toSummary(row:{
 }):AuctionSummary{
   return {
     listingId:row.listingId,
+    itemKey:row.itemKey||DEFAULT_AUCTION_ITEM_KEY,
     sellerId:row.sellerId,
     startingBid:Number(row.startingBid)||0,
     buyNowPrice:row.buyNowPrice&&Number(row.buyNowPrice)>0?Number(row.buyNowPrice):null,
@@ -92,6 +131,7 @@ export async function createAuctionForListing(
   db:DB,
   params:{
     listingId:string;
+    itemKey?:string;
     sellerId:string;
     startingBid:number;
     buyNowPrice?:number|null;
@@ -102,6 +142,7 @@ export async function createAuctionForListing(
   },
 ):Promise<AuctionSummary>{
   await ensureAuctionSchema(db);
+  const itemKey=params.itemKey||DEFAULT_AUCTION_ITEM_KEY;
   const nowMs=Date.now();
   const endsAtMs=computeInitialAuctionEndsAtMs(params.durationMode,nowMs,params.fixedHours,params.fixedEndsAt);
   const endsAt=new Date(endsAtMs).toISOString();
@@ -109,9 +150,10 @@ export async function createAuctionForListing(
   const buyNowPrice=params.buyNowPrice&&params.buyNowPrice>startingBid?Math.round(params.buyNowPrice):null;
   const minIncrement=Math.max(1_000,Math.round(params.minIncrement));
 
-  await db.prepare(`INSERT INTO market_auctions (listing_id,seller_id,starting_bid,buy_now_price,min_increment,current_bid,highest_bidder_id,highest_bidder_name,bid_count,duration_mode,ends_at,status)
-    VALUES (?,?,?,?,?,0,NULL,NULL,0,?,?,'ACTIVE')`).bind(
+  await db.prepare(`INSERT INTO market_auctions (listing_id,item_key,seller_id,starting_bid,buy_now_price,min_increment,current_bid,highest_bidder_id,highest_bidder_name,bid_count,duration_mode,ends_at,status)
+    VALUES (?,?,?,?,?,?,0,NULL,NULL,0,?,?,'ACTIVE')`).bind(
     params.listingId,
+    itemKey,
     params.sellerId,
     startingBid,
     buyNowPrice,
@@ -122,6 +164,7 @@ export async function createAuctionForListing(
 
   const summary:AuctionSummary={
     listingId:params.listingId,
+    itemKey,
     sellerId:params.sellerId,
     startingBid,
     buyNowPrice,
@@ -136,7 +179,7 @@ export async function createAuctionForListing(
     winnerOrderId:null,
   };
 
-  const stub=getAuctionRoomStub(params.listingId);
+  const stub=getAuctionRoomStub(params.listingId,itemKey);
   if(stub){
     try{
       await stub.fetch('https://auction.internal/init',{
@@ -145,56 +188,108 @@ export async function createAuctionForListing(
         body:JSON.stringify({...summary,endsAtMs}),
       });
     }catch(error){
-      console.error('auction_room_init_failed',params.listingId,error);
+      console.error('auction_room_init_failed',params.listingId,itemKey,error);
     }
   }
 
   return summary;
 }
 
-export async function getAuctionSummaryMap(db:DB,listingIds:string[]):Promise<Map<string,AuctionSummary>>{
-  const map=new Map<string,AuctionSummary>();
+export async function getAuctionSlotsMap(db:DB,listingIds:string[]):Promise<Map<string,AuctionSummary[]>>{
+  const map=new Map<string,AuctionSummary[]>();
   if(!listingIds.length)return map;
   try{
     await ensureAuctionSchema(db);
     const placeholders=listingIds.map(()=>'?').join(',');
-    const rows=await db.prepare(`SELECT listing_id AS listingId,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
-      FROM market_auctions WHERE listing_id IN (${placeholders})`).bind(...listingIds).all<Parameters<typeof toSummary>[0]>();
+    const rows=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
+      FROM market_auctions WHERE listing_id IN (${placeholders}) ORDER BY rowid ASC`).bind(...listingIds).all<Parameters<typeof toSummary>[0]>();
     for(const row of rows.results??[]){
-      map.set(row.listingId,toSummary(row));
+      const list=map.get(row.listingId)??[];
+      list.push(toSummary(row));
+      map.set(row.listingId,list);
     }
   }catch{
-    // If table is unavailable during early migration, degrade gracefully.
+    // Degrade gracefully during early migration.
   }
   return map;
 }
 
-export async function getAuctionDetail(db:DB,listingId:string):Promise<{auction:AuctionSummary;bids:AuctionBidRecord[]}|null>{
+export async function getAuctionSummaryMap(db:DB,listingIds:string[]):Promise<Map<string,AuctionSummary>>{
+  const slots=await getAuctionSlotsMap(db,listingIds);
+  const map=new Map<string,AuctionSummary>();
+  for(const [id,list] of slots){
+    if(list[0])map.set(id,list[0]);
+  }
+  return map;
+}
+
+export async function getAuctionDetail(
+  db:DB,
+  listingId:string,
+  itemKey:string=DEFAULT_AUCTION_ITEM_KEY,
+):Promise<{auction:AuctionSummary;bids:AuctionBidRecord[]}|null>{
   await ensureAuctionSchema(db);
-  const row=await db.prepare(`SELECT listing_id AS listingId,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
-    FROM market_auctions WHERE listing_id=?`).bind(listingId).first<Parameters<typeof toSummary>[0]>();
+  const row=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
+    FROM market_auctions WHERE listing_id=? AND item_key=?`).bind(listingId,itemKey).first<Parameters<typeof toSummary>[0]>();
   if(!row)return null;
   let auction=toSummary(row);
   const endsAtMs=Date.parse(auction.endsAt);
   if(auction.status==='ACTIVE'&&Number.isFinite(endsAtMs)&&Date.now()>=endsAtMs){
-    auction=await finalizeAuction(db,listingId)??auction;
+    auction=await finalizeAuction(db,listingId,itemKey)??auction;
   }
-  const bidsResult=await db.prepare(`SELECT id,listing_id AS listingId,bidder_id AS bidderId,bidder_name AS bidderName,amount,created_at AS createdAt
-    FROM market_auction_bids WHERE listing_id=? ORDER BY amount DESC,created_at DESC LIMIT 30`).bind(listingId).all<AuctionBidRecord>();
+  const bidsResult=await db.prepare(`SELECT id,listing_id AS listingId,item_key AS itemKey,bidder_id AS bidderId,bidder_name AS bidderName,amount,created_at AS createdAt
+    FROM market_auction_bids WHERE listing_id=? AND item_key=? ORDER BY amount DESC,created_at DESC LIMIT 30`).bind(listingId,itemKey).all<AuctionBidRecord>();
   return {auction,bids:bidsResult.results??[]};
+}
+
+export async function getAuctionSlotsDetail(
+  db:DB,
+  listingId:string,
+):Promise<Array<{auction:AuctionSummary;bids:AuctionBidRecord[]}>>{
+  await ensureAuctionSchema(db);
+  const rows=(await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
+    FROM market_auctions WHERE listing_id=? ORDER BY rowid ASC`).bind(listingId).all<Parameters<typeof toSummary>[0]>()).results??[];
+  const out:Array<{auction:AuctionSummary;bids:AuctionBidRecord[]}>=[];
+  for(const row of rows){
+    const key=row.itemKey||DEFAULT_AUCTION_ITEM_KEY;
+    const detail=await getAuctionDetail(db,listingId,key);
+    if(detail)out.push(detail);
+  }
+  return out;
+}
+
+async function syncListingSummaryAfterAuctionChange(db:DB,listingId:string){
+  const slots=(await db.prepare(`SELECT status,starting_bid AS startingBid,current_bid AS currentBid,bid_count AS bidCount,ends_at AS endsAt,highest_bidder_id AS highestBidderId
+    FROM market_auctions WHERE listing_id=?`).bind(listingId).all<{status:string;startingBid:number;currentBid:number;bidCount:number;endsAt:string;highestBidderId:string|null}>()).results??[];
+  if(!slots.length)return;
+  const active=slots.filter(s=>s.status==='ACTIVE');
+  if(active.length>0){
+    const minPrice=Math.min(...active.map(s=>s.bidCount>0?s.currentBid:s.startingBid));
+    const maxEndsAt=active.map(s=>s.endsAt).sort().at(-1)??active[0].endsAt;
+    await db.prepare(`UPDATE listings SET amount=?,expires_at=? WHERE id=?`).bind(minPrice,maxEndsAt,listingId).run();
+    return;
+  }
+  const hasWinner=slots.some(s=>Boolean(s.highestBidderId&&s.bidCount>0));
+  const bestAmount=Math.max(...slots.map(s=>s.bidCount>0?s.currentBid:s.startingBid));
+  await db.prepare(`UPDATE listings SET amount=?,status=? WHERE id=? AND status='ACTIVE'`).bind(bestAmount,hasWinner?'RESERVED':'EXPIRED',listingId).run();
 }
 
 export async function placeAuctionBid(
   db:DB,
-  params:{listingId:string;bidderId:string;bidderName:string;amount:number},
+  params:{listingId:string;itemKey?:string;bidderId:string;bidderName:string;amount:number},
 ):Promise<{auction:AuctionSummary;bid:AuctionBidRecord}>{
   await ensureAuctionSchema(db);
-  const row=await db.prepare(`SELECT listing_id AS listingId,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
-    FROM market_auctions WHERE listing_id=?`).bind(params.listingId).first<Parameters<typeof toSummary>[0]>();
+  const itemKey=params.itemKey||DEFAULT_AUCTION_ITEM_KEY;
+  const row=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
+    FROM market_auctions WHERE listing_id=? AND item_key=?`).bind(params.listingId,itemKey).first<Parameters<typeof toSummary>[0]>();
   if(!row)throw new HttpError(404,'Auction not found.');
   const current=toSummary(row);
+  const prevHighestBidderId=current.highestBidderId;
   const bidId=crypto.randomUUID();
-  const stub=getAuctionRoomStub(params.listingId);
+  const stub=getAuctionRoomStub(params.listingId,itemKey);
+
+  let nextAuction:AuctionSummary;
+  let bid:AuctionBidRecord;
 
   if(stub){
     const stateCheck=await stub.fetch('https://auction.internal/state');
@@ -220,92 +315,109 @@ export async function placeAuctionBid(
       throw new HttpError(doResponse.status>=400?doResponse.status:400,doPayload.error||'Could not place bid.');
     }
     const nextState=doPayload.state;
-    const bid=doPayload.bid;
+    bid={...doPayload.bid,itemKey};
     await db.batch([
-      db.prepare(`INSERT INTO market_auction_bids (id,listing_id,bidder_id,bidder_name,amount,created_at) VALUES (?,?,?,?,?,?)`)
-        .bind(bid.id,params.listingId,bid.bidderId,bid.bidderName,bid.amount,bid.createdAt),
-      db.prepare(`UPDATE market_auctions SET current_bid=?,highest_bidder_id=?,highest_bidder_name=?,bid_count=?,ends_at=?,updated_at=CURRENT_TIMESTAMP WHERE listing_id=?`)
-        .bind(nextState.currentBid,nextState.highestBidderId,nextState.highestBidderName,nextState.bidCount,nextState.endsAt,params.listingId),
-      db.prepare(`UPDATE listings SET amount=?,expires_at=? WHERE id=?`)
-        .bind(nextState.currentBid,nextState.endsAt,params.listingId),
+      db.prepare(`INSERT INTO market_auction_bids (id,listing_id,item_key,bidder_id,bidder_name,amount,created_at) VALUES (?,?,?,?,?,?,?)`)
+        .bind(bid.id,params.listingId,itemKey,bid.bidderId,bid.bidderName,bid.amount,bid.createdAt),
+      db.prepare(`UPDATE market_auctions SET current_bid=?,highest_bidder_id=?,highest_bidder_name=?,bid_count=?,ends_at=?,updated_at=CURRENT_TIMESTAMP WHERE listing_id=? AND item_key=?`)
+        .bind(nextState.currentBid,nextState.highestBidderId,nextState.highestBidderName,nextState.bidCount,nextState.endsAt,params.listingId,itemKey),
     ]);
-    return {auction:toSummary(nextState),bid};
-  }
+    await syncListingSummaryAfterAuctionChange(db,params.listingId);
+    nextAuction=toSummary({...nextState,itemKey});
+  }else{
+    const nowMs=Date.now();
+    const endsAtMs=Date.parse(current.endsAt);
+    const check=validateAuctionBid({
+      sellerId:current.sellerId,
+      bidderId:params.bidderId,
+      status:current.status,
+      endsAtMs,
+      nowMs,
+      startingBid:current.startingBid,
+      currentBid:current.currentBid,
+      minIncrement:current.minIncrement,
+      bidCount:current.bidCount,
+      highestBidderId:current.highestBidderId,
+      amount:params.amount,
+    });
+    if(!check.ok)throw new HttpError(check.status,check.error);
 
-  // Fallback atomic D1 update when Durable Object binding is unavailable
-  const nowMs=Date.now();
-  const endsAtMs=Date.parse(current.endsAt);
-  const check=validateAuctionBid({
-    sellerId:current.sellerId,
-    bidderId:params.bidderId,
-    status:current.status,
-    endsAtMs,
-    nowMs,
-    startingBid:current.startingBid,
-    currentBid:current.currentBid,
-    minIncrement:current.minIncrement,
-    bidCount:current.bidCount,
-    highestBidderId:current.highestBidderId,
-    amount:params.amount,
-  });
-  if(!check.ok)throw new HttpError(check.status,check.error);
+    const amount=Math.round(params.amount);
+    const nextEndsAtMs=computeNextAuctionEndsAtMs(current.durationMode,nowMs,endsAtMs);
+    const nextEndsAt=new Date(nextEndsAtMs).toISOString();
+    const createdAt=new Date(nowMs).toISOString();
+    const nextBidCount=current.bidCount+1;
 
-  const amount=Math.round(params.amount);
-  const nextEndsAtMs=computeNextAuctionEndsAtMs(current.durationMode,nowMs,endsAtMs);
-  const nextEndsAt=new Date(nextEndsAtMs).toISOString();
-  const createdAt=new Date(nowMs).toISOString();
-  const nextBidCount=current.bidCount+1;
-
-  const updateRes=await db.prepare(`UPDATE market_auctions SET current_bid=?,highest_bidder_id=?,highest_bidder_name=?,bid_count=?,ends_at=?,updated_at=CURRENT_TIMESTAMP
-    WHERE listing_id=? AND status='ACTIVE' AND bid_count=?`).bind(
-    amount,
-    params.bidderId,
-    params.bidderName,
-    nextBidCount,
-    nextEndsAt,
-    params.listingId,
-    current.bidCount,
-  ).run();
-  if(!updateRes.meta.changes){
-    throw new HttpError(409,'Someone else just placed a higher bid. Refresh and try again.');
-  }
-  await db.batch([
-    db.prepare(`INSERT INTO market_auction_bids (id,listing_id,bidder_id,bidder_name,amount,created_at) VALUES (?,?,?,?,?,?)`)
-      .bind(bidId,params.listingId,params.bidderId,params.bidderName,amount,createdAt),
-    db.prepare(`UPDATE listings SET amount=?,expires_at=? WHERE id=?`)
-      .bind(amount,nextEndsAt,params.listingId),
-  ]);
-  return {
-    auction:{
+    const updateRes=await db.prepare(`UPDATE market_auctions SET current_bid=?,highest_bidder_id=?,highest_bidder_name=?,bid_count=?,ends_at=?,updated_at=CURRENT_TIMESTAMP
+      WHERE listing_id=? AND item_key=? AND status='ACTIVE' AND bid_count=?`).bind(
+      amount,
+      params.bidderId,
+      params.bidderName,
+      nextBidCount,
+      nextEndsAt,
+      params.listingId,
+      itemKey,
+      current.bidCount,
+    ).run();
+    if(!updateRes.meta.changes){
+      throw new HttpError(409,'Someone else just placed a higher bid. Refresh and try again.');
+    }
+    await db.prepare(`INSERT INTO market_auction_bids (id,listing_id,item_key,bidder_id,bidder_name,amount,created_at) VALUES (?,?,?,?,?,?,?)`)
+      .bind(bidId,params.listingId,itemKey,params.bidderId,params.bidderName,amount,createdAt).run();
+    await syncListingSummaryAfterAuctionChange(db,params.listingId);
+    nextAuction={
       ...current,
       currentBid:amount,
       highestBidderId:params.bidderId,
       highestBidderName:params.bidderName,
       bidCount:nextBidCount,
       endsAt:nextEndsAt,
-    },
-    bid:{
+    };
+    bid={
       id:bidId,
       listingId:params.listingId,
+      itemKey,
       bidderId:params.bidderId,
       bidderName:params.bidderName,
       amount,
       createdAt,
-    },
-  };
+    };
+  }
+
+  const listingRow=await db.prepare('SELECT title FROM listings WHERE id=?').bind(params.listingId).first<{title:string}>().catch(()=>null);
+  const title=listingRow?.title||'Auction listing';
+  await Promise.all([
+    sendMarketEmail(current.sellerId,'auction-bid-placed',title,params.listingId,{amount:bid.amount,currency:'IDR',participant:params.bidderName,expiresAt:nextAuction.endsAt}).catch(()=>false),
+    prevHighestBidderId&&prevHighestBidderId!==params.bidderId
+      ?sendMarketEmail(prevHighestBidderId,'auction-outbid',title,params.listingId,{amount:bid.amount,currency:'IDR',expiresAt:nextAuction.endsAt}).catch(()=>false)
+      :Promise.resolve(false),
+  ]);
+
+  return {auction:nextAuction,bid};
 }
 
-export async function finalizeAuction(db:DB,listingId:string):Promise<AuctionSummary|null>{
+export async function finalizeAuction(
+  db:DB,
+  listingId:string,
+  itemKey:string=DEFAULT_AUCTION_ITEM_KEY,
+):Promise<AuctionSummary|null>{
   await ensureAuctionSchema(db);
-  const row=await db.prepare(`SELECT listing_id AS listingId,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
-    FROM market_auctions WHERE listing_id=?`).bind(listingId).first<Parameters<typeof toSummary>[0]>();
+  const row=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
+    FROM market_auctions WHERE listing_id=? AND item_key=?`).bind(listingId,itemKey).first<Parameters<typeof toSummary>[0]>();
   if(!row)return null;
   if(row.status!=='ACTIVE')return toSummary(row);
 
   const hasWinner=Boolean(row.highestBidderId&&Number(row.bidCount)>0);
-  await db.batch([
-    db.prepare(`UPDATE market_auctions SET status='ENDED',updated_at=CURRENT_TIMESTAMP WHERE listing_id=? AND status='ACTIVE'`).bind(listingId),
-    db.prepare(`UPDATE listings SET status=? WHERE id=? AND status='ACTIVE'`).bind(hasWinner?'RESERVED':'EXPIRED',listingId),
+  await db.prepare(`UPDATE market_auctions SET status='ENDED',updated_at=CURRENT_TIMESTAMP WHERE listing_id=? AND item_key=? AND status='ACTIVE'`).bind(listingId,itemKey).run();
+  await syncListingSummaryAfterAuctionChange(db,listingId);
+
+  const listingRow=await db.prepare('SELECT title FROM listings WHERE id=?').bind(listingId).first<{title:string}>().catch(()=>null);
+  const title=listingRow?.title||'Auction listing';
+  await Promise.all([
+    hasWinner&&row.highestBidderId
+      ?sendMarketEmailOnce(row.highestBidderId,'auction-won',title,listingId,`auction-won-${listingId}-${itemKey}`,{amount:Number(row.currentBid)||0,currency:'IDR'}).catch(()=>false)
+      :Promise.resolve(false),
+    sendMarketEmailOnce(row.sellerId,'auction-ended-seller',title,listingId,`auction-ended-seller-${listingId}-${itemKey}`,{amount:hasWinner?Number(row.currentBid)||0:undefined,currency:'IDR',participant:row.highestBidderName??undefined}).catch(()=>false),
   ]);
 
   return {
@@ -316,11 +428,12 @@ export async function finalizeAuction(db:DB,listingId:string):Promise<AuctionSum
 
 export async function buyOutAuction(
   db:DB,
-  params:{listingId:string;buyerId:string;buyerName:string},
+  params:{listingId:string;itemKey?:string;buyerId:string;buyerName:string},
 ):Promise<{auction:AuctionSummary}>{
   await ensureAuctionSchema(db);
-  const row=await db.prepare(`SELECT listing_id AS listingId,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
-    FROM market_auctions WHERE listing_id=?`).bind(params.listingId).first<Parameters<typeof toSummary>[0]>();
+  const itemKey=params.itemKey||DEFAULT_AUCTION_ITEM_KEY;
+  const row=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
+    FROM market_auctions WHERE listing_id=? AND item_key=?`).bind(params.listingId,itemKey).first<Parameters<typeof toSummary>[0]>();
   if(!row)throw new HttpError(404,'Auction not found.');
   const current=toSummary(row);
   if(current.status!=='ACTIVE'||Date.parse(current.endsAt)<=Date.now())throw new HttpError(409,'This auction has already ended.');
@@ -333,13 +446,18 @@ export async function buyOutAuction(
   const createdAt=new Date().toISOString();
   const updateRes=await db.prepare(`UPDATE market_auctions
     SET current_bid=?,highest_bidder_id=?,highest_bidder_name=?,bid_count=bid_count+1,status='ENDED',updated_at=CURRENT_TIMESTAMP
-    WHERE listing_id=? AND status='ACTIVE'`).bind(buyNow,params.buyerId,params.buyerName,params.listingId).run();
+    WHERE listing_id=? AND item_key=? AND status='ACTIVE'`).bind(buyNow,params.buyerId,params.buyerName,params.listingId,itemKey).run();
   if(!updateRes.meta.changes)throw new HttpError(409,'This auction has already ended.');
 
-  await db.batch([
-    db.prepare(`INSERT INTO market_auction_bids (id,listing_id,bidder_id,bidder_name,amount,created_at) VALUES (?,?,?,?,?,?)`)
-      .bind(bidId,params.listingId,params.buyerId,params.buyerName,buyNow,createdAt),
-    db.prepare(`UPDATE listings SET amount=?,status='RESERVED' WHERE id=?`).bind(buyNow,params.listingId),
+  await db.prepare(`INSERT INTO market_auction_bids (id,listing_id,item_key,bidder_id,bidder_name,amount,created_at) VALUES (?,?,?,?,?,?,?)`)
+    .bind(bidId,params.listingId,itemKey,params.buyerId,params.buyerName,buyNow,createdAt).run();
+  await syncListingSummaryAfterAuctionChange(db,params.listingId);
+
+  const listingRow=await db.prepare('SELECT title FROM listings WHERE id=?').bind(params.listingId).first<{title:string}>().catch(()=>null);
+  const title=listingRow?.title||'Auction listing';
+  await Promise.all([
+    sendMarketEmailOnce(params.buyerId,'auction-won',title,params.listingId,`auction-won-${params.listingId}-${itemKey}`,{amount:buyNow,currency:'IDR',participant:params.buyerName}).catch(()=>false),
+    sendMarketEmailOnce(current.sellerId,'auction-ended-seller',title,params.listingId,`auction-ended-seller-${params.listingId}-${itemKey}`,{amount:buyNow,currency:'IDR',participant:params.buyerName}).catch(()=>false),
   ]);
 
   return {

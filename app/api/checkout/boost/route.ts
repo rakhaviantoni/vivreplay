@@ -3,6 +3,7 @@ import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
 import {getBoostPlanAmount,LISTING_BOOST_PLANS} from '@/lib/market/boost';
 import {getListingPolicy} from '@/lib/market/policy';
 import {activateListingBoost,consumeProBoostCredit,ensureBoostSchema} from '@/lib/server/listing-boosts';
+import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {spendCredits} from '@/lib/server/credits';
 
 const schema=z.object({
@@ -33,6 +34,7 @@ export async function POST(request:Request){
       if(!isPro)throw new HttpError(403,'Monthly Spotlight credits are included with Market Pro.');
       const boostedUntil=await consumeProBoostCredit(database,{listingId:listing.id,sellerId:profile.id});
       if(!boostedUntil)throw new HttpError(409,'You have used all monthly Market Pro Spotlight credits for this month.');
+      await sendMarketEmail(profile.id,'listing-boost-activated',listing.title,listing.id,{amount:0,currency:'IDR',expiresAt:boostedUntil}).catch(()=>{});
       return Response.json({
         id:`pro-credit-${listing.id}`,
         activated:true,
@@ -63,6 +65,7 @@ export async function POST(request:Request){
         days:plan.days,
         orderId:`CREDITS:${Date.now()}`,
       });
+      await sendMarketEmail(profile.id,'listing-boost-activated',listing.title,listing.id,{amount,currency:'IDR',expiresAt:boostedUntil}).catch(()=>{});
       return Response.json({
         id:`credits-boost-${listing.id}`,
         activated:true,

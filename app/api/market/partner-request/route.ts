@@ -1,6 +1,7 @@
 import {z} from 'zod';
 import {db,errorResponse,guard,HttpError,optionalUser} from '@/lib/server/store';
 import {ensurePartnerRequestsSchema,getConnectedSocialSnapshot,runPartnerAiPrescreen} from '@/lib/server/partner-requests';
+import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 const schema=z.object({
   shopName:z.string().trim().max(100).optional().default(''),
@@ -65,6 +66,10 @@ export async function POST(request:Request){
       aiReview.summary,
       connectedSocials?JSON.stringify(connectedSocials):null,
     ).run();
+
+    if(viewer?.id){
+      await sendMarketEmail(viewer.id,'partner-application-received',shopName,id).catch(()=>{});
+    }
 
     return Response.json({id,ok:true},{status:201});
   }catch(error){

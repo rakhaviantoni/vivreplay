@@ -27,6 +27,8 @@ function formatCountdown(remainingMs:number,locale:'EN'|'ID'){
 
 export function MarketAuctionPanel({
   listingId,
+  itemKey = '__LOT__',
+  itemTitle,
   initialAuction,
   initialBids,
   currency,
@@ -36,6 +38,8 @@ export function MarketAuctionPanel({
   onCheckoutWinner,
 }:{
   listingId:string;
+  itemKey?:string;
+  itemTitle?:string;
   initialAuction:AuctionSummary;
   initialBids:AuctionBidRecord[];
   currency:string;
@@ -81,7 +85,7 @@ export function MarketAuctionPanel({
     const connect=()=>{
       if(closed||typeof window==='undefined')return;
       const proto=window.location.protocol==='https:'?'wss:':'ws:';
-      const wsUrl=`${proto}//${window.location.host}/api/auctions/${encodeURIComponent(listingId)}`;
+      const wsUrl=`${proto}//${window.location.host}/api/auctions/${encodeURIComponent(listingId)}?itemKey=${encodeURIComponent(itemKey)}`;
       try{
         ws=new WebSocket(wsUrl);
         ws.onmessage=event=>{
@@ -135,7 +139,7 @@ export function MarketAuctionPanel({
       const response=await fetch(`/api/auctions/${encodeURIComponent(listingId)}/bid`,{
         method:'POST',
         headers:{'content-type':'application/json'},
-        body:JSON.stringify({amount}),
+        body:JSON.stringify({amount,itemKey}),
       });
       const payload=await response.json() as {error?:string;auction?:AuctionSummary;bid?:AuctionBidRecord};
       if(!response.ok||!payload.auction){
@@ -159,7 +163,7 @@ export function MarketAuctionPanel({
       <div className="market-auction-header">
         <span className={`market-auction-pill${isEnded?' is-ended':''}`}>
           <Gavel size={14} weight="bold"/>
-          <span>{isEnded?(locale==='ID'?'Lelang berakhir':'Auction ended'):(locale==='ID'?'Lelang aktif':'Live auction')}</span>
+          <span>{itemTitle?`${itemTitle} - ${isEnded?(locale==='ID'?'Berakhir':'Ended'):(locale==='ID'?'Aktif':'Live')}`:(isEnded?(locale==='ID'?'Lelang berakhir':'Auction ended'):(locale==='ID'?'Lelang aktif':'Live auction'))}</span>
         </span>
         <span className="market-auction-rule">{formatAuctionDurationLabel(auction.durationMode,locale)}</span>
       </div>
@@ -213,7 +217,7 @@ export function MarketAuctionPanel({
                 setBuyingOut(true);
                 setError('');
                 try{
-                  const response=await fetch(`/api/auctions/${encodeURIComponent(listingId)}/buy-now`,{method:'POST'});
+                  const response=await fetch(`/api/auctions/${encodeURIComponent(listingId)}/buy-now`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({itemKey})});
                   const payload=await response.json() as {auction?:AuctionSummary;error?:string};
                   if(!response.ok||!payload.auction)throw new Error(payload.error||(locale==='ID'?'Buy Out gagal.':'Could not complete Buy Out.'));
                   setAuction(payload.auction);

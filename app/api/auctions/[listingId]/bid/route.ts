@@ -4,6 +4,7 @@ import {placeAuctionBid} from '@/lib/server/auctions';
 
 const bidSchema=z.object({
   amount:z.number().int().positive().max(100_000_000_000),
+  itemKey:z.string().trim().min(1).max(160).optional(),
 });
 
 export async function POST(request:Request,context:{params:Promise<{listingId:string}>}){
@@ -15,6 +16,7 @@ export async function POST(request:Request,context:{params:Promise<{listingId:st
     const body=bidSchema.parse(await request.json());
     const result=await placeAuctionBid(db(),{
       listingId,
+      itemKey:body.itemKey,
       bidderId:profile.id,
       bidderName:profile.name||profile.username||'Collector',
       amount:body.amount,

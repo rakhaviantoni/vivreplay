@@ -1002,6 +1002,7 @@ export function MarketListingDetailView({
   reservedCount = 0,
   renewDurationDays = 7,
   auctionDetail = null,
+  auctionSlots = [],
   currentUserId = null,
 }: {
   listing: Listing;
@@ -1018,6 +1019,7 @@ export function MarketListingDetailView({
   reservedCount?: number;
   renewDurationDays?: number;
   auctionDetail?: { auction: AuctionSummary; bids: AuctionBidRecord[] } | null;
+  auctionSlots?: Array<{ auction: AuctionSummary; bids: AuctionBidRecord[] }>;
   currentUserId?: string | null;
 }) {
   const router=useRouter();
@@ -1322,22 +1324,34 @@ export function MarketListingDetailView({
             <MarketListingSocialStatus listingId={listing.id} language={language} />
           )}
 
-          {listing.type === 'WTA' && auctionDetail?.auction && (
-            <MarketAuctionPanel
-              listingId={listing.id}
-              initialAuction={auctionDetail.auction}
-              initialBids={auctionDetail.bids}
-              currency={listing.currency}
-              isOwner={ownerView}
-              currentUserId={currentUserId}
-              locale={language}
-              onCheckoutWinner={() => {
-                const orderItems = editableCards.map(item => ({ printingId: item.id, quantity: item.quantity }));
-                const query = new URLSearchParams({ listing: listing.id, items: JSON.stringify(orderItems) });
-                router.push(`/checkout/market?${query.toString()}`);
-              }}
-            />
-          )}
+          {listing.type === 'WTA' && (auctionSlots.length > 0 ? auctionSlots : auctionDetail ? [auctionDetail] : []).map((slot, index) => {
+            const slotKey = slot.auction.itemKey || '__LOT__';
+            const matchedCard = slotKey !== '__LOT__'
+              ? editableCards.find(item => item.id === slotKey) ?? editableCards[index]
+              : undefined;
+            const isMultiSlot = auctionSlots.length > 1;
+            return (
+              <MarketAuctionPanel
+                key={slotKey}
+                listingId={listing.id}
+                itemKey={slotKey}
+                itemTitle={isMultiSlot ? matchedCard?.card.name : undefined}
+                initialAuction={slot.auction}
+                initialBids={slot.bids}
+                currency={listing.currency}
+                isOwner={ownerView}
+                currentUserId={currentUserId}
+                locale={language}
+                onCheckoutWinner={() => {
+                  const orderItems = isMultiSlot && matchedCard
+                    ? [{ printingId: matchedCard.id, quantity: matchedCard.quantity }]
+                    : editableCards.map(item => ({ printingId: item.id, quantity: item.quantity }));
+                  const query = new URLSearchParams({ listing: listing.id, items: JSON.stringify(orderItems) });
+                  router.push(`/checkout/market?${query.toString()}`);
+                }}
+              />
+            );
+          })}
 
           <MarketListingItems
               items={editableCards}

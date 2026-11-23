@@ -83,7 +83,12 @@ export async function POST(request:Request){
     if(listing.type==='WTB'&&(!acceptedOffer||acceptedOffer.listingType!=='WTB'||!listing.sealedProductId))throw new HttpError(400,'A sealed buying request needs an accepted seller offer before checkout.');
     if((listing.type==='WTS'||listing.type==='WTA')&&listing.sellerId===profile.id)throw new HttpError(403,'You cannot purchase from your own listing.');
     if(listing.type==='WTA'){
-      const auction=await database.prepare('SELECT current_bid AS currentBid,highest_bidder_id AS highestBidderId,status,ends_at AS endsAt FROM market_auctions WHERE listing_id=?').bind(listing.id).first<{currentBid:number;highestBidderId:string|null;status:string;endsAt:string}>();
+      const firstPrinting=input.items[0]?.printingId??'';
+      const auction=await database.prepare(`SELECT item_key AS itemKey,current_bid AS currentBid,highest_bidder_id AS highestBidderId,status,ends_at AS endsAt
+        FROM market_auctions
+        WHERE listing_id=? AND highest_bidder_id=? AND (status='ENDED' OR ends_at<=CURRENT_TIMESTAMP)
+        ORDER BY CASE WHEN item_key=? THEN 0 WHEN item_key='__LOT__' THEN 1 ELSE 2 END
+        LIMIT 1`).bind(listing.id,profile.id,firstPrinting).first<{itemKey:string;currentBid:number;highestBidderId:string|null;status:string;endsAt:string}>();
       if(!auction||auction.highestBidderId!==profile.id||(auction.status!=='ENDED'&&Date.parse(auction.endsAt)>Date.now())){
         throw new HttpError(403,'Only the winning bidder can check out after the auction ends.');
       }

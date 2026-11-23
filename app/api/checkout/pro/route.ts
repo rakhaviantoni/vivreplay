@@ -4,6 +4,7 @@ import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannelChoices,getIpaymu
 import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,MARKET_FREE_SOCIAL_POSTS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 import {getProPricing} from '@/lib/market/pro-pricing';
 import {getCreditWallet,spendCredits} from '@/lib/server/credits';
+import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 const PAID_INTRO_STATUSES="'PROCESSING','PAID','COMPLETED'";
 
@@ -132,6 +133,7 @@ export async function POST(request:Request){
           VALUES (?,'PRO',?,'[]',?,?,0,?,'IDR','PAID',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`).bind(orderId,profile.id,JSON.stringify({durationDays,billingPeriod,paidWithCredits:true}),amount,amount,`CREDITS:${orderId}`),
         database.prepare(`UPDATE profiles SET tier='pro',pro_billing_period=?,pro_expires_at=datetime(max(COALESCE(pro_expires_at,CURRENT_TIMESTAMP),CURRENT_TIMESTAMP), '+' || ? || ' days') WHERE id=?`).bind(billingPeriod,durationDays,profile.id),
       ]);
+      await sendMarketEmail(profile.id,'pro-activated','Market Pro',orderId,{membershipDays:durationDays,amount,currency:'IDR'}).catch(()=>{});
       return Response.json({id:orderId,paidWithCredits:true,balance:spend.balance,amount,billingPeriod},{status:200});
     }
     if(!hasMarketIpaymuPaymentConfig()||!amount||!durationDays)throw new HttpError(503,'Market Pro checkout is temporarily unavailable.');
@@ -232,6 +234,7 @@ export async function POST(request:Request){
               database.prepare(`UPDATE checkout_orders SET status='PAID',amount=0,payment_id=?,details=json_set(details,'$.paidWithCredits',1,'$.creditsApplied',?),paid_at=CURRENT_TIMESTAMP,fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(`CREDITS:${orderId}`,creditsApplied,orderId),
               database.prepare(`UPDATE profiles SET tier='pro',pro_billing_period=?,pro_expires_at=datetime(max(COALESCE(pro_expires_at,CURRENT_TIMESTAMP),CURRENT_TIMESTAMP), '+' || ? || ' days') WHERE id=?`).bind(billingPeriod,durationDays,profile.id),
             ]);
+            await sendMarketEmail(profile.id,'pro-activated','Market Pro',orderId,{membershipDays:durationDays,amount:finalAmount,currency:'IDR'}).catch(()=>{});
             return Response.json({id:orderId,paidWithCredits:true,creditsApplied,balance:spend.balance,amount:0,billingPeriod},{status:200});
           }
           await database.prepare(`UPDATE checkout_orders SET amount=?,details=json_set(details,'$.creditsApplied',?,'$.originalAmount',?),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'`).bind(payableAmount,creditsApplied,finalAmount,orderId).run();

@@ -2,6 +2,7 @@ import {z} from 'zod';
 import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 import {db,errorResponse,guard,HttpError} from '@/lib/server/store';
 import {ensurePartnerRequestsSchema} from '@/lib/server/partner-requests';
+import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 const patchSchema=z.object({
   id:z.string().uuid(),
@@ -30,7 +31,11 @@ export async function PATCH(request:Request){
     const input=patchSchema.parse(await request.json());
     const database=db();
     await ensurePartnerRequestsSchema(database);
+    const row=await database.prepare('SELECT profile_id AS profileId,shop_name AS shopName FROM market_partner_requests WHERE id=?').bind(input.id).first<{profileId:string|null;shopName:string}>();
     await database.prepare('UPDATE market_partner_requests SET status=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=?').bind(input.status,input.id).run();
+    if(row?.profileId){
+      await sendMarketEmail(row.profileId,input.status==='APPROVED'?'partner-application-approved':'partner-application-declined',row.shopName||'Partner & Consign',input.id).catch(()=>{});
+    }
     return Response.json({ok:true,id:input.id,status:input.status});
   }catch(error){
     return errorResponse(error);

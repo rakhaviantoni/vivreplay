@@ -64,6 +64,7 @@ export async function POST(request:Request){
     });
     if(spend.ok){
       await database.prepare(`UPDATE profiles SET tier='pro',pro_billing_period='monthly',pro_expires_at=datetime(max(COALESCE(pro_expires_at,CURRENT_TIMESTAMP),CURRENT_TIMESTAMP), '+' || ? || ' days') WHERE id=?`).bind(renewDays,candidate.id).run();
+      await sendMarketEmailOnce(candidate.id,'pro-auto-renewed-credits','Market Pro',candidate.id,`pro-auto-renew-${candidate.expiresAt}`,{membershipDays:renewDays,amount:renewPrice,currency:'IDR'}).catch(()=>{});
     }
   }
 

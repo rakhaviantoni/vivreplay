@@ -3,6 +3,7 @@ export type AuctionStatus = 'ACTIVE' | 'ENDED' | 'CANCELLED';
 
 export interface AuctionSummary {
   listingId: string;
+  itemKey?: string;
   sellerId: string;
   startingBid: number;
   buyNowPrice?: number | null;
@@ -20,6 +21,7 @@ export interface AuctionSummary {
 export interface AuctionBidRecord {
   id: string;
   listingId: string;
+  itemKey?: string;
   bidderId: string;
   bidderName: string;
   amount: number;

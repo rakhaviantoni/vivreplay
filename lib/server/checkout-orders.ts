@@ -3,6 +3,7 @@ import {MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR} from '@/lib/market/policy';
 import {syncSocialListingStage} from '@/lib/server/postforme';
 import {activateListingBoost} from '@/lib/server/listing-boosts';
 import {addCredits} from '@/lib/server/credits';
+import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 type FulfillableOrder={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;paymentId:string|null};
 
@@ -40,7 +41,7 @@ export async function fulfillCheckoutOrder(database:ReturnType<typeof db>,order:
     if(!listingId)throw new HttpError(500,'The listing for this boost order could not be found.');
     const claimResult=await database.prepare("UPDATE checkout_orders SET status='PROCESSING',details=json_set(details,'$.fulfillmentClaim',?),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(claim,order.id,order.paymentId).run();
     if(!claimResult.meta.changes)return false;
-    await activateListingBoost(database,{
+    const boostedUntil=await activateListingBoost(database,{
       listingId,
       sellerId:order.sellerId||order.buyerId,
       planId,
@@ -48,6 +49,8 @@ export async function fulfillCheckoutOrder(database:ReturnType<typeof db>,order:
       orderId:order.id,
     });
     await database.prepare("UPDATE checkout_orders SET status='PAID',details=json_remove(details,'$.fulfillmentClaim'),paid_at=COALESCE(paid_at,CURRENT_TIMESTAMP),fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?").bind(order.id,claim).run();
+    const boostRow=await database.prepare('SELECT title FROM listings WHERE id=?').bind(listingId).first<{title:string}>().catch(()=>null);
+    await sendMarketEmail(order.buyerId,'listing-boost-activated',boostRow?.title||'Market listing',listingId,{amount:Number(order.subtotal)||0,currency:'IDR',expiresAt:boostedUntil}).catch(()=>{});
     return true;
   }
   if(order.kind==='CREDITS'){
@@ -67,6 +70,7 @@ export async function fulfillCheckoutOrder(database:ReturnType<typeof db>,order:
       description:`Top up Rp ${creditAmount.toLocaleString('id-ID')}`,
     });
     await database.prepare("UPDATE checkout_orders SET status='PAID',details=json_remove(details,'$.fulfillmentClaim'),paid_at=COALESCE(paid_at,CURRENT_TIMESTAMP),fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?").bind(order.id,claim).run();
+    await sendMarketEmail(order.buyerId,'credits-topped-up','VivrePlay Credits',order.id,{amount:creditAmount,currency:'IDR'}).catch(()=>{});
     return true;
   }
 
