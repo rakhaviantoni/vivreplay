@@ -679,6 +679,29 @@ export function MarketSocialSyndicationDialog({
                 'Sindikasikan dan jadwalkan listing market Anda ke akun media sosial penjual yang terhubung.'
               )}
             </DialogDescription>
+            {publishQuota && publishQuota.remainingThisWeek !== null && publishQuota.remainingThisWeek <= 2 && (
+              <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200">
+                <span>
+                  {publishQuota.tier === 'pro'
+                    ? t(
+                        `${publishQuota.remainingThisWeek} of ${publishQuota.weeklyLimit} weekly Pro Monthly auto-posts left.`,
+                        `Tersisa ${publishQuota.remainingThisWeek} dari ${publishQuota.weeklyLimit} auto-post mingguan Pro Bulanan.`
+                      )
+                    : t(
+                        `${publishQuota.remainingThisWeek} of ${publishQuota.weeklyLimit ?? 5} weekly Free auto-posts left.`,
+                        `Tersisa ${publishQuota.remainingThisWeek} dari ${publishQuota.weeklyLimit ?? 5} auto-post mingguan Gratis.`
+                      )}
+                </span>
+                <a
+                  href={publishQuota.tier === 'pro' ? '/checkout/pro?period=yearly' : '/checkout/pro'}
+                  className="font-semibold text-primary underline underline-offset-2 shrink-0"
+                >
+                  {publishQuota.tier === 'pro'
+                    ? t('Upgrade to Pro Annual', 'Upgrade ke Pro Tahunan')
+                    : t('Upgrade to Pro', 'Upgrade ke Pro')}
+                </a>
+              </div>
+            )}
           </DialogHeader>
 
           {/* Stepper Tabs */}

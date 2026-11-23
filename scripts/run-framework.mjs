@@ -106,7 +106,9 @@ export class AuctionRoom extends DurableObject {
         ? nowMs + 24 * 60 * 60 * 1000
         : state.durationMode === "ROLLING_48H"
           ? nowMs + 48 * 60 * 60 * 1000
-          : state.endsAtMs;
+          : (payload.snipeProtection && (state.endsAtMs - nowMs > 0) && (state.endsAtMs - nowMs <= 60 * 1000))
+            ? state.endsAtMs + 2 * 60 * 1000
+            : state.endsAtMs;
 
       const nextState = {
         ...state,

@@ -107,6 +107,7 @@ function toSummary(row:{
   highestBidderName:string|null;
   bidCount:number;
   durationMode:string;
+  snipeProtection?:boolean;
   startsAt?:string|null;
   endsAt:string;
   status:string;
@@ -124,6 +125,7 @@ function toSummary(row:{
     highestBidderName:row.highestBidderName??null,
     bidCount:Number(row.bidCount)||0,
     durationMode:(row.durationMode==='FIXED'||row.durationMode==='ROLLING_48H'?'ROLLING_48H'===row.durationMode?'ROLLING_48H':'FIXED':'ROLLING_24H') as AuctionDurationMode,
+    snipeProtection:Boolean(row.snipeProtection),
     startsAt:row.startsAt??null,
     endsAt:row.endsAt,
     status:(row.status==='ENDED'||row.status==='CANCELLED'?row.status:'ACTIVE') as AuctionStatus,
@@ -239,10 +241,15 @@ export async function getAuctionDetail(
   itemKey:string=DEFAULT_AUCTION_ITEM_KEY,
 ):Promise<{auction:AuctionSummary;bids:AuctionBidRecord[]}|null>{
   await ensureAuctionSchema(db);
-  const row=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,starts_at AS startsAt,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
-    FROM market_auctions WHERE listing_id=? AND item_key=?`).bind(listingId,itemKey).first<Parameters<typeof toSummary>[0]>();
+  const row=await db.prepare(`SELECT ma.listing_id AS listingId,ma.item_key AS itemKey,ma.seller_id AS sellerId,ma.starting_bid AS startingBid,ma.buy_now_price AS buyNowPrice,ma.min_increment AS minIncrement,ma.current_bid AS currentBid,ma.highest_bidder_id AS highestBidderId,ma.highest_bidder_name AS highestBidderName,ma.bid_count AS bidCount,ma.duration_mode AS durationMode,ma.starts_at AS startsAt,ma.ends_at AS endsAt,ma.status,ma.winner_order_id AS winnerOrderId,p.tier AS sellerTier
+    FROM market_auctions ma
+    LEFT JOIN profiles p ON p.id=ma.seller_id
+    WHERE ma.listing_id=? AND ma.item_key=?`).bind(listingId,itemKey).first<Parameters<typeof toSummary>[0]&{sellerTier?:string|null}>();
   if(!row)return null;
-  let auction=toSummary(row);
+  let auction=toSummary({
+    ...row,
+    snipeProtection:String(row.sellerTier??'').trim().toLowerCase()==='pro'&&row.durationMode==='FIXED',
+  });
   const endsAtMs=Date.parse(auction.endsAt);
   if(auction.status==='ACTIVE'&&Number.isFinite(endsAtMs)&&Date.now()>=endsAtMs){
     auction=await finalizeAuction(db,listingId,itemKey)??auction;
@@ -317,6 +324,8 @@ export async function placeAuctionBid(
   if(current.startsAt&&Date.parse(current.startsAt)>Date.now()){
     throw new HttpError(409,'This auction has not started yet.');
   }
+  const sellerRow=await db.prepare('SELECT tier FROM profiles WHERE id=?').bind(current.sellerId).first<{tier?:string|null}>().catch(()=>null);
+  const snipeProtection=String(sellerRow?.tier??'').trim().toLowerCase()==='pro'&&current.durationMode==='FIXED';
   const prevHighestBidderId=current.highestBidderId;
   const bidId=crypto.randomUUID();
   const stub=getAuctionRoomStub(params.listingId,itemKey);
@@ -341,6 +350,7 @@ export async function placeAuctionBid(
         bidderId:params.bidderId,
         bidderName:params.bidderName,
         amount:params.amount,
+        snipeProtection,
       }),
     });
     const doPayload=await doResponse.json() as {ok?:boolean;error?:string;state?:AuctionSummary&{endsAtMs?:number};bid?:AuctionBidRecord};
@@ -356,7 +366,7 @@ export async function placeAuctionBid(
         .bind(nextState.currentBid,nextState.highestBidderId,nextState.highestBidderName,nextState.bidCount,nextState.endsAt,params.listingId,itemKey),
     ]);
     await syncListingSummaryAfterAuctionChange(db,params.listingId);
-    nextAuction=toSummary({...nextState,itemKey});
+    nextAuction=toSummary({...nextState,itemKey,snipeProtection});
   }else{
     const nowMs=Date.now();
     const endsAtMs=Date.parse(current.endsAt);
@@ -376,7 +386,7 @@ export async function placeAuctionBid(
     if(!check.ok)throw new HttpError(check.status,check.error);
 
     const amount=Math.round(params.amount);
-    const nextEndsAtMs=computeNextAuctionEndsAtMs(current.durationMode,nowMs,endsAtMs);
+    const nextEndsAtMs=computeNextAuctionEndsAtMs(current.durationMode,nowMs,endsAtMs,snipeProtection);
     const nextEndsAt=new Date(nextEndsAtMs).toISOString();
     const createdAt=new Date(nowMs).toISOString();
     const nextBidCount=current.bidCount+1;
@@ -400,6 +410,7 @@ export async function placeAuctionBid(
     await syncListingSummaryAfterAuctionChange(db,params.listingId);
     nextAuction={
       ...current,
+      snipeProtection,
       currentBid:amount,
       highestBidderId:params.bidderId,
       highestBidderName:params.bidderName,

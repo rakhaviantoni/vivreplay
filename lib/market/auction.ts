@@ -13,6 +13,7 @@ export interface AuctionSummary {
   highestBidderName: string | null;
   bidCount: number;
   durationMode: AuctionDurationMode;
+  snipeProtection?: boolean;
   startsAt?: string | null;
   endsAt: string;
   status: AuctionStatus;

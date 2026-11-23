@@ -285,6 +285,14 @@ export function MarketAuctionPanel({
         </span>
         <div className="market-auction-header-meta">
           <span className="market-auction-rule">{formatAuctionDurationLabel(auction.durationMode,locale)}</span>
+          {auction.snipeProtection&&(
+            <span
+              className="market-auction-rule"
+              title={locale==='ID'?'Bid di 60 detik terakhir memperpanjang waktu +2 menit':'Bids in the final 60s extend the clock by +2m'}
+            >
+              {locale==='ID'?'Anti-Snipe +2m':'Anti-Snipe +2m'}
+            </span>
+          )}
           {isOwner&&!isEnded&&(
             <button
               type="button"

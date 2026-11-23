@@ -2649,6 +2649,11 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                             onChange={event=>setAuctionStartsAt(event.target.value)}
                             required
                           />
+                          <small className="market-auction-schedule-hint">
+                            {locale==='ID'
+                              ?'Maksimal jadwal mulai: 24 jam (Gratis) · 14 hari (Pro Bulanan) · 30 hari (Pro Tahunan).'
+                              :'Schedule window: up to 24h (Free) · 14d (Pro Monthly) · 30d (Pro Annual).'}
+                          </small>
                         </label>
                       )}
                     </div>
