@@ -196,7 +196,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
   },[open,pendingOrder?.id,pendingOrder?.paymentCreated]);
 
   const amount=pendingOrder?.amount??(billingPeriod==='yearly'?plan?.annualAmount:plan?.amount);
-  const annualSavings=Math.max(0,(plan?.standardAmount??plan?.amount??29900)*12-(plan?.annualAmount??249000));
+  const annualSavings=Math.max(0,(plan?.standardAmount??plan?.amount??29900)*12-(plan?.annualAmount??298800));
   const monthlyStandardAmount=plan?.standardAmount??plan?.amount??29900;
   const annualSavingsPercent=monthlyStandardAmount>0?Math.round(annualSavings/(monthlyStandardAmount*12)*100):0;
   const paymentOptions=Array.isArray(plan?.paymentChannels)?plan.paymentChannels:defaultPaymentOptions;

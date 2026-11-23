@@ -183,14 +183,14 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account',initialEd
   const t=(en:string,id:string)=>locale==='ID'?id:en;
   const pendingProOrder=proOrders.find(order=>order.status==='PENDING_PAYMENT')??null;
   const selectedProPeriod=pendingProOrder?.billingPeriod??(isPro?'yearly':proBillingPeriod);
-  const selectedProAmount=pendingProOrder?.amount??(selectedProPeriod==='yearly'?(proPlan?.annualAmount??249000):(proPlan?.amount??29900));
+  const selectedProAmount=pendingProOrder?.amount??(selectedProPeriod==='yearly'?(proPlan?.annualAmount??298800):(proPlan?.amount??29900));
   const selectedProDays=selectedProPeriod==='yearly'?(proPlan?.annualDurationDays??365):(proPlan?.durationDays??30);
   const selectedProPrice=new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(selectedProAmount);
   const proPaymentOptions=proPlan?.paymentChannels?.length?proPlan.paymentChannels:defaultPaymentOptions;
   const proSelectedOption=proPaymentOptions.find(option=>option.method===proPayment.method&&option.channel===proPayment.channel&&option.available!==false)??preferredPaymentOption(proPaymentOptions);
   const proPaymentFee=estimatePaymentFee(proSelectedOption,selectedProAmount);
   const proStandardPrice=new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(proPlan?.standardAmount??29900);
-  const proAnnualAmount=proPlan?.annualAmount??249000;
+  const proAnnualAmount=proPlan?.annualAmount??298800;
   const proMonthlyStandardAmount=proPlan?.standardAmount??proPlan?.amount??29900;
   const proAnnualSavings=Math.max(0,proMonthlyStandardAmount*12-proAnnualAmount);
   const proAnnualSavingsPercent=proMonthlyStandardAmount>0?Math.round(proAnnualSavings/(proMonthlyStandardAmount*12)*100):0;
