@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect,useMemo,useState,type FormEvent} from 'react';
+import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import {ClockIcon as Clock,GavelIcon as Gavel,CheckCircleIcon as CheckCircle} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {formatMoney} from '@/packages/domain';
@@ -54,6 +54,8 @@ export function MarketAuctionPanel({
   const [submitting,setSubmitting]=useState(false);
   const [buyingOut,setBuyingOut]=useState(false);
   const [error,setError]=useState('');
+  const [panelVisible,setPanelVisible]=useState(true);
+  const panelRef=useRef<HTMLElement>(null);
 
   const minNextBid=useMemo(()=>computeMinimumNextBid({
     startingBid:auction.startingBid,
@@ -78,9 +80,32 @@ export function MarketAuctionPanel({
   },[]);
 
   useEffect(()=>{
+    const node=panelRef.current;
+    if(!node||typeof IntersectionObserver==='undefined')return;
+    const observer=new IntersectionObserver(([entry])=>{
+      setPanelVisible(entry.isIntersecting);
+    },{threshold:0.15});
+    observer.observe(node);
+    return()=>observer.disconnect();
+  },[]);
+
+  useEffect(()=>{
     let closed=false;
     let ws:WebSocket|null=null;
+    let wsOpen=false;
     let reconnectTimer:number|undefined;
+
+    const refreshState=async()=>{
+      if(closed)return;
+      try{
+        const res=await fetch(`/api/auctions/${encodeURIComponent(listingId)}?itemKey=${encodeURIComponent(itemKey)}`,{cache:'no-store'});
+        if(!res.ok)return;
+        const payload=await res.json() as {auction?:AuctionSummary;bids?:AuctionBidRecord[]};
+        if(closed)return;
+        if(payload.auction)setAuction(payload.auction);
+        if(Array.isArray(payload.bids))setBids(payload.bids);
+      }catch{}
+    };
 
     const connect=()=>{
       if(closed||typeof window==='undefined')return;
@@ -88,6 +113,7 @@ export function MarketAuctionPanel({
       const wsUrl=`${proto}//${window.location.host}/api/auctions/${encodeURIComponent(listingId)}?itemKey=${encodeURIComponent(itemKey)}`;
       try{
         ws=new WebSocket(wsUrl);
+        ws.onopen=()=>{wsOpen=true;};
         ws.onmessage=event=>{
           try{
             const msg=JSON.parse(event.data) as {type?:string;state?:AuctionSummary;bid?:AuctionBidRecord};
@@ -101,20 +127,31 @@ export function MarketAuctionPanel({
           }catch{}
         };
         ws.onclose=()=>{
+          wsOpen=false;
           if(!closed&&auction.status==='ACTIVE'){
-            reconnectTimer=window.setTimeout(connect,5000);
+            reconnectTimer=window.setTimeout(connect,4000);
           }
         };
       }catch{}
     };
 
     connect();
+    const pollInterval=window.setInterval(()=>{
+      if(closed||document.visibilityState!=='visible')return;
+      if(!wsOpen)void refreshState();
+    },4000);
+    const onVisibility=()=>{
+      if(document.visibilityState==='visible')void refreshState();
+    };
+    document.addEventListener('visibilitychange',onVisibility);
     return()=>{
       closed=true;
       if(reconnectTimer)window.clearTimeout(reconnectTimer);
+      window.clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange',onVisibility);
       try{ws?.close();}catch{}
     };
-  },[listingId,auction.status]);
+  },[listingId,itemKey,auction.status]);
 
   const endsAtMs=Date.parse(auction.endsAt);
   const remainingMs=Number.isFinite(endsAtMs)?Math.max(0,endsAtMs-nowMs):0;
@@ -159,7 +196,8 @@ export function MarketAuctionPanel({
   }
 
   return (
-    <section className="market-auction-panel" aria-label={locale==='ID'?'Detail lelang':'Auction details'}>
+    <>
+    <section ref={panelRef} className="market-auction-panel" aria-label={locale==='ID'?'Detail lelang':'Auction details'}>
       <div className="market-auction-header">
         <span className={`market-auction-pill${isEnded?' is-ended':''}`}>
           <Gavel size={14} weight="bold"/>
@@ -298,5 +336,70 @@ export function MarketAuctionPanel({
         </div>
       )}
     </section>
+    {!panelVisible&&(
+      <footer className="market-listing-selection market-auction-sticky-footer" aria-live="polite">
+        <div className="market-listing-selection-info">
+          <span>
+            {itemTitle?`${itemTitle} - `:''}
+            {isEnded
+              ?(locale==='ID'?'Lelang berakhir':'Auction ended')
+              :auction.bidCount>0
+                ?(locale==='ID'?`${auction.bidCount} bid - ${formatCountdown(remainingMs,locale)}`:`${auction.bidCount} ${auction.bidCount===1?'bid':'bids'} - ${formatCountdown(remainingMs,locale)}`)
+                :(locale==='ID'?`Open bid - ${formatCountdown(remainingMs,locale)}`:`Open bid - ${formatCountdown(remainingMs,locale)}`)}
+          </span>
+          <div className="market-listing-pricing-block">
+            <div className="market-listing-final-total">
+              <small>{auction.bidCount>0?(locale==='ID'?'Bid tertinggi:':'Current bid:'):(locale==='ID'?'Bid awal:':'Starting bid:')}</small>
+              <strong>{formatMoney(auction.bidCount>0?auction.currentBid:auction.startingBid,currency)}</strong>
+              {auction.buyNowPrice&&auction.buyNowPrice>auction.currentBid&&(
+                <span className="market-feed-bin-inline"> / BIN {formatMoney(auction.buyNowPrice,currency)}</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="market-listing-selection-actions">
+          {isWinner&&!auction.winnerOrderId&&onCheckoutWinner?(
+            <button type="button" className="button" onClick={()=>onCheckoutWinner(auction.currentBid)}>
+              {locale==='ID'?'Lanjut ke pembayaran':'Proceed to checkout'}
+            </button>
+          ):!isEnded&&!isOwner?(
+            <>
+              <button
+                type="button"
+                className="button"
+                disabled={submitting||buyingOut||isHighestBidder}
+                onClick={()=>{
+                  if(!currentUserId){
+                    window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));
+                    return;
+                  }
+                  setBidInput(String(minNextBid));
+                  panelRef.current?.scrollIntoView({behavior:'smooth',block:'center'});
+                }}
+              >
+                {isHighestBidder
+                  ?(locale==='ID'?'Anda memimpin':'You lead')
+                  :(locale==='ID'?`Bid ${formatMoney(minNextBid,currency)}`:`Bid ${formatMoney(minNextBid,currency)}`)}
+              </button>
+              {auction.buyNowPrice&&auction.buyNowPrice>auction.currentBid&&(
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={submitting||buyingOut}
+                  onClick={()=>panelRef.current?.scrollIntoView({behavior:'smooth',block:'center'})}
+                >
+                  {locale==='ID'?'Buy Out':'Buy Out'}
+                </button>
+              )}
+            </>
+          ):(
+            <button type="button" className="button secondary" onClick={()=>panelRef.current?.scrollIntoView({behavior:'smooth',block:'center'})}>
+              {locale==='ID'?'Lihat lelang':'View auction'}
+            </button>
+          )}
+        </div>
+      </footer>
+    )}
+    </>
   );
 }

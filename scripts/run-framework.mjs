@@ -74,6 +74,8 @@ export class AuctionRoom extends DurableObject {
       await this.ctx.storage.put("auction", state);
       if (state.status === "ACTIVE" && Number.isFinite(state.endsAtMs)) {
         await this.ctx.storage.setAlarm(state.endsAtMs);
+      } else if (state.status === "ENDED") {
+        this.broadcast({ type: "ended", state });
       }
       return Response.json({ ok: true, state });
     }

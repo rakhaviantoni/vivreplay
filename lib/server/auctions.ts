@@ -453,6 +453,24 @@ export async function buyOutAuction(
     .bind(bidId,params.listingId,itemKey,params.buyerId,params.buyerName,buyNow,createdAt).run();
   await syncListingSummaryAfterAuctionChange(db,params.listingId);
 
+  const endedAuction:AuctionSummary={
+    ...current,
+    currentBid:buyNow,
+    highestBidderId:params.buyerId,
+    highestBidderName:params.buyerName,
+    bidCount:current.bidCount+1,
+    status:'ENDED',
+  };
+
+  const stub=getAuctionRoomStub(params.listingId,itemKey);
+  if(stub){
+    await stub.fetch('https://auction.internal/init',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({...endedAuction,endsAtMs:Date.now()}),
+    }).catch(()=>undefined);
+  }
+
   const listingRow=await db.prepare('SELECT title FROM listings WHERE id=?').bind(params.listingId).first<{title:string}>().catch(()=>null);
   const title=listingRow?.title||'Auction listing';
   await Promise.all([
@@ -460,16 +478,7 @@ export async function buyOutAuction(
     sendMarketEmailOnce(current.sellerId,'auction-ended-seller',title,params.listingId,`auction-ended-seller-${params.listingId}-${itemKey}`,{amount:buyNow,currency:'IDR',participant:params.buyerName}).catch(()=>false),
   ]);
 
-  return {
-    auction:{
-      ...current,
-      currentBid:buyNow,
-      highestBidderId:params.buyerId,
-      highestBidderName:params.buyerName,
-      bidCount:current.bidCount+1,
-      status:'ENDED',
-    },
-  };
+  return {auction:endedAuction};
 }
 
 export {computeMinimumNextBid};

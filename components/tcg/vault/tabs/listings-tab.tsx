@@ -109,7 +109,8 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
     })}</div>}
     <Dialog open={Boolean(boostTarget)} onOpenChange={open=>{if(!open&&!boostBusy)setBoostTarget(null);}}>
       <DialogContent className="market-boost-dialog">
-        <DialogHeader>
+        <DialogHeader className="market-boost-heading">
+          <span>{id?'SOROTAN UNGGULAN':'FEATURED SPOTLIGHT'}</span>
           <DialogTitle>{id?'Sorot listing di Market':'Spotlight listing in Market'}</DialogTitle>
           <DialogDescription>{boostTarget?boostTarget.title:''}</DialogDescription>
         </DialogHeader>
@@ -162,71 +163,18 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
                   <strong>{id?plan.labelId:plan.labelEn}</strong>
                   <small>{id?plan.descriptionId:plan.descriptionEn}</small>
                 </div>
-                <b>{money(finalAmount,'IDR')}</b>
+                <span className="market-boost-plan-price">
+                  {isPro&&<s>{money(plan.amount,'IDR')}</s>}
+                  <b>{money(finalAmount,'IDR')}</b>
+                </span>
               </button>
             );
           })}
         </div>
-        <div className="market-boost-wallet-bar">
-          <div>
-            <small>{id?'Saldo Kredit VivrePlay':'VivrePlay Credits'}</small>
-            <strong>{money(creditBalance,'IDR')}</strong>
-          </div>
-          <div className="market-boost-topup-chips">
-            {[25_000,50_000,100_000].map(pkgAmount=>(
-              <button
-                key={pkgAmount}
-                type="button"
-                disabled={boostBusy}
-                onClick={async()=>{
-                  setBoostBusy(true);
-                  try{
-                    const response=await fetch('/api/market/credits',{
-                      method:'POST',
-                      headers:{'content-type':'application/json'},
-                      body:JSON.stringify({amount:pkgAmount}),
-                    });
-                    const payload=await response.json() as {checkoutUrl?:string;error?:string};
-                    if(!response.ok||!payload.checkoutUrl)throw new Error(payload.error||(id?'Gagal membuat top up.':'Could not start top-up.'));
-                    setBoostTarget(null);
-                    router.push(payload.checkoutUrl);
-                  }catch(error){
-                    toast.error(error instanceof Error?error.message:(id?'Gagal top up.':'Could not top up.'));
-                  }finally{
-                    setBoostBusy(false);
-                  }
-                }}
-              >
-                + {money(pkgAmount,'IDR')}
-              </button>
-            ))}
-          </div>
+        <div className="market-boost-wallet-summary">
+          <span>{id?'Saldo Kredit VivrePlay':'VivrePlay Credits'}</span>
+          <strong>{money(creditBalance,'IDR')}</strong>
         </div>
-        {isPro&&(
-          <label className="market-boost-autorenew-row">
-            <input
-              type="checkbox"
-              checked={autoRenewPro}
-              onChange={async event=>{
-                const next=event.target.checked;
-                setAutoRenewPro(next);
-                try{
-                  const response=await fetch('/api/market/credits',{
-                    method:'PATCH',
-                    headers:{'content-type':'application/json'},
-                    body:JSON.stringify({autoRenewPro:next}),
-                  });
-                  if(!response.ok)throw new Error();
-                  toast.success(next?(id?'Perpanjangan otomatis Pro dengan Kredit aktif':'Pro auto-renewal with Credits enabled'):(id?'Perpanjangan otomatis Pro dimatikan':'Pro auto-renewal disabled'));
-                }catch{
-                  setAutoRenewPro(!next);
-                  toast.error(id?'Gagal menyimpan pengaturan.':'Could not update setting.');
-                }
-              }}
-            />
-            <span>{id?'Perpanjang Market Pro otomatis menggunakan Kredit saat saldo mencukupi':'Auto-renew Market Pro using Credits when balance is sufficient'}</span>
-          </label>
-        )}
         <div className="market-boost-dialog-actions">
           <button type="button" className="button secondary" disabled={boostBusy} onClick={()=>setBoostTarget(null)}>
             {id?'Batal':'Cancel'}
