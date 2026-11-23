@@ -30,6 +30,7 @@ export async function POST(request:Request){
     if(listing.expiresAt&&Date.parse(listing.expiresAt)<=Date.now())throw new HttpError(400,'Expired listings cannot be boosted.');
 
     const isPro=getListingPolicy(profile.tier,profile.pro_billing_period).tier==='pro';
+    const isAnnual=isPro&&String(profile.pro_billing_period??'').trim().toLowerCase()==='yearly';
     if(input.useProCredit){
       if(!isPro)throw new HttpError(403,'Monthly Spotlight credits are included with Market Pro.');
       const boostedUntil=await consumeProBoostCredit(database,{listingId:listing.id,sellerId:profile.id});
@@ -46,7 +47,7 @@ export async function POST(request:Request){
     }
 
     const plan=LISTING_BOOST_PLANS[input.planId];
-    const amount=getBoostPlanAmount(input.planId,isPro);
+    const amount=getBoostPlanAmount(input.planId,isPro,isAnnual);
     if(input.payWithCredits){
       const spend=await spendCredits(database,{
         profileId:profile.id,

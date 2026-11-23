@@ -34,6 +34,7 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
   const [boostPlan,setBoostPlan]=useState<ListingBoostPlanId>('3d');
   const [boostBusy,setBoostBusy]=useState(false);
   const [isPro,setIsPro]=useState(false);
+  const [isProAnnual,setIsProAnnual]=useState(false);
   const [proBoostCredits,setProBoostCredits]=useState(0);
   const [creditBalance,setCreditBalance]=useState(0);
   const [autoRenewPro,setAutoRenewPro]=useState(false);
@@ -53,11 +54,12 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
     if(!silent){setLoading(true);setLoadError('')}
     try{
       const response=await fetch(`/api/listings/mine?game=${gameSlug}`,{cache:'no-store'});
-      const data=await response.json() as {listings?:SellerListing[];isPro?:boolean;proBoostCreditsRemaining?:number;creditBalance?:number;autoRenewPro?:boolean;error?:string};
+      const data=await response.json() as {listings?:SellerListing[];isPro?:boolean;isProAnnual?:boolean;proBoostCreditsRemaining?:number;creditBalance?:number;autoRenewPro?:boolean;error?:string};
       if(!response.ok)throw new Error(data.error||'Your listings could not be loaded.');
       if(sequence!==refreshSequence.current)return;
       setListings(data.listings??[]);
       setIsPro(Boolean(data.isPro));
+      setIsProAnnual(Boolean(data.isProAnnual));
       setProBoostCredits(Number(data.proBoostCreditsRemaining)||0);
       setCreditBalance(Number(data.creditBalance)||0);
       setAutoRenewPro(Boolean(data.autoRenewPro));
@@ -187,7 +189,7 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
           )}
           {(['24h','3d','7d'] as const).map(planId=>{
             const plan=LISTING_BOOST_PLANS[planId];
-            const finalAmount=getBoostPlanAmount(planId,isPro);
+            const finalAmount=getBoostPlanAmount(planId,isPro,isProAnnual);
             return (
               <button
                 key={planId}
@@ -215,7 +217,7 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
           <button type="button" className="button secondary" disabled={boostBusy} onClick={()=>setBoostTarget(null)}>
             {id?'Batal':'Cancel'}
           </button>
-          {creditBalance>=getBoostPlanAmount(boostPlan,isPro)&&boostTarget&&(
+          {creditBalance>=getBoostPlanAmount(boostPlan,isPro,isProAnnual)&&boostTarget&&(
             <button
               type="button"
               className="button"
@@ -247,7 +249,7 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
           )}
           <button
             type="button"
-            className={creditBalance>=getBoostPlanAmount(boostPlan,isPro)?'button secondary':'button'}
+            className={creditBalance>=getBoostPlanAmount(boostPlan,isPro,isProAnnual)?'button secondary':'button'}
             disabled={boostBusy||!boostTarget}
             onClick={async()=>{
               if(!boostTarget)return;

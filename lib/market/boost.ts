@@ -47,9 +47,10 @@ export const LISTING_BOOST_PLANS: Record<ListingBoostPlanId, ListingBoostPlan> =
   },
 };
 
-export function getBoostPlanAmount(planId: ListingBoostPlanId, isPro: boolean): number {
+export function getBoostPlanAmount(planId: ListingBoostPlanId, isPro: boolean, isAnnual = false): number {
   const plan = LISTING_BOOST_PLANS[planId];
-  return isPro ? plan.proAmount : plan.amount;
+  if (!isPro) return plan.amount;
+  return isAnnual ? Math.round(plan.amount * 0.4) : plan.proAmount;
 }
 
 export function isListingBoosted(boostedUntil?: string | null, nowMs: number = Date.now()): boolean {

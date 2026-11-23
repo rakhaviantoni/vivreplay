@@ -22,6 +22,7 @@ export async function GET(request:Request){
       return {listing,cards};
     });
     const isPro=getListingPolicy(profile.tier,profile.pro_billing_period).tier==='pro';
+    const isProAnnual=isPro&&String(profile.pro_billing_period??'').trim().toLowerCase()==='yearly';
     const wtaIds=entries.filter(({listing})=>listing.type==='WTA').map(({listing})=>listing.id);
     const [thumbnails,boostMap,proBoostCreditsRemaining,wallet,auctionMap]=await Promise.all([
       marketCardThumbnails(entries.flatMap(entry=>entry.cards.map(card=>card.printingId))),
@@ -30,6 +31,6 @@ export async function GET(request:Request){
       getCreditWallet(db(),profile.id),
       wtaIds.length?getAuctionSummaryMap(db(),wtaIds):Promise.resolve(new Map()),
     ]);
-    return Response.json({isPro,proBoostCreditsRemaining,creditBalance:wallet.balance,autoRenewPro:wallet.autoRenewPro,listings:entries.map(({listing,cards})=>({...listing,negotiable:Boolean(listing.negotiable),hasActiveBids:Boolean(listing.hasActiveBids),boostedUntil:boostMap.get(listing.id)??null,auction:listing.type==='WTA'?(auctionMap.get(listing.id)??null):null,cards:cards.map(card=>({...card,card:thumbnails.get(card.printingId)??null}))}))},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
+    return Response.json({isPro,isProAnnual,proBoostCreditsRemaining,creditBalance:wallet.balance,autoRenewPro:wallet.autoRenewPro,listings:entries.map(({listing,cards})=>({...listing,negotiable:Boolean(listing.negotiable),hasActiveBids:Boolean(listing.hasActiveBids),boostedUntil:boostMap.get(listing.id)??null,auction:listing.type==='WTA'?(auctionMap.get(listing.id)??null):null,cards:cards.map(card=>({...card,card:thumbnails.get(card.printingId)??null}))}))},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}
 }
