@@ -11,6 +11,7 @@ import {
   type AuctionSummary,
 } from '@/lib/market/auction';
 import {MarketTimestamp} from './market-timestamp';
+import {IdrInput} from '@/components/ui/idr-input';
 
 function formatCountdown(remainingMs:number,locale:'EN'|'ID'){
   if(remainingMs<=0)return locale==='ID'?'Berakhir':'Ended';
@@ -263,13 +264,10 @@ export function MarketAuctionPanel({
           <div className="market-auction-bid-row">
             <div className="market-currency-input-wrap">
               <span className="market-currency-badge">IDR</span>
-              <input
-                type="number"
-                min={minNextBid}
-                step={1000}
+              <IdrInput
                 value={bidInput}
                 disabled={submitting||buyingOut||isHighestBidder}
-                onChange={event=>{setBidInput(event.target.value);setError('');}}
+                onValueChange={val=>{setBidInput(val);setError('');}}
                 aria-label={locale==='ID'?'Nominal bid (IDR)':'Bid amount (IDR)'}
               />
             </div>

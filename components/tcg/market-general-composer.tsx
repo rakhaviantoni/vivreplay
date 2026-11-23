@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
+import {IdrInput} from '@/components/ui/idr-input';
 import {MagnifyingGlassIcon as Search,UploadSimpleIcon as UploadSimple,XIcon as X} from '@phosphor-icons/react';
 import {useRouteLocale} from '@/components/locale-provider';
 import {generalMarketCategories,generalMarketConditionLabel,generalMarketConditionOptions,type GeneralMarketCategory} from '@/lib/market/general-products';
@@ -101,7 +102,7 @@ export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle,ini
       {category!=='COMPUTER_PART'&&<label>{copy('Model','Model')}<input value={model} maxLength={80} onChange={event=>setModel(event.target.value)} placeholder={category==='TCG_PRODUCT'?copy('e.g. Booster Box, Sleeves, Deck Box','mis. Booster Box, Sleeves, Deck Box'):copy('Model or version','Model atau versi')}/></label>}
       {config.fields.map(field=><label key={field.key}>{isId?({game:'Game',edition:'Edisi / Bahasa',setCode:'Kode set atau produk',series:'Seri atau koleksi',processor:'Prosesor',graphics:'Grafis',memory:'Memori',storage:'Penyimpanan',partType:'Komponen',model:'Merek dan model',compatibility:'Kompatibilitas',platform:'Platform',region:'Wilayah',format:'Format',language:'Bahasa',compatibleWith:'Kompatibel dengan'} as Record<string,string>)[field.key]??field.label:field.label}<input value={fields[field.key]??''} maxLength={100} onChange={event=>setFields(current=>({...current,[field.key]:event.target.value}))} placeholder={field.placeholder}/></label>)}
       <label>{type==='WTS'?copy('Quantity available','Jumlah tersedia'):copy('Quantity wanted','Jumlah yang dicari')}<input type="number" min={1} max={productStockLimit} value={quantity} onChange={event=>setQuantity(Math.min(productStockLimit,Math.max(1,Number(event.target.value)||1)))}/><small>{copy(`Up to ${productStockLimit} units per listing`,`Maksimal ${productStockLimit} unit per listing`)}</small></label>
-      <label>{type==='WTS'?copy('Price per item (IDR)','Harga per barang (IDR)'):copy('Offer per item (IDR)','Tawaran per barang (IDR)')}<input type="number" min={1} value={price} onChange={event=>setPrice(event.target.value)}/></label>
+      <label>{type==='WTS'?copy('Price per item (IDR)','Harga per barang (IDR)'):copy('Offer per item (IDR)','Tawaran per barang (IDR)')}<IdrInput value={price} onValueChange={setPrice}/></label>
       <fieldset className="market-general-condition-field"><legend>{type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}</legend><RadioGroup value={condition} onValueChange={value=>setCondition(value as typeof condition)} className="market-general-condition-options" aria-label={type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}>
         {generalMarketConditionOptions.map(value=><label key={value} htmlFor={`general-condition-${value}`} className={condition===value?'is-selected':''}><RadioGroupItem id={`general-condition-${value}`} value={value}/><span className="market-product-radio-mark" aria-hidden="true"/><span>{generalMarketConditionLabel(value,language)}</span></label>)}
       </RadioGroup></fieldset>

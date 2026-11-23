@@ -33,6 +33,7 @@ import {PaymentSupportActions} from '@/components/tcg/payment-support-actions';
 import {MarketIntroOfferProgress} from '@/components/tcg/market-intro-offer-progress';
 import {MarketMembershipComparison} from '@/components/tcg/market-membership-comparison';
 import {ProfileSocialsPanel} from '@/components/tcg/profile-socials-panel';
+import {IdrInput} from '@/components/ui/idr-input';
 import {CREDIT_TOPUP_PACKAGES} from '@/lib/market/credits';
 
 export type MarketAccountPanel='listings'|'offers'|'orders'|'saved'|'vault'|'wishlist'|'profile';
@@ -372,7 +373,7 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account',initialEd
       </div>
       {Boolean(payoutSummary?.pendingSettlement)&&<p className="market-payout-settlement-note"><span>{t('Waiting for iPaymu settlement','Menunggu pencairan iPaymu')}</span><strong>{new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(payoutSummary!.pendingSettlement)}</strong>{payoutSummary?.nextSettlementAt&&<small>{t('Estimated availability','Perkiraan tersedia')} {new Intl.DateTimeFormat(locale==='ID'?'id-ID':'en-US',{dateStyle:'medium',timeZone:String(profile.timezone||'Asia/Jakarta')}).format(new Date(payoutSummary.nextSettlementAt))}</small>}</p>}
       {payoutSummary&&payoutAccounts.length>0&&payoutSummary.available>=payoutSummary.minimumPayout&&<form className="market-payout-request" onSubmit={event=>void requestPayout(event)}>
-        <label>{t('Amount','Jumlah')}<input required type="number" inputMode="numeric" min={payoutSummary.minimumPayout} max={payoutSummary.available} step="1" value={payoutAmount} onChange={event=>setPayoutAmount(event.target.value)}/></label>
+        <label>{t('Amount','Jumlah')}<IdrInput required value={payoutAmount} onValueChange={setPayoutAmount}/></label>
         <label>{t('Send to','Kirim ke')}<select required value={payoutBankAccountId} onChange={event=>setPayoutBankAccountId(event.target.value)}>{payoutAccounts.map(account=><option key={account.id} value={account.id}>{account.bankName} {t('ending in','berakhiran')} {account.lastFour}{account.isDefault?`, ${t('Default','Utama')}`:''}</option>)}</select></label>
         <button className="button primary" type="submit" disabled={payoutRequesting||payoutRequestPending||!payoutBankAccountId||Number(payoutAmount)<payoutSummary.minimumPayout||Number(payoutAmount)>payoutSummary.available}>{payoutRequesting?t('Requesting…','Meminta…'):payoutRequestPending?t('Withdrawal pending','Pencairan diproses'):t('Request withdrawal','Ajukan pencairan')}</button>
       </form>}
@@ -425,7 +426,7 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account',initialEd
         <form className="market-credits-custom-form" onSubmit={event=>{event.preventDefault();const val=Math.round(Number(customTopupInput));if(!Number.isFinite(val)||val<10_000||val>10_000_000){toast.error(t('Enter an amount between Rp 10,000 and Rp 10,000,000.','Masukkan nominal antara Rp 10.000 hingga Rp 10.000.000.'));return}setCreditPaymentError('');setPendingTopupAmount(val)}}>
           <div className="market-currency-input-wrap">
             <span className="market-currency-badge">IDR</span>
-            <input type="number" min={10000} max={10000000} step={5000} value={customTopupInput} onChange={event=>setCustomTopupInput(event.target.value)} placeholder={t('Other amount (min. 10,000)','Nominal lain (min. 10.000)')} aria-label={t('Custom top-up amount (IDR)','Nominal isi ulang lainnya (IDR)')}/>
+            <IdrInput value={customTopupInput} onValueChange={setCustomTopupInput} placeholder={t('Other amount (min. 10,000)','Nominal lain (min. 10.000)')} aria-label={t('Custom top-up amount (IDR)','Nominal isi ulang lainnya (IDR)')}/>
           </div>
           <button type="submit" className="button secondary">{t('Top up','Isi ulang')}</button>
         </form>

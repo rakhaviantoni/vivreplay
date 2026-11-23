@@ -73,6 +73,7 @@ import {generalMarketCategories,generalMarketCategoryLabel,type GeneralMarketCat
 import {MarketSealedComposer,type BundleProductInput} from './market-sealed-composer';
 import {Slider} from '@/components/ui/slider';
 import {MarketQuickPanel} from './market-quick-panel';
+import {IdrInput} from '@/components/ui/idr-input';
 import {MarketStoreNav} from './market-store-nav';
 import {MarketPartnerDialog} from './market-partner-dialog';
 import {enrichCollectionItem,groupVaultStacks} from './vault/vault-utils';
@@ -749,6 +750,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
   const [auctionBuyNowPrice,setAuctionBuyNowPrice]=useState('');
   const [cardOpenBid,setCardOpenBid]=useState('');
   const [auctionBundleMode,setAuctionBundleMode]=useState<'separate'|'lot'>('separate');
+  const [editingBundleCard,setEditingBundleCard]=useState(false);
   const [auctionDurationMode,setAuctionDurationMode]=useState<'ROLLING_24H'|'ROLLING_48H'|'FIXED'>('ROLLING_24H');
   const [auctionFixedHours,setAuctionFixedHours]=useState('48');
   const [auctionFixedMode,setAuctionFixedMode]=useState<'preset'|'custom'>('preset');
@@ -1230,6 +1232,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
     setCardOpenBid('');
     setAuctionBuyNowPrice('');
     setAuctionBundleMode('separate');
+    setEditingBundleCard(false);
     setListingNegotiable(true);
     setListingTitle('');
     setIsAddingAnother(false);
@@ -1454,6 +1457,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
     setConfiguringCard(null);
     setItemPhotoIds([]);
     setIsAddingAnother(false);
+    setEditingBundleCard(false);
   };
   const handlePublishListing=async(event:React.FormEvent)=>{
     event.preventDefault();
@@ -2150,22 +2154,16 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                     {listingType!=='WTA'?(
                     <label>
                       {listingType==='WTB'?(locale==='ID'?'Tawaran per kartu (IDR)':'Your offer per card (IDR)'):(locale==='ID'?'Harga per kartu (IDR)':'Price per card (IDR)')}
-                      <input
-                        type="number"
-                        min="1"
-                        step="1000"
-                        inputMode="numeric"
-                        autoComplete="off"
+                      <IdrInput
                         aria-describedby="market-unit-price-help"
                         value={itemPrice}
-                        onChange={e=>{
-                          const nextPrice=e.target.value;
+                        onValueChange={nextPrice=>{
                           itemPriceEdited.current=true;
                           setItemPrice(nextPrice);
                           const yytIdr=benchmark&&(benchmark.normalizedAmount||Math.round(benchmark.amount*110));
                           if(yytIdr&&Number(nextPrice)>0)setBenchmarkMultiplier(Math.round(Number(nextPrice)/yytIdr*1000)/10);
                         }}
-                        placeholder={locale==='ID'?'Contoh: 75000':'e.g. 75000'}
+                        placeholder={locale==='ID'?'Contoh: 75,000':'e.g. 75,000'}
                         required
                       />
                       <small id="market-unit-price-help">{locale==='ID'?'Harga saran bisa diubah langsung sebelum ditambahkan.':'You can edit the suggested price before adding this card.'}</small>
@@ -2173,15 +2171,10 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                     ):(
                     <label>
                       {locale==='ID'?'Open Bid / Bid Awal (IDR)':'Open Bid / Starting Bid (IDR)'}
-                      <input
-                        type="number"
-                        min="1000"
-                        step="1000"
-                        inputMode="numeric"
-                        autoComplete="off"
+                      <IdrInput
                         value={cardOpenBid}
-                        onChange={e=>{itemPriceEdited.current=true;setCardOpenBid(e.target.value);}}
-                        placeholder={locale==='ID'?'Contoh: 50000':'e.g. 50000'}
+                        onValueChange={val=>{itemPriceEdited.current=true;setCardOpenBid(val);}}
+                        placeholder={locale==='ID'?'Contoh: 50,000':'e.g. 50,000'}
                         required
                       />
                       <small>{locale==='ID'?'Harga pembuka untuk kartu ini.':'Opening bid for this card.'}</small>
@@ -2193,23 +2186,17 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                       <div className="form-row">
                         <label>
                           <span>{locale==='ID'?'Harga Buy Out / BIN (opsional, IDR)':'Buy Out / BIN price (optional, IDR)'}</span>
-                          <input
-                            type="number"
-                            min="1000"
-                            step="1000"
+                          <IdrInput
                             value={auctionBuyNowPrice}
-                            onChange={event=>setAuctionBuyNowPrice(event.target.value)}
+                            onValueChange={setAuctionBuyNowPrice}
                             placeholder={locale==='ID'?'Kosongkan jika tanpa Buy Out':'Leave blank for auction-only'}
                           />
                         </label>
                         <label>
                           <span>{locale==='ID'?'Kelipatan bid minimal (IDR)':'Minimum bid increment (IDR)'}</span>
-                          <input
-                            type="number"
-                            min="1000"
-                            step="1000"
+                          <IdrInput
                             value={auctionIncrement}
-                            onChange={event=>setAuctionIncrement(event.target.value)}
+                            onValueChange={setAuctionIncrement}
                             required
                           />
                         </label>
@@ -2289,12 +2276,18 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                   <button
                     type="button"
                     className="market-list-button"
-                    disabled={itemPhotoUploading||!itemPrice||Number(itemPrice)<=0||(listingType==='WTB'&&configuredProductType==='GRADED'&&!wantedGrade.trim())}
+                    disabled={itemPhotoUploading||(listingType==='WTA'?(!cardOpenBid||Number(cardOpenBid)<1000):(!itemPrice||Number(itemPrice)<=0))||(listingType==='WTB'&&configuredProductType==='GRADED'&&!wantedGrade.trim())}
                     onClick={addConfiguredCardToBundle}
                   >
-                    {!hasBundleItems
-                      ? (locale==='ID'?'Lanjut':'Continue')
-                      : (listingType==='WTB'?(locale==='ID'?'+ Tambahkan kartu':'+ Add card'):(locale==='ID'?'+ Tambahkan ke paket':'+ Add to bundle'))
+                    {editingBundleCard
+                      ? (locale==='ID'?'Simpan perubahan kartu':'Save card changes')
+                      : !hasBundleItems
+                        ? (locale==='ID'?'Lanjut':'Continue')
+                        : listingType==='WTB'
+                          ? (locale==='ID'?'+ Tambahkan kartu':'+ Add card')
+                          : listingType==='WTA'
+                            ? (locale==='ID'?'+ Tambahkan ke daftar lelang':'+ Add to auction')
+                            : (locale==='ID'?'+ Tambahkan ke paket':'+ Add to bundle')
                     }
                   </button>
                 </div>
@@ -2341,6 +2334,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                               setItemCondition(item.condition||'NM');
                               setItemInstance(item.instanceId??'');
                               setItemPhotoIds(item.photoIds??[]);
+                              setEditingBundleCard(true);
                               setIsAddingAnother(false);
                               void loadCardForConfig(item.card,item.printing.id);
                             }}
@@ -2428,6 +2422,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                     onClick={()=>{
                       setCardSearch('');
                       setConfiguringCard(null);
+                      setEditingBundleCard(false);
                       setIsAddingAnother(true);
                       setSearchSource('catalog');
                       setListingGameScope('all');
@@ -2469,23 +2464,17 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                     <div className="form-row">
                       <label>
                         <span>{locale==='ID'?'Harga Buy Out / BIN (opsional, IDR)':'Buy Out / BIN price (optional, IDR)'}</span>
-                        <input
-                          type="number"
-                          min="1000"
-                          step="1000"
+                        <IdrInput
                           value={auctionBuyNowPrice}
-                          onChange={event=>setAuctionBuyNowPrice(event.target.value)}
+                          onValueChange={setAuctionBuyNowPrice}
                           placeholder={locale==='ID'?'Kosongkan jika tanpa Buy Out':'Leave blank for auction-only'}
                         />
                       </label>
                       <label>
                         <span>{locale==='ID'?'Kelipatan bid minimal (IDR)':'Minimum bid increment (IDR)'}</span>
-                        <input
-                          type="number"
-                          min="1000"
-                          step="1000"
+                        <IdrInput
                           value={auctionIncrement}
-                          onChange={event=>setAuctionIncrement(event.target.value)}
+                          onValueChange={setAuctionIncrement}
                           required
                         />
                       </label>
@@ -2544,12 +2533,9 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                     <span>{listingType==='WTA'?(locale==='ID'?'Open Bid / Bid Awal (IDR)':'Open Bid / Starting Bid (IDR)'):listingType==='WTB'?(locale==='ID'?'Total anggaran (IDR)':'Total budget (IDR)'):(locale==='ID'?'Total harga listing (IDR)':'Total listing price (IDR)')}</span>
                     <div className="market-currency-input-wrap">
                       <span className="market-currency-badge">IDR</span>
-                      <input
-                        type="number"
-                        min="1"
-                        step="1"
+                      <IdrInput
                         value={listingPrice}
-                        onChange={event=>setListingPrice(event.target.value)}
+                        onValueChange={setListingPrice}
                         placeholder="0"
                         required
                       />
@@ -2585,10 +2571,32 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                   )}
                 </div>
                 <div className="market-review-listing-notes">
-                  <span className="market-review-sum-note">
-                    {locale==='ID'?`Total akumulasi satuan: Rp ${totalCalculatedUnitSum.toLocaleString('id-ID')}`:`Calculated sum: Rp ${totalCalculatedUnitSum.toLocaleString('id-ID')}`}
-                  </span>
-                  {(listingType==='WTS'||listingType==='WTA')&&enteredListingTotal>0&&<span className="market-sell-fee-estimate">{locale==='ID'?`Biaya layanan Market ${listingFeePercent}%: Rp ${estimatedSellerFee.toLocaleString('id-ID')} - perkiraan hasil penjualan Rp ${(enteredListingTotal-estimatedSellerFee).toLocaleString('id-ID')}`:`Market service fee ${listingFeePercent}%: IDR ${estimatedSellerFee.toLocaleString('en-US')} - estimated proceeds IDR ${(enteredListingTotal-estimatedSellerFee).toLocaleString('en-US')}`}</span>}
+                  {listingType!=='WTA'?(
+                    <>
+                      <span className="market-review-sum-note">
+                        {locale==='ID'?`Total akumulasi satuan: IDR ${totalCalculatedUnitSum.toLocaleString('en-US')}`:`Calculated sum: IDR ${totalCalculatedUnitSum.toLocaleString('en-US')}`}
+                      </span>
+                      {listingType==='WTS'&&enteredListingTotal>0&&<span className="market-sell-fee-estimate">{locale==='ID'?`Biaya layanan Market ${listingFeePercent}%: IDR ${estimatedSellerFee.toLocaleString('en-US')} - perkiraan hasil penjualan IDR ${(enteredListingTotal-estimatedSellerFee).toLocaleString('en-US')}`:`Market service fee ${listingFeePercent}%: IDR ${estimatedSellerFee.toLocaleString('en-US')} - estimated proceeds IDR ${(enteredListingTotal-estimatedSellerFee).toLocaleString('en-US')}`}</span>}
+                    </>
+                  ):(
+                    <>
+                      {auctionBundleMode==='separate'&&bundleCards.length>1?(
+                        <span className="market-sell-fee-estimate">
+                          {locale==='ID'
+                            ?`Biaya layanan Market ${listingFeePercent}% dihitung dari harga bid menang (atau Buy Out) masing-masing lelang.`
+                            :`Market service fee ${listingFeePercent}% applies to each auction's final winning bid (or Buy Out price).`}
+                        </span>
+                      ):(
+                        enteredListingTotal>0&&(
+                          <span className="market-sell-fee-estimate">
+                            {locale==='ID'
+                              ?`Biaya layanan Market ${listingFeePercent}%: mulai IDR ${estimatedSellerFee.toLocaleString('en-US')} pada Open Bid (perkiraan hasil mulai IDR ${(enteredListingTotal-estimatedSellerFee).toLocaleString('en-US')})${Number(auctionBuyNowPrice)>0?` - atau IDR ${(Number(auctionBuyNowPrice)-calculateSellerServiceFee(Number(auctionBuyNowPrice),listingFeePercent)).toLocaleString('en-US')} jika Buy Out IDR ${Number(auctionBuyNowPrice).toLocaleString('en-US')}`:''}`
+                              :`Market service fee ${listingFeePercent}%: from IDR ${estimatedSellerFee.toLocaleString('en-US')} on Open Bid (estimated proceeds from IDR ${(enteredListingTotal-estimatedSellerFee).toLocaleString('en-US')})${Number(auctionBuyNowPrice)>0?` - or IDR ${(Number(auctionBuyNowPrice)-calculateSellerServiceFee(Number(auctionBuyNowPrice),listingFeePercent)).toLocaleString('en-US')} if bought out at IDR ${Number(auctionBuyNowPrice).toLocaleString('en-US')}`:''}`}
+                          </span>
+                        )
+                      )}
+                    </>
+                  )}
                   <small className="market-review-city-hint">
                     {listingType==='WTB'
                       ?(buyerCity?(locale==='ID'?'Diambil dari alamat pengiriman Anda.':'From your saved delivery address.'):(locale==='ID'?'Tambahkan alamat untuk memilih kota pengiriman.':'Add a delivery address to set your delivery city.'))

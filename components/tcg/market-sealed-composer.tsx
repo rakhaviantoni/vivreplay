@@ -8,6 +8,7 @@ import {MarketGeneralComposer} from './market-general-composer';
 import {MarketGameMark} from './market';
 import {useMarketListingLimits} from '@/lib/market/use-listing-limits';
 import {RadioGroup,RadioGroupItem} from '@/components/ui/radio-group';
+import {IdrInput} from '@/components/ui/idr-input';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import type {GeneralMarketCategory} from '@/lib/market/general-products';
 import './market-sealed.css';
@@ -135,7 +136,7 @@ export function MarketSealedComposer({type,onPublished,onAddToBundle,modeControl
         <span>{copy('Back to products','Kembali ke daftar produk')}</span>
       </button>
       <div className="market-sealed-selection"><span className="market-product-selection-art">{product.imageUrl?<img src={product.imageUrl} alt={displayProduct(product)}/>:null}</span><div><span className="market-product-selection-kind">{sealedProductKinds[product.kind]}</span><strong>{displayProduct(product)}</strong><small>{sealedProductPublicCode(product)}<span>{sealedProductLanguage(product)}</span></small>{product.contents&&<p className="market-product-contents">{product.contents}</p>}</div></div>
-      <div className="market-sealed-fields"><label>{type==='WTS'?copy('Quantity available','Jumlah tersedia'):copy('Quantity wanted','Jumlah yang dicari')}<input type="number" min={1} max={productStockLimit} value={quantity} onChange={event=>setQuantity(Math.min(productStockLimit,Math.max(1,Number(event.target.value)||1)))}/><small>{copy(`Up to ${productStockLimit} units per listing`,`Maksimal ${productStockLimit} unit per listing`)}</small></label><label>{type==='WTS'?copy('Price per item (IDR)','Harga per produk (IDR)'):copy('Offer per item (IDR)','Tawaran per produk (IDR)')}<input type="number" min={1} value={price} onChange={event=>setPrice(event.target.value)}/></label>
+      <div className="market-sealed-fields"><label>{type==='WTS'?copy('Quantity available','Jumlah tersedia'):copy('Quantity wanted','Jumlah yang dicari')}<input type="number" min={1} max={productStockLimit} value={quantity} onChange={event=>setQuantity(Math.min(productStockLimit,Math.max(1,Number(event.target.value)||1)))}/><small>{copy(`Up to ${productStockLimit} units per listing`,`Maksimal ${productStockLimit} unit per listing`)}</small></label><label>{type==='WTS'?copy('Price per item (IDR)','Harga per produk (IDR)'):copy('Offer per item (IDR)','Tawaran per produk (IDR)')}<IdrInput value={price} onValueChange={setPrice}/></label>
         <fieldset className="market-product-condition-field"><legend>{type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}</legend>
           {selectedConditionOptions.length<=2?<RadioGroup value={condition} onValueChange={setCondition} className="market-product-condition-options" aria-label={type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}>
             {selectedConditionOptions.map(value=><label key={value} htmlFor={`sealed-condition-${value}`} className={condition===value?'is-selected':''}><RadioGroupItem id={`sealed-condition-${value}`} value={value}/><span className="market-product-radio-mark" aria-hidden="true"/><span>{productConditionLabel(value,language)}</span></label>)}
