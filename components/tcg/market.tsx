@@ -16,6 +16,7 @@ import {
   CardsIcon as VaultIcon,
   CaretDownIcon as ChevronDown,
   GavelIcon as Gavel,
+  GlobeIcon as Globe,
   HandshakeIcon as Handshake,
   ListIcon as List,
   MapPinIcon as MapPin,
@@ -46,6 +47,7 @@ import {matchesSearchText,tokenizeSearchTerms} from '@/lib/card-search';
 import {pokemonLocalCardNumber} from '@/lib/pokemon-set-aliases';
 import {pokemonPublicNumber,pokemonPublicReference} from '@/lib/pokemon-public-reference';
 import {CollectionItem,GRADING_PROVIDERS,Listing,formatMoney} from '@/packages/domain';
+import {convertMoney,tradeScopeBadgeLabel,tradeScopeLabel,type MarketCurrency,type TradeScope} from '@/lib/market/global';
 import {api,useAccount,type AccountState} from '@/lib/client';
 import {loadMarketActivityCounts} from '@/lib/market/activity-client';
 import {CardArt} from './card-art';
@@ -688,6 +690,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
   const [query,setQuery]=useState('');
   const [lang,setLang]=useState<'all'|'EN'|'JP'|'ID'>('all');
   const [sort,setSort]=useState<'newest'|'price_asc'|'price_desc'>('newest');
+  const [tradeScopeFilter,setTradeScopeFilter]=useState<'all'|'ID_ONLY'|'GLOBAL'>('all');
   const feedListRef=useRef<HTMLElement|null>(null);
   const previousFeedPositions=useRef<Map<string,{left:number;top:number}>|null>(null);
   const [tradeTypes,setTradeTypes]=useState<Array<'WTS'|'WTB'|'WTA'>>(['WTS','WTB','WTA']);
@@ -745,6 +748,10 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
   const [listingTitle,setListingTitle]=useState('');
   const [listingPrice,setListingPrice]=useState('');
   const [listingType,setListingType]=useState<'WTS'|'WTB'|'WTA'>('WTS');
+  const [listingTradeScope,setListingTradeScope]=useState<TradeScope>('ID_ONLY');
+  const [listingCurrency,setListingCurrency]=useState<MarketCurrency>('IDR');
+  const [intlShippingFee,setIntlShippingFee]=useState('');
+  const [intlShippingNote,setIntlShippingNote]=useState('');
   const [partnerOpen,setPartnerOpen]=useState(false);
   const [auctionIncrement,setAuctionIncrement]=useState('10000');
   const [auctionBuyNowPrice,setAuctionBuyNowPrice]=useState('');
@@ -1151,14 +1158,19 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
   const publicNumberFilter=searchParams.get('number')??'';
   const publicLanguageFilter=searchParams.get('lang')??'';
   const displayListings=useMemo(()=>{
-    if(printingFilter)return visible.filter(listing=>listing.printingId===printingFilter||listing.items?.some(item=>item.printingId===printingFilter));
+    const scopeFiltered=tradeScopeFilter==='all'
+      ?visible
+      :tradeScopeFilter==='ID_ONLY'
+        ?visible.filter(listing=>(listing.tradeScope??'ID_ONLY')!=='GLOBAL_ONLY')
+        :visible.filter(listing=>listing.tradeScope==='GLOBAL_ONLY'||listing.tradeScope==='BOTH');
+    if(printingFilter)return scopeFiltered.filter(listing=>listing.printingId===printingFilter||listing.items?.some(item=>item.printingId===printingFilter));
     if(publicSetFilter&&publicNumberFilter){
       const normalize=(value:string)=>value.replace(/[-_\s]/g,'').toUpperCase();
       const number=(value:string|undefined)=>String(value??'').replace(/_p\d+$/i,'').split(/[-/]/).filter(Boolean).at(-1)?.replace(/^0+(?=\d)/,'').toUpperCase()??'';
-      return visible.filter(listing=>[listing.card,...(listing.items??[]).map(item=>item.card)].some(card=>{const pokemonCard=card as MarketCard|undefined;return Boolean(pokemonCard&&(pokemonCard.gameSlug==='pokemon'||/^PK-/i.test(pokemonCard.code))&&normalize(pokemonCard.setCode??'')===normalize(publicSetFilter)&&number(pokemonCard.printingCode)===number(publicNumberFilter)&&(!publicLanguageFilter||pokemonCard.language===publicLanguageFilter))}));
+      return scopeFiltered.filter(listing=>[listing.card,...(listing.items??[]).map(item=>item.card)].some(card=>{const pokemonCard=card as MarketCard|undefined;return Boolean(pokemonCard&&(pokemonCard.gameSlug==='pokemon'||/^PK-/i.test(pokemonCard.code))&&normalize(pokemonCard.setCode??'')===normalize(publicSetFilter)&&number(pokemonCard.printingCode)===number(publicNumberFilter)&&(!publicLanguageFilter||pokemonCard.language===publicLanguageFilter))}));
     }
-    return visible;
-  },[visible,printingFilter,publicSetFilter,publicNumberFilter,publicLanguageFilter]);
+    return scopeFiltered;
+  },[visible,tradeScopeFilter,printingFilter,publicSetFilter,publicNumberFilter,publicLanguageFilter]);
   const captureFeedPositions=()=>{
     const list=feedListRef.current;
     if(list&&typeof window!=='undefined'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -1488,10 +1500,15 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
         for(const item of bundleCards){
           const cfg=item.auction??{startingBid:item.unitAmount||1000,buyNowPrice:null,minIncrement:10000,durationMode:'ROLLING_24H' as const,fixedMode:'preset' as const,fixedHours:'48',fixedEndsAt:''};
           const cardTitle=item.quantity>1?`${item.card.name} ×${item.quantity}`:item.card.name;
+          const parsedIntlFee=intlShippingFee.trim()?Math.round(Number(intlShippingFee)*(listingCurrency==='USD'?100:1)):null;
           const res=await fetch('/api/listings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
             instanceId:item.instanceId,
             title:cardTitle,
             amount:cfg.startingBid,
+            currency:listingCurrency,
+            tradeScope:listingTradeScope,
+            intlShippingFee:listingTradeScope==='ID_ONLY'?null:parsedIntlFee,
+            intlShippingNote:listingTradeScope==='ID_ONLY'?null:(intlShippingNote.trim()||null),
             quantity:item.quantity,
             city:listingCity||'Jakarta',
             type:'WTA',
@@ -1544,10 +1561,15 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
         return {item,cfg,itemKey};
       }):[];
       const effectiveAmount=isMultiSlotAuction?Math.min(...multiSlotEntries.map(e=>e.cfg.startingBid)):Number(listingPrice);
+      const parsedIntlFee=intlShippingFee.trim()?Math.round(Number(intlShippingFee)*(listingCurrency==='USD'?100:1)):null;
       const response=await fetch('/api/listings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
         instanceId:primary?.instanceId,
         title:listingTitle||listingName,
         amount:effectiveAmount,
+        currency:listingCurrency,
+        tradeScope:listingTradeScope,
+        intlShippingFee:listingTradeScope==='ID_ONLY'?null:parsedIntlFee,
+        intlShippingNote:listingTradeScope==='ID_ONLY'?null:(intlShippingNote.trim()||null),
         quantity:totalQty,
         city:listingType==='WTB'?buyerCity:(listingCity||'Jakarta'),
         type:listingType,
@@ -1744,6 +1766,19 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
               <div className="market-feed-filters">
                 <label className="market-feed-filter-control">
                   <Picker
+                    label={locale === 'ID' ? 'Wilayah' : 'Region'}
+                    leadingIcon={<Globe size={16} weight="regular" />}
+                    value={tradeScopeFilter}
+                    onChange={v => { captureFeedPositions(); triggerFeedMotion(); setTradeScopeFilter(v as typeof tradeScopeFilter); }}
+                    options={[
+                      { value: 'all', label: locale === 'ID' ? 'Semua wilayah' : 'All regions' },
+                      { value: 'ID_ONLY', label: locale === 'ID' ? 'Indonesia' : 'Indonesia' },
+                      { value: 'GLOBAL', label: locale === 'ID' ? 'Internasional' : 'International' },
+                    ]}
+                  />
+                </label>
+                <label className="market-feed-filter-control">
+                  <Picker
                     label={locale === 'ID' ? 'Bahasa listing' : 'Listing language'}
                     leadingIcon={<Translate size={16} weight="regular" />}
                     value={lang}
@@ -1831,7 +1866,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                       {totalCards>1&&<span className="market-feed-quantity" aria-label={`${totalCards} ${isMixedInventory?(locale==='ID'?'item':'items'):isGeneralListing?(locale==='ID'?'barang':'items'):hasMarketProducts?(locale==='ID'?'produk':'products'):(locale==='ID'?'kartu':'cards')}`}>{totalCards}</span>}
                     </div>
                     <div className="market-feed-copy">
-                      <h2><span className="market-feed-title-text">{listing.title}</span>{listing.boostedUntil&&<span className="market-feed-featured-badge">{locale==='ID'?'Unggulan':'Featured'}</span>}{marketCategory==='tcg'&&gameSlug==='all'&&listingGame&&<span className="market-feed-game-mark" title={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'} aria-label={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'}><MarketGameMark gameSlug={listingGame} compact/></span>}{(marketCategory==='other'||generalCategories.length>0)&&generalCategories.map(category=><span key={category} className="market-feed-category-mark">{generalMarketCategoryLabel(category,locale)}</span>)}</h2>
+                      <h2><span className="market-feed-title-text">{listing.title}</span>{listing.boostedUntil&&<span className="market-feed-featured-badge">{locale==='ID'?'Unggulan':'Featured'}</span>}{tradeScopeBadgeLabel(listing.tradeScope??'ID_ONLY',locale)&&<span className="market-feed-scope-badge" title={tradeScopeLabel(listing.tradeScope??'ID_ONLY',locale)}><Globe size={11} aria-hidden="true"/> {tradeScopeBadgeLabel(listing.tradeScope??'ID_ONLY',locale)}</span>}{marketCategory==='tcg'&&gameSlug==='all'&&listingGame&&<span className="market-feed-game-mark" title={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'} aria-label={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'}><MarketGameMark gameSlug={listingGame} compact/></span>}{(marketCategory==='other'||generalCategories.length>0)&&generalCategories.map(category=><span key={category} className="market-feed-category-mark">{generalMarketCategoryLabel(category,locale)}</span>)}</h2>
                       <small className="market-feed-meta">
                         <span className="market-feed-meta-primary"><span className="market-feed-meta-primary-line"><span className="market-feed-location"><MapPin size={11}/><span className="market-feed-location-name">{listing.city}</span></span>{listing.createdAt&&<><span className="market-feed-meta-separator" aria-hidden="true">|</span><span className="market-feed-meta-tail"><MarketTimestamp value={listing.createdAt}/><span className="market-feed-seller">{locale==='ID'?'oleh':'by'} {listing.sellerUsername?<Link href={`/players/${encodeURIComponent(listing.sellerUsername)}`} onClick={event=>event.stopPropagation()}>{listing.seller}</Link>:listing.seller}</span></span></>}</span></span>
                         {(listing.type==='WTS'||listing.type==='WTA')&&<span className="market-feed-meta-secondary"><ShippingCouriers couriers={listing.shippingCouriers??[]} language={locale}/></span>}
@@ -1869,21 +1904,40 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                         {heldCards>0&&!fullyReserved&&listing.type==='WTS'&&<span className="market-feed-held-count">{locale==='ID'?`${heldCards} ${isGeneralListing?'barang':'kartu'} dipesan`:`${heldCards} ${isGeneralListing?(heldCards===1?'item':'items'):(heldCards===1?'card':'cards')} reserved`}</span>}
                       </div>
                       <div className="market-feed-price">
-                        {listing.type==='WTA'&&listing.auction?(
-                          listing.auctions&&listing.auctions.length>1?(
-                            <strong>
-                              {locale==='ID'?'Mulai ':'From '}
-                              {formatMoney(Math.min(...listing.auctions.map(s=>s.bidCount>0?s.currentBid:s.startingBid)),listing.currency)}
-                            </strong>
-                          ):(
-                          <strong>
-                            {formatMoney(listing.auction.bidCount>0?listing.auction.currentBid:(listing.auction.startingBid||listing.amount),listing.currency)}
-                            {listing.auction.buyNowPrice&&<span className="market-feed-bin-inline"> / BIN {formatMoney(listing.auction.buyNowPrice,listing.currency)}</span>}
-                          </strong>
-                          )
-                        ):(
-                          <strong>{listing.amount>0?formatMoney(listing.amount,listing.currency):(locale==='ID'?'Harga belum diatur':'Price not set')}</strong>
-                        )}
+                        {(()=>{
+                          const baseCurr:MarketCurrency=listing.currency==='USD'?'USD':'IDR';
+                          const altCurr:MarketCurrency=baseCurr==='USD'?'IDR':'USD';
+                          const showAlt=listing.tradeScope==='BOTH';
+                          if(listing.type==='WTA'&&listing.auction){
+                            if(listing.auctions&&listing.auctions.length>1){
+                              const liveBids=listing.auctions.map(s=>s.bidCount>0?s.currentBid:s.startingBid);
+                              const minBid=Math.min(...liveBids);
+                              const binPrices=listing.auctions.map(s=>s.buyNowPrice??0).filter(v=>v>0);
+                              const minBin=binPrices.length?Math.min(...binPrices):0;
+                              return <>
+                                <strong>
+                                  {locale==='ID'?'Mulai ':'From '}
+                                  {formatMoney(minBid,baseCurr)}
+                                  {minBin>0&&<span className="market-feed-bin-inline"> / BIN {formatMoney(minBin,baseCurr)}</span>}
+                                </strong>
+                                {showAlt&&minBid>0&&<span>≈ {formatMoney(convertMoney(minBid,baseCurr,altCurr),altCurr)}</span>}
+                              </>;
+                            }
+                            const liveBid=listing.auction.bidCount>0?listing.auction.currentBid:(listing.auction.startingBid||listing.amount);
+                            const bin=listing.auction.buyNowPrice&&listing.auction.buyNowPrice>0?listing.auction.buyNowPrice:0;
+                            return <>
+                              <strong>
+                                {formatMoney(liveBid,baseCurr)}
+                                {bin>0&&<span className="market-feed-bin-inline"> / BIN {formatMoney(bin,baseCurr)}</span>}
+                              </strong>
+                              {showAlt&&liveBid>0&&<span>≈ {formatMoney(convertMoney(liveBid,baseCurr,altCurr),altCurr)}</span>}
+                            </>;
+                          }
+                          return <>
+                            <strong>{listing.amount>0?formatMoney(listing.amount,baseCurr):(locale==='ID'?'Harga belum diatur':'Price not set')}</strong>
+                            {showAlt&&listing.amount>0&&<span>≈ {formatMoney(convertMoney(listing.amount,baseCurr,altCurr),altCurr)}</span>}
+                          </>;
+                        })()}
                       </div>
                     </div>
                   </>
@@ -2559,6 +2613,62 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                     )}
                   </div>
                 )}
+                <div className="market-global-scope-box">
+                  <div className="market-global-scope-row">
+                    <label>
+                      <span>{locale==='ID'?'Cakupan Wilayah':'Trade Scope'}</span>
+                      <select
+                        value={listingTradeScope}
+                        onChange={event=>{
+                          const next=event.target.value as TradeScope;
+                          setListingTradeScope(next);
+                          if(next==='GLOBAL_ONLY')setListingCurrency('USD');
+                          else if(next==='ID_ONLY')setListingCurrency('IDR');
+                        }}
+                      >
+                        <option value="ID_ONLY">{tradeScopeLabel('ID_ONLY',locale)}</option>
+                        <option value="BOTH">{tradeScopeLabel('BOTH',locale)}</option>
+                        <option value="GLOBAL_ONLY">{tradeScopeLabel('GLOBAL_ONLY',locale)}</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>{locale==='ID'?'Mata uang dasar':'Base currency'}</span>
+                      <select
+                        value={listingCurrency}
+                        disabled={listingTradeScope==='ID_ONLY'}
+                        onChange={event=>setListingCurrency(event.target.value as MarketCurrency)}
+                      >
+                        <option value="IDR">IDR (Rp)</option>
+                        <option value="USD">USD ($)</option>
+                      </select>
+                    </label>
+                  </div>
+                  {(listingTradeScope==='GLOBAL_ONLY'||listingTradeScope==='BOTH')&&(
+                    <div className="market-global-scope-row">
+                      <label>
+                        <span>{locale==='ID'?`Ongkir Internasional Flat (${listingCurrency})`:`International Flat-Rate Shipping (${listingCurrency})`}</span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={listingCurrency==='USD'?'0.5':'1000'}
+                          value={intlShippingFee}
+                          onChange={event=>setIntlShippingFee(event.target.value)}
+                          placeholder={listingCurrency==='USD'?'15.00':'250000'}
+                        />
+                      </label>
+                      <label>
+                        <span>{locale==='ID'?'Kurir / Catatan Pengiriman Global':'Global Courier / Shipping Note'}</span>
+                        <input
+                          type="text"
+                          maxLength={240}
+                          value={intlShippingNote}
+                          onChange={event=>setIntlShippingNote(event.target.value)}
+                          placeholder={locale==='ID'?'Contoh: DHL / EMS Tracked (5–10 hari)':'e.g. DHL / EMS Tracked (5–10 days)'}
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
                 <div className="form-row market-review-listing-inputs">
                   {!(listingType==='WTA'&&bundleCards.length>1&&auctionBundleMode!=='lot')&&(
                   <label className="market-review-price-label">

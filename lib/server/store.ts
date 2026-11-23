@@ -149,7 +149,17 @@ export async function collection(ownerId:string){
   }}) as CollectionItem[];
 }
 export async function savedDecks(ownerId:string){const rows=(await db().prepare(`SELECT d.id,d.name,d.visibility,v.id AS versionId,v.number AS version,v.leader_id AS leaderId FROM decks d JOIN deck_versions v ON v.deck_id=d.id WHERE d.owner_id=? AND d.deleted_at IS NULL AND v.number=(SELECT MAX(number) FROM deck_versions WHERE deck_id=d.id) ORDER BY d.created_at DESC`).bind(ownerId).all<Omit<SavedDeck,'cards'>>()).results;return Promise.all(rows.map(async r=>({...r,cards:(await db().prepare('SELECT card_id AS cardId,quantity FROM deck_entries WHERE version_id=?').bind(r.versionId).all<{cardId:string;quantity:number}>()).results})));}
+let listingGlobalSchemaReady=false;
+export async function ensureListingGlobalSchema(database:ReturnType<typeof db>){
+  if(listingGlobalSchemaReady)return;
+  await database.prepare("ALTER TABLE listings ADD COLUMN trade_scope TEXT NOT NULL DEFAULT 'ID_ONLY'").run().catch(()=>undefined);
+  await database.prepare('ALTER TABLE listings ADD COLUMN intl_shipping_fee INTEGER').run().catch(()=>undefined);
+  await database.prepare('ALTER TABLE listings ADD COLUMN intl_shipping_note TEXT').run().catch(()=>undefined);
+  listingGlobalSchemaReady=true;
+}
+
 export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'one-piece'|'pokemon'){
+  await ensureListingGlobalSchema(db());
   const listingFilter=listingIds?.length?`AND l.id IN (${listingIds.map(()=>'?').join(',')})`:'';
   const gameFilter=gameSlug?`AND ? IN (
     SELECT sp.game_slug FROM tcg_sealed_products sp WHERE sp.id=l.sealed_product_id
@@ -165,6 +175,9 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
       l.title,
       l.amount,
       l.currency,
+      COALESCE(l.trade_scope,'ID_ONLY') AS tradeScope,
+      l.intl_shipping_fee AS intlShippingFee,
+      l.intl_shipping_note AS intlShippingNote,
       l.quantity,
       l.condition,
       l.type,
@@ -215,6 +228,9 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
     title:string;
     amount:number;
     currency:string;
+    tradeScope?:string;
+    intlShippingFee?:number|null;
+    intlShippingNote?:string|null;
     quantity:number;
     condition:string;
     type:string;
@@ -360,6 +376,9 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
       title: r.title,
       amount: r.type==='WTS'&&availableCount>0&&availableCount<itemQuantity&&!(viewerId&&r.sellerId===viewerId)?availableAmount:storedAmount,
       currency: r.currency,
+      tradeScope: (r.tradeScope==='GLOBAL_ONLY'||r.tradeScope==='BOTH'?r.tradeScope:'ID_ONLY') as 'ID_ONLY'|'GLOBAL_ONLY'|'BOTH',
+      intlShippingFee: r.intlShippingFee!==null&&r.intlShippingFee!==undefined?Number(r.intlShippingFee):null,
+      intlShippingNote: r.intlShippingNote??null,
       quantity: r.type==='WTS'&&!(viewerId&&r.sellerId===viewerId)?availableCount:r.quantity,
       condition: r.condition,
       type: r.type,

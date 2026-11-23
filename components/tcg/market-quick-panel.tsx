@@ -34,7 +34,8 @@ import {MarketIntroOfferProgress} from '@/components/tcg/market-intro-offer-prog
 import {MarketMembershipComparison} from '@/components/tcg/market-membership-comparison';
 import {ProfileSocialsPanel} from '@/components/tcg/profile-socials-panel';
 import {IdrInput} from '@/components/ui/idr-input';
-import {CREDIT_TOPUP_PACKAGES} from '@/lib/market/credits';
+import {CREDIT_TOPUP_PACKAGES,USD_CREDIT_TOPUP_PACKAGES} from '@/lib/market/credits';
+import {USD_PRO_PRICING} from '@/lib/market/global';
 
 export type MarketAccountPanel='listings'|'offers'|'orders'|'saved'|'vault'|'wishlist'|'profile';
 type ActivityCounts={listings:number;offers:number;orders:number};
@@ -162,9 +163,14 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account',initialEd
   const [proBillingPeriod,setProBillingPeriod]=useState<'monthly'|'yearly'>('monthly');
   const isPro=String(profile.tier??'free').toLowerCase()==='pro';
   const [creditBalance,setCreditBalance]=useState(0);
+  const [creditBalanceUsd,setCreditBalanceUsd]=useState(0);
   const [creditAutoRenew,setCreditAutoRenew]=useState(false);
-  const [creditLedger,setCreditLedger]=useState<Array<{id:string;amount:number;description:string;createdAt:string}>>([]);
+  const [creditLedger,setCreditLedger]=useState<Array<{id:string;delta?:number;amount?:number;currency?:'IDR'|'USD';description:string;createdAt:string}>>([]);
   const [creditsLoading,setCreditsLoading]=useState(true);
+  const [walletCurrency,setWalletCurrency]=useState<'IDR'|'USD'>(()=>String(profile.region??'ID').toUpperCase()==='ID'?'IDR':'USD');
+  const [polarTopupLoading,setPolarTopupLoading]=useState<number|null>(null);
+  const [proPayCurrency,setProPayCurrency]=useState<'IDR'|'USD'>(()=>String(profile.region??'ID').toUpperCase()==='ID'?'IDR':'USD');
+  const [polarProLoading,setPolarProLoading]=useState(false);
   const [creditTopupAmount,setCreditTopupAmount]=useState<number|null>(null);
   const [customTopupInput,setCustomTopupInput]=useState('');
   const [pendingTopupAmount,setPendingTopupAmount]=useState<number|null>(null);
@@ -204,7 +210,7 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account',initialEd
   },[profile.display_name,profile.phone]);
   const loadShipping=async()=>{try{const origin=await fetchShippingOrigin();applyShippingOrigin(origin);setShippingLoadError('');return true}catch(error){setShipping(null);setShippingLoadError(error instanceof Error?error.message:'Could not load the delivery address.');return false}};
   const loadPayoutAccounts=async()=>{try{const [value,summary]=await Promise.all([api<{accounts:typeof payoutAccounts}>('/api/profile/bank-accounts'),api<QuickPayoutSummary>('/api/profile/payouts')]);const accounts=value.accounts??[];setPayoutAccounts(accounts);setPayoutSummary(summary);setPayoutBankAccountId(current=>accounts.some(account=>account.id===current)?current:summary.defaultBankAccountId??accounts.find(account=>account.isDefault)?.id??accounts[0]?.id??'');setPayoutAmount(String(summary.available))}catch{setPayoutAccounts([]);setPayoutSummary(null)}};
-  const loadCredits=useCallback(async()=>{setCreditsLoading(true);try{const data=await api<{balance:number;autoRenewPro:boolean;ledger:Array<{id:string;amount:number;description:string;createdAt:string}>}>('/api/market/credits');setCreditBalance(Number(data.balance??0));setCreditAutoRenew(Boolean(data.autoRenewPro));setCreditLedger(Array.isArray(data.ledger)?data.ledger:[])}catch{setCreditLedger([])}finally{setCreditsLoading(false)}},[]);
+  const loadCredits=useCallback(async()=>{setCreditsLoading(true);try{const data=await api<{balance:number;balanceUsd?:number;autoRenewPro:boolean;ledger:Array<{id:string;delta?:number;amount?:number;currency?:'IDR'|'USD';description:string;createdAt:string}>}>('/api/market/credits');setCreditBalance(Number(data.balance??0));setCreditBalanceUsd(Number(data.balanceUsd??0));setCreditAutoRenew(Boolean(data.autoRenewPro));setCreditLedger(Array.isArray(data.ledger)?data.ledger:[])}catch{setCreditLedger([])}finally{setCreditsLoading(false)}},[]);
   useEffect(()=>{void loadCredits()},[loadCredits,profile.id]);
   useEffect(()=>{
     let active=true;
@@ -265,6 +271,8 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account',initialEd
   const toggleAutoRenewPro=async(next:boolean)=>{setCreditAutoRenewSaving(true);try{const res=await api<{autoRenewPro:boolean}>('/api/market/credits',{autoRenewPro:next},'PATCH');setCreditAutoRenew(Boolean(res.autoRenewPro));toast.success(res.autoRenewPro?t('Auto-renew with Credits enabled','Perpanjangan otomatis dengan Kredit aktif'):t('Auto-renew with Credits turned off','Perpanjangan otomatis dengan Kredit dimatikan'))}catch(error){toast.error(error instanceof Error?error.message:t('Could not update auto-renew','Tidak dapat memperbarui perpanjangan otomatis'))}finally{setCreditAutoRenewSaving(false)}};
   const startCreditTopup=async(amount:number)=>{if(!phone.trim()){setTab('account');toast.error(t('Add your phone number in Account to continue.','Tambahkan nomor telepon di bagian Akun untuk melanjutkan.'));return}setCreditTopupAmount(amount);setCreditPaymentError('');try{const res=await api<{id:string}>('/api/market/credits',{amount,paymentMethod:proPayment.method,paymentChannel:proPayment.channel},'POST');const instRes=await fetch(`/api/checkout/order/${encodeURIComponent(res.id)}/instrument`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({paymentMethod:proPayment.method,paymentChannel:proPayment.channel})});const instJson=await instRes.json() as {error?:string};if(!instRes.ok)throw new Error(instJson.error??t('Payment could not be started.','Pembayaran tidak dapat dimulai.'));const orderRes=await fetch(`/api/checkout/order/${encodeURIComponent(res.id)}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});const order=await orderRes.json() as QuickProPaymentView&{error?:string};if(!orderRes.ok)throw new Error(order.error??t('Payment details could not be loaded.','Detail pembayaran tidak dapat dimuat.'));setCreditPaymentView(order);setPendingTopupAmount(null);void loadCredits()}catch(error){const message=error instanceof Error?error.message:t('Could not start credit top-up','Tidak dapat memulai isi ulang kredit');setCreditPaymentError(message);toast.error(message)}finally{setCreditTopupAmount(null)}};
   const payProWithCredits=async()=>{setCreditProPaying(true);try{await api<{paid?:boolean}>('/api/checkout/pro',{billingPeriod:selectedProPeriod,introOffer:selectedProPeriod==='monthly'&&Boolean(proPlan?.introOffer),payWithCredits:true},'POST');await Promise.all([onSaved(),loadCredits()]);setConfirmingPro(false);toast.success(t('Market Pro activated with VivrePlay Credits!','Market Pro diaktifkan dengan Kredit VivrePlay!'))}catch(error){toast.error(error instanceof Error?error.message:t('Could not pay with Credits','Tidak dapat membayar dengan Kredit'))}finally{setCreditProPaying(false)}};
+  const startUsdCreditTopup=async(amountCents:number)=>{setPolarTopupLoading(amountCents);setCreditPaymentError('');try{const res=await api<{checkoutUrl?:string}>('/api/checkout/polar',{kind:'CREDITS',amountCents,paymentMethod:'polar'},'POST');if(res.checkoutUrl){window.open(res.checkoutUrl,'_blank','noopener,noreferrer');toast.success(t('Opened Polar.sh checkout in a new tab.','Checkout Polar.sh dibuka di tab baru.'))}}catch(error){const msg=error instanceof Error?error.message:t('Could not start Polar.sh checkout','Tidak dapat memulai checkout Polar.sh');setCreditPaymentError(msg);toast.error(msg)}finally{setPolarTopupLoading(null)}};
+  const startUsdProCheckout=async(paymentMethod:'polar'|'credits')=>{setPolarProLoading(true);try{const res=await api<{checkoutUrl?:string;paidWithCredits?:boolean}>('/api/checkout/polar',{kind:'PRO',proBillingCycle:selectedProPeriod==='yearly'?'annual':'monthly',paymentMethod},'POST');if(res.paidWithCredits){await Promise.all([onSaved(),loadCredits()]);toast.success(t('Market Pro activated with USD Credits!','Market Pro diaktifkan dengan Kredit USD!'));return}if(res.checkoutUrl){window.open(res.checkoutUrl,'_blank','noopener,noreferrer');toast.success(t('Opened Polar.sh checkout in a new tab.','Checkout Polar.sh dibuka di tab baru.'))}}catch(error){toast.error(error instanceof Error?error.message:t('Could not start USD Pro checkout','Tidak dapat memulai checkout Pro USD'))}finally{setPolarProLoading(false)}};
   useEffect(()=>{
     if(!pendingProOrder?.paymentCreated){setProPaymentView(null);setProPaymentViewLoading(false);setProPaymentViewError('');return}
     let active=true;
@@ -351,7 +359,26 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account',initialEd
       <div className="market-membership-quick-actions">
         {proDetailsLoading?<div className="market-membership-profile-skeleton" role="status" aria-label={t('Loading membership details','Memuat detail keanggotaan')}><i/><i/><i/></div>:<>
         {pendingProOrder&&!pendingProOrder.paymentCreated&&<div className="market-pro-pending-payment" role="status"><strong>{t('You have an unfinished plan checkout','Ada checkout paket yang belum selesai')}</strong><span>{t('Choose a payment method to finish this checkout.','Pilih metode pembayaran untuk menyelesaikan checkout ini.')}</span></div>}
-        {!confirmingPro&&(!pendingProOrder?.paymentCreated||proPaymentDismissed)&&<><div className="market-pro-billing-toggle" role="group" aria-label={t('Membership period','Masa keanggotaan')} hidden={isPro||Boolean(pendingProOrder)}><button type="button" aria-pressed={proBillingPeriod==='monthly'} onClick={()=>setProBillingPeriod('monthly')}>{t('Monthly','Bulanan')}</button><button type="button" aria-pressed={proBillingPeriod==='yearly'} onClick={()=>setProBillingPeriod('yearly')}>{t('Annual','Tahunan')}</button></div>{!pendingProOrder?.paymentCreated&&<><strong className="market-membership-quick-price">{selectedProPrice}<small> / {selectedProPeriod==='yearly'?t('year','tahun'):t('month','bulan')}</small></strong>{selectedProPeriod==='yearly'?<small className="market-membership-intro-note"><s>{new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(proMonthlyStandardAmount*12)}</s> <b className="market-membership-savings">{t(`Save ${proAnnualSavingsLabel} (${proAnnualSavingsPercent}%) vs 12 monthly payments`,`Hemat ${proAnnualSavingsLabel} (${proAnnualSavingsPercent}%) dibandingkan 12 pembayaran bulanan`)}</b>{t(`. ${proPlan?.shippingVouchersPerYear??24} vouchers are available to use any time during the year; unused vouchers expire when membership ends.`,`. ${proPlan?.shippingVouchersPerYear??24} voucher dapat digunakan kapan saja selama setahun; sisa voucher hangus saat masa aktif berakhir.`)}</small>:proIntroTerms&&<small className="market-membership-intro-note">{proIntroTerms}</small>}{!pendingProOrder&&selectedProPeriod==='monthly'&&<MarketIntroOfferProgress compact limit={proPlan?.introOfferLimit} remaining={proPlan?.introOfferSpotsRemaining} endsAt={proPlan?.introOfferEndsAt} locale={locale}/>}</>}<button type="button" className="button primary" onClick={()=>pendingProOrder?.paymentCreated?void beginProCheckout():setConfirmingPro(true)}><Crown size={16}/>{pendingProOrder?.paymentCreated?t('View payment','Lihat pembayaran'):pendingProOrder?t('Finish checkout','Selesaikan checkout'):isPro?t('Extend membership','Perpanjang keanggotaan'):selectedProPeriod==='yearly'?t('Get Market Pro Annual','Pilih Market Pro Tahunan'):t('Get Market Pro','Dapatkan Market Pro')}<ArrowRight size={15}/></button></>}
+        {!confirmingPro&&(!pendingProOrder?.paymentCreated||proPaymentDismissed)&&<>
+          <div className="market-pro-currency-switch" role="group" aria-label={t('Payment currency','Mata uang pembayaran')}>
+            <button type="button" className={proPayCurrency==='IDR'?'is-active':''} aria-pressed={proPayCurrency==='IDR'} onClick={()=>setProPayCurrency('IDR')}>IDR (iPaymu)</button>
+            <button type="button" className={proPayCurrency==='USD'?'is-active':''} aria-pressed={proPayCurrency==='USD'} onClick={()=>setProPayCurrency('USD')}>USD (Polar.sh)</button>
+          </div>
+          <div className="market-pro-billing-toggle" role="group" aria-label={t('Membership period','Masa keanggotaan')} hidden={isPro||Boolean(pendingProOrder)}><button type="button" aria-pressed={proBillingPeriod==='monthly'} onClick={()=>setProBillingPeriod('monthly')}>{t('Monthly','Bulanan')}</button><button type="button" aria-pressed={proBillingPeriod==='yearly'} onClick={()=>setProBillingPeriod('yearly')}>{t('Annual','Tahunan')}</button></div>
+          {proPayCurrency==='USD'?(
+            <>
+              <strong className="market-membership-quick-price">${((selectedProPeriod==='yearly'?USD_PRO_PRICING.annualCents:USD_PRO_PRICING.monthlyCents)/100).toFixed(2)}<small> / {selectedProPeriod==='yearly'?t('year','tahun'):t('month','bulan')}</small></strong>
+              <div className="market-pro-usd-actions">
+                {creditBalanceUsd>=(selectedProPeriod==='yearly'?USD_PRO_PRICING.annualCents:USD_PRO_PRICING.monthlyCents)&&<button type="button" className="button secondary" disabled={polarProLoading} onClick={()=>void startUsdProCheckout('credits')}><Coins size={15}/>{t('Pay with USD Credits','Bayar pakai Kredit USD')}</button>}
+                <button type="button" className="button primary" disabled={polarProLoading} onClick={()=>void startUsdProCheckout('polar')}><Crown size={16}/>{polarProLoading?t('Opening Polar.sh…','Membuka Polar.sh…'):t('Pay in USD via Polar.sh','Bayar USD via Polar.sh')}<ArrowRight size={15}/></button>
+              </div>
+            </>
+          ):(
+            <>
+              {!pendingProOrder?.paymentCreated&&<><strong className="market-membership-quick-price">{selectedProPrice}<small> / {selectedProPeriod==='yearly'?t('year','tahun'):t('month','bulan')}</small></strong>{selectedProPeriod==='yearly'?<small className="market-membership-intro-note"><s>{new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(proMonthlyStandardAmount*12)}</s> <b className="market-membership-savings">{t(`Save ${proAnnualSavingsLabel} (${proAnnualSavingsPercent}%) vs 12 monthly payments`,`Hemat ${proAnnualSavingsLabel} (${proAnnualSavingsPercent}%) dibandingkan 12 pembayaran bulanan`)}</b>{t(`. ${proPlan?.shippingVouchersPerYear??24} vouchers are available to use any time during the year; unused vouchers expire when membership ends.`,`. ${proPlan?.shippingVouchersPerYear??24} voucher dapat digunakan kapan saja selama setahun; sisa voucher hangus saat masa aktif berakhir.`)}</small>:proIntroTerms&&<small className="market-membership-intro-note">{proIntroTerms}</small>}{!pendingProOrder&&selectedProPeriod==='monthly'&&<MarketIntroOfferProgress compact limit={proPlan?.introOfferLimit} remaining={proPlan?.introOfferSpotsRemaining} endsAt={proPlan?.introOfferEndsAt} locale={locale}/>}</>}<button type="button" className="button primary" onClick={()=>pendingProOrder?.paymentCreated?void beginProCheckout():setConfirmingPro(true)}><Crown size={16}/>{pendingProOrder?.paymentCreated?t('View payment','Lihat pembayaran'):pendingProOrder?t('Finish checkout','Selesaikan checkout'):isPro?t('Extend membership','Perpanjang keanggotaan'):selectedProPeriod==='yearly'?t('Get Market Pro Annual','Pilih Market Pro Tahunan'):t('Get Market Pro','Dapatkan Market Pro')}<ArrowRight size={15}/></button>
+            </>
+          )}
+        </>}
         {confirmingPro&&!proPaymentView&&!pendingProOrder?.paymentCreated&&<div className="market-pro-purchase-confirm" role="group" aria-label={t('Confirm membership checkout','Konfirmasi pembayaran paket')}><p>{pendingProOrder?.paymentCreated?t(`Continue your existing ${paymentInstrumentLabel(pendingProOrder.paymentMethod,pendingProOrder.paymentName,locale)} for ${selectedProPrice}.`,`Lanjutkan pembayaran ${pendingProOrder.paymentName??pendingProOrder.paymentChannel??'yang dipilih'} sebesar ${selectedProPrice}.`):pendingProOrder?t('Choose a payment method to finish your existing checkout.', 'Pilih metode pembayaran untuk menyelesaikan checkout ini.'):t(`Continue with ${selectedProPeriod==='yearly'?'Market Pro Annual':'Market Pro'} for ${selectedProPrice} / ${selectedProDays} days?`,`Lanjutkan dengan ${selectedProPeriod==='yearly'?'Market Pro Annual':'Market Pro'} seharga ${selectedProPrice} untuk ${selectedProDays} hari?`)}</p>{!pendingProOrder&&selectedProPeriod==='yearly'?<small className="market-membership-intro-note">{t(`Use ${proPlan?.shippingVouchersPerYear??24} vouchers before the membership ends.`,`Gunakan ${proPlan?.shippingVouchersPerYear??24} voucher sebelum masa aktif berakhir.`)}</small>:!pendingProOrder&&proIntroTerms&&<small className="market-membership-intro-note">{proIntroTerms}</small>}{!pendingProOrder&&selectedProPeriod==='monthly'&&<MarketIntroOfferProgress compact limit={proPlan?.introOfferLimit} remaining={proPlan?.introOfferSpotsRemaining} endsAt={proPlan?.introOfferEndsAt} locale={locale}/>}{!pendingProOrder&&creditBalance>0&&creditBalance<selectedProAmount&&<label className="market-credits-autorenew-card"><input type="checkbox" checked={proApplyCredits} onChange={event=>setProApplyCredits(event.target.checked)}/><div><strong>{t('Apply VivrePlay Credits','Gunakan Kredit VivrePlay')}</strong><small>{t(`Use ${new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(creditBalance)} and pay remaining ${new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Math.max(0,selectedProAmount-creditBalance))}.`,`Pakai ${new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(creditBalance)} dan bayar sisa ${new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Math.max(0,selectedProAmount-creditBalance))}.`)}</small></div></label>}{!pendingProOrder?.paymentCreated&&<MarketPaymentMethodPicker layout="compact" locale={locale} options={proPaymentOptions} unavailableReason={proPlan?.paymentChannelStatus} amount={proApplyCredits&&creditBalance>0&&creditBalance<selectedProAmount?Math.max(0,selectedProAmount-creditBalance):selectedProAmount} selectedMethod={proPayment.method} selectedChannel={proPayment.channel} loading={proPaymentLoading} onChange={(method,channel)=>setProPayment({method,channel})}/>}{proPaymentFee>0&&!pendingProOrder?.paymentCreated&&<p className="pro-dialog-payment-total">{t('Estimated total','Perkiraan total')}: <strong>{new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format((proApplyCredits&&creditBalance>0&&creditBalance<selectedProAmount?Math.max(0,selectedProAmount-creditBalance):selectedProAmount)+proPaymentFee)}</strong></p>}<div><button type="button" className="market-quick-secondary" onClick={()=>setConfirmingPro(false)}>{t('Back','Kembali')}</button>{!pendingProOrder&&creditBalance>=selectedProAmount&&<button type="button" className="button secondary" onClick={()=>void payProWithCredits()} disabled={creditProPaying||proSubmitting}><Coins size={15}/>{creditProPaying?t('Paying…','Membayar…'):t('Pay with Credits','Bayar pakai Kredit')}</button>}<button type="button" className="button primary" onClick={()=>void beginProCheckout()} disabled={proSubmitting||creditProPaying}>{proSubmitting?t('Opening checkout…','Membuka checkout…'):pendingProOrder?.paymentCreated?t('Continue payment','Lanjutkan pembayaran'):t('Continue to payment','Lanjut ke pembayaran')}</button></div></div>}
         </>}
         {confirmingPro&&pendingProOrder?.paymentCreated&&!proPaymentView&&<div className="market-pro-payment-loading" role="status" aria-live="polite">{proPaymentViewLoading?<VivrePaymentDetailsSkeleton label={t('Loading payment details…','Memuat detail pembayaran…')}/>:<div className="market-pro-pending-payment"><strong>{t('Payment details could not be loaded','Detail pembayaran tidak dapat dimuat')}</strong><span>{proPaymentViewError||t('Try again to reload this payment.','Coba muat ulang pembayaran ini.')}</span><button type="button" className="market-quick-secondary" onClick={()=>void beginProCheckout()} disabled={proSubmitting}>{t('Reload payment details','Muat ulang detail pembayaran')}</button></div>}</div>}
@@ -395,8 +422,9 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account',initialEd
       </form>}
     </section>}
     {tab==='credits'&&<section className="market-credits-quick">
-      <div className="market-payout-balance" aria-live="polite">
-        <div><small>{t('VivrePlay Credits','Kredit VivrePlay')}</small><strong>{creditsLoading?'—':new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(creditBalance)}</strong></div>
+      <div className="market-payout-balance market-credits-dual-balance" aria-live="polite">
+        <div><small>{t('IDR Credits','Kredit IDR')}</small><strong>{creditsLoading?'—':new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(creditBalance)}</strong></div>
+        <div><small>{t('USD Credits (Global)','Kredit USD (Global)')}</small><strong>{creditsLoading?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(creditBalanceUsd/100)}</strong></div>
         <span>{t('Use for Market Pro, Boosts & Checkout','Untuk Market Pro, Boost & Checkout')}</span>
       </div>
       {creditPaymentView?<div className="market-pro-payment-view" aria-label={t('Payment details','Detail pembayaran')}>
@@ -416,20 +444,40 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account',initialEd
           <button type="button" className="button primary" disabled={creditTopupAmount!==null} onClick={()=>void startCreditTopup(pendingTopupAmount)}>{creditTopupAmount!==null?t('Creating payment…','Membuat pembayaran…'):t('Continue to payment','Lanjut ke pembayaran')}</button>
         </div>
       </div>:<div className="market-credits-topup-block">
-        <strong>{t('Top up Credits','Isi ulang Kredit')}</strong>
-        <div className="market-credits-topup-grid">
-          {CREDIT_TOPUP_PACKAGES.map(pkg=><button key={pkg.amount} type="button" className="market-credits-topup-btn" disabled={creditTopupAmount!==null} onClick={()=>{setCreditPaymentError('');setPendingTopupAmount(pkg.amount)}}>
-            <strong>{new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(pkg.amount)}</strong>
-            <small>{t('Select','Pilih')}</small>
-          </button>)}
-        </div>
-        <form className="market-credits-custom-form" onSubmit={event=>{event.preventDefault();const val=Math.round(Number(customTopupInput));if(!Number.isFinite(val)||val<10_000||val>10_000_000){toast.error(t('Enter an amount between Rp 10,000 and Rp 10,000,000.','Masukkan nominal antara Rp 10.000 hingga Rp 10.000.000.'));return}setCreditPaymentError('');setPendingTopupAmount(val)}}>
-          <div className="market-currency-input-wrap">
-            <span className="market-currency-badge">IDR</span>
-            <IdrInput value={customTopupInput} onValueChange={setCustomTopupInput} placeholder={t('Other amount (min. 10,000)','Nominal lain (min. 10.000)')} aria-label={t('Custom top-up amount (IDR)','Nominal isi ulang lainnya (IDR)')}/>
+        <div className="market-credits-topup-head">
+          <strong>{t('Top up Credits','Isi ulang Kredit')}</strong>
+          <div className="market-category-switch" role="group" aria-label={t('Top-up currency','Mata uang isi ulang')}>
+            <button type="button" className={walletCurrency==='IDR'?'is-active':''} aria-pressed={walletCurrency==='IDR'} onClick={()=>setWalletCurrency('IDR')}>IDR (iPaymu)</button>
+            <button type="button" className={walletCurrency==='USD'?'is-active':''} aria-pressed={walletCurrency==='USD'} onClick={()=>setWalletCurrency('USD')}>USD (Polar.sh)</button>
           </div>
-          <button type="submit" className="button secondary">{t('Top up','Isi ulang')}</button>
-        </form>
+        </div>
+        {walletCurrency==='IDR'?(
+          <>
+            <div className="market-credits-topup-grid">
+              {CREDIT_TOPUP_PACKAGES.map(pkg=><button key={pkg.amount} type="button" className="market-credits-topup-btn" disabled={creditTopupAmount!==null} onClick={()=>{setCreditPaymentError('');setPendingTopupAmount(pkg.amount)}}>
+                <strong>{new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(pkg.amount)}</strong>
+                <small>{t('Select','Pilih')}</small>
+              </button>)}
+            </div>
+            <form className="market-credits-custom-form" onSubmit={event=>{event.preventDefault();const val=Math.round(Number(customTopupInput));if(!Number.isFinite(val)||val<10_000||val>10_000_000){toast.error(t('Enter an amount between Rp 10,000 and Rp 10,000,000.','Masukkan nominal antara Rp 10.000 hingga Rp 10.000.000.'));return}setCreditPaymentError('');setPendingTopupAmount(val)}}>
+              <div className="market-currency-input-wrap">
+                <span className="market-currency-badge">IDR</span>
+                <IdrInput value={customTopupInput} onValueChange={setCustomTopupInput} placeholder={t('Other amount (min. 10,000)','Nominal lain (min. 10.000)')} aria-label={t('Custom top-up amount (IDR)','Nominal isi ulang lainnya (IDR)')}/>
+              </div>
+              <button type="submit" className="button secondary">{t('Top up','Isi ulang')}</button>
+            </form>
+          </>
+        ):(
+          <>
+            <div className="market-credits-topup-grid">
+              {USD_CREDIT_TOPUP_PACKAGES.map(pkg=><button key={pkg.amount} type="button" className="market-credits-topup-btn" disabled={polarTopupLoading!==null} onClick={()=>void startUsdCreditTopup(pkg.amount)}>
+                <strong>{pkg.label}</strong>
+                <small>{polarTopupLoading===pkg.amount?t('Opening…','Membuka…'):t('Pay via Polar.sh','Bayar via Polar.sh')}</small>
+              </button>)}
+            </div>
+            {creditPaymentError&&<p className="checkout-error" role="alert">{creditPaymentError}</p>}
+          </>
+        )}
       </div>}
       <label className="market-credits-autorenew-card">
         <input type="checkbox" checked={creditAutoRenew} disabled={creditAutoRenewSaving||creditsLoading} onChange={event=>void toggleAutoRenewPro(event.target.checked)}/>
@@ -441,11 +489,18 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account',initialEd
       </label>
       <div className="market-payout-history">
         <strong>{t('Recent credit activity','Riwayat kredit terbaru')}</strong>
-        {creditLedger.length?creditLedger.slice(0,6).map(entry=><div key={entry.id}>
-          <span>{entry.description}</span>
-          <b className={entry.amount>=0?'is-positive':'is-negative'}>{entry.amount>=0?'+':''}{new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(entry.amount)}</b>
-          <small>{new Date(entry.createdAt.replace(' ','T')+'Z').toLocaleDateString(locale==='ID'?'id-ID':'en-US',{month:'short',day:'numeric'})}</small>
-        </div>):<p>{t('Top-ups and credit spends will appear here.','Isi ulang dan pemakaian kredit akan muncul di sini.')}</p>}
+        {creditLedger.length?creditLedger.slice(0,6).map(entry=>{
+          const val=Number(entry.delta??entry.amount??0);
+          const curr=entry.currency==='USD'?'USD':'IDR';
+          const formatted=curr==='USD'
+            ?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(Math.abs(val)/100)
+            :new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Math.abs(val));
+          return <div key={entry.id}>
+            <span>{entry.description}</span>
+            <b className={val>=0?'is-positive':'is-negative'}>{val>=0?'+':'-'}{formatted}</b>
+            <small>{new Date(entry.createdAt.replace(' ','T')+'Z').toLocaleDateString(locale==='ID'?'id-ID':'en-US',{month:'short',day:'numeric'})}</small>
+          </div>;
+        }):<p>{t('Top-ups and credit spends will appear here.','Isi ulang dan pemakaian kredit akan muncul di sini.')}</p>}
       </div>
     </section>}
     {tab==='socials'&&<section className="market-socials-quick">

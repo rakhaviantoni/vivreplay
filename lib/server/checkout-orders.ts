@@ -5,7 +5,7 @@ import {activateListingBoost} from '@/lib/server/listing-boosts';
 import {addCredits} from '@/lib/server/credits';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 
-type FulfillableOrder={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;paymentId:string|null};
+type FulfillableOrder={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;currency?:string|null;paymentId:string|null};
 
 export async function fulfillCheckoutOrder(database:ReturnType<typeof db>,order:FulfillableOrder){
   const claim=crypto.randomUUID();
@@ -50,14 +50,17 @@ export async function fulfillCheckoutOrder(database:ReturnType<typeof db>,order:
     });
     await database.prepare("UPDATE checkout_orders SET status='PAID',details=json_remove(details,'$.fulfillmentClaim'),paid_at=COALESCE(paid_at,CURRENT_TIMESTAMP),fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?").bind(order.id,claim).run();
     const boostRow=await database.prepare('SELECT title FROM listings WHERE id=?').bind(listingId).first<{title:string}>().catch(()=>null);
-    await sendMarketEmail(order.buyerId,'listing-boost-activated',boostRow?.title||'Market listing',listingId,{amount:Number(order.subtotal)||0,currency:'IDR',expiresAt:boostedUntil}).catch(()=>{});
+    const boostCurrency=order.currency==='USD'?'USD':'IDR';
+    await sendMarketEmail(order.buyerId,'listing-boost-activated',boostRow?.title||'Market listing',listingId,{amount:Number(order.subtotal)||0,currency:boostCurrency,expiresAt:boostedUntil}).catch(()=>{});
     return true;
   }
   if(order.kind==='CREDITS'){
     let creditAmount=Number(order.subtotal)||0;
+    let creditCurrency:'IDR'|'USD'=order.currency==='USD'?'USD':'IDR';
     try{
-      const details=JSON.parse(order.details) as {creditAmount?:number};
+      const details=JSON.parse(order.details) as {creditAmount?:number;currency?:string};
       if(Number.isSafeInteger(details.creditAmount)&&Number(details.creditAmount)>0)creditAmount=Number(details.creditAmount);
+      if(details.currency==='USD')creditCurrency='USD';
     }catch{}
     if(creditAmount<=0)throw new HttpError(500,'The credit amount for this order is invalid.');
     const claimResult=await database.prepare("UPDATE checkout_orders SET status='PROCESSING',details=json_set(details,'$.fulfillmentClaim',?),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(claim,order.id,order.paymentId).run();
@@ -65,12 +68,13 @@ export async function fulfillCheckoutOrder(database:ReturnType<typeof db>,order:
     await addCredits(database,{
       profileId:order.buyerId,
       amount:creditAmount,
+      currency:creditCurrency,
       kind:'TOPUP',
       referenceId:order.id,
-      description:`Top up Rp ${creditAmount.toLocaleString('id-ID')}`,
+      description:creditCurrency==='USD'?`Top up $${(creditAmount/100).toFixed(2)}`:`Top up Rp ${creditAmount.toLocaleString('id-ID')}`,
     });
     await database.prepare("UPDATE checkout_orders SET status='PAID',details=json_remove(details,'$.fulfillmentClaim'),paid_at=COALESCE(paid_at,CURRENT_TIMESTAMP),fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?").bind(order.id,claim).run();
-    await sendMarketEmail(order.buyerId,'credits-topped-up','VivrePlay Credits',order.id,{amount:creditAmount,currency:'IDR'}).catch(()=>{});
+    await sendMarketEmail(order.buyerId,'credits-topped-up','VivrePlay Credits',order.id,{amount:creditAmount,currency:creditCurrency}).catch(()=>{});
     return true;
   }
 

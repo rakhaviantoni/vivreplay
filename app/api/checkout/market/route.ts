@@ -1,6 +1,7 @@
 import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {z} from 'zod';
-import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
+import {db,ensureListingGlobalSchema,errorResponse,guard,user,HttpError} from '@/lib/server/store';
+import {convertMoney} from '@/lib/market/global';
 import {getCurrentUser} from '@/lib/server/auth';
 import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannelChoices,getIpaymuMode,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
@@ -12,7 +13,15 @@ import {getCreditWallet,spendCredits} from '@/lib/server/credits';
 import {fulfillCheckoutOrder} from '@/lib/server/checkout-orders';
 
 const checkoutItem=z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),sealedProductId:z.string().optional(),parcel:z.object({weight:z.number().int().positive(),length:z.number().int().positive(),width:z.number().int().positive(),height:z.number().int().positive()}).optional()});
-const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(checkoutItem.extend({listingId:z.string().optional()})).min(1).max(600),lines:z.array(z.object({listingId:z.string().min(1),items:z.array(checkoutItem).min(1).max(60)})).max(10).optional(),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional(),shippingInsurance:z.boolean().default(false),useShippingVoucher:z.boolean().default(true),payWithCredits:z.boolean().optional(),applyCredits:z.boolean().optional(),paymentMethod:z.enum(['va','cstore','qris','cc','paylater','ewallet']).default('qris'),paymentChannel:z.string().regex(/^[a-z0-9_]{2,24}$/).default('mpm')});
+const intlRecipientSchema=z.object({
+  recipientName:z.string().trim().min(2).max(80),
+  country:z.string().trim().min(2).max(60),
+  addressLine:z.string().trim().min(4).max(240),
+  city:z.string().trim().min(2).max(80),
+  postalCode:z.string().trim().min(2).max(20),
+  phone:z.string().trim().min(5).max(30),
+});
+const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(checkoutItem.extend({listingId:z.string().optional()})).min(1).max(600),lines:z.array(z.object({listingId:z.string().min(1),items:z.array(checkoutItem).min(1).max(60)})).max(10).optional(),shippingMode:z.enum(['DOMESTIC_BITESHIP','INTERNATIONAL_FLAT']).default('DOMESTIC_BITESHIP'),intlRecipient:intlRecipientSchema.optional(),courierName:z.string().min(1).optional(),courierServiceName:z.string().min(1).optional(),courierCode:z.string().min(1).optional(),courierServiceCode:z.string().min(1).optional(),courierType:z.string().min(1).optional(),shippingFee:z.number().int().nonnegative().optional(),shippingInsurance:z.boolean().default(false),useShippingVoucher:z.boolean().default(true),payWithCredits:z.boolean().optional(),applyCredits:z.boolean().optional(),paymentMethod:z.enum(['va','cstore','qris','cc','paylater','ewallet']).default('qris'),paymentChannel:z.string().regex(/^[a-z0-9_]{2,24}$/).default('mpm')});
 type BundleEntry={instanceId?:string;printingId:string;sealedProductId?:string;parcel?:{weight:number;length:number;width:number;height:number};photoIds?:string[];notes?:string;quantity:number;condition?:string;unitAmount:number;listingId?:string;productType?:string;generalProduct?:{category:string;brand?:string;model?:string}};
 type AcceptedOffer={id:string;actorId:string;buyerId:string;initialActorId:string;listingOwnerId:string;listingType:string;sealedProductId:string|null;listingId:string;status:string;amount:number;items:string};
 
@@ -52,20 +61,24 @@ export async function POST(request:Request){
   try{
     guard(request);
     if(process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED!=='true'||process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY!=='true')throw new HttpError(503,'Market checkout is not available yet.');
-    if(!hasMarketIpaymuPaymentConfig())throw new HttpError(503,'Payments are temporarily unavailable. Please try again later.');
     const profile=await user();
     const account=await getCurrentUser();
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
     const input=schema.parse(await request.json());
+    const isIntl=input.shippingMode==='INTERNATIONAL_FLAT';
+    if(!isIntl&&!hasMarketIpaymuPaymentConfig())throw new HttpError(503,'Payments are temporarily unavailable. Please try again later.');
     const paymentMethod=input.paymentMethod;
     const paymentChannel=input.paymentChannel;
-    const availablePaymentChannels=await getEnabledIpaymuPaymentChannels(db(),{forceRefresh:true}).catch(()=>[]);
-    const selectedPaymentChannel=availablePaymentChannels.find(channel=>channel.method===paymentMethod&&channel.channel===paymentChannel);
-    if(!selectedPaymentChannel)throw new HttpError(409,'That payment option is temporarily unavailable. Choose another method.');
+    const availablePaymentChannels=isIntl?[]:await getEnabledIpaymuPaymentChannels(db(),{forceRefresh:true}).catch(()=>[]);
+    const selectedPaymentChannel=isIntl?null:availablePaymentChannels.find(channel=>channel.method===paymentMethod&&channel.channel===paymentChannel);
+    if(!isIntl&&!selectedPaymentChannel)throw new HttpError(409,'That payment option is temporarily unavailable. Choose another method.');
     const database=db();
-    const listing=await database.prepare(`SELECT l.id,l.seller_id AS sellerId,COALESCE(l.printing_id,l.sealed_product_id) AS printingId,l.sealed_product_id AS sealedProductId,l.instance_id AS instanceId,l.title,l.amount,l.currency,l.quantity,l.type,l.status,l.items,l.expires_at AS expiresAt,o.area_id AS originAreaId,o.postal_code AS originPostalCode,o.label AS originLabel FROM listings l JOIN seller_shipping_origins o ON o.owner_id=l.seller_id WHERE l.id=?`).bind(input.listingId).first<{id:string;sellerId:string;printingId:string;sealedProductId:string|null;instanceId:string|null;title:string;amount:number;currency:string;quantity:number;type:string;status:string;items:string|null;expiresAt:string|null;originAreaId:string|null;originPostalCode:string;originLabel:string|null}>();
+    await ensureListingGlobalSchema(database);
+    const listing=await database.prepare(`SELECT l.id,l.seller_id AS sellerId,COALESCE(l.printing_id,l.sealed_product_id) AS printingId,l.sealed_product_id AS sealedProductId,l.instance_id AS instanceId,l.title,l.amount,l.currency,COALESCE(l.trade_scope,'ID_ONLY') AS tradeScope,l.intl_shipping_fee AS intlShippingFee,l.intl_shipping_note AS intlShippingNote,l.quantity,l.type,l.status,l.items,l.expires_at AS expiresAt,o.area_id AS originAreaId,o.postal_code AS originPostalCode,o.label AS originLabel FROM listings l LEFT JOIN seller_shipping_origins o ON o.owner_id=l.seller_id WHERE l.id=?`).bind(input.listingId).first<{id:string;sellerId:string;printingId:string;sealedProductId:string|null;instanceId:string|null;title:string;amount:number;currency:string;tradeScope:string;intlShippingFee:number|null;intlShippingNote:string|null;quantity:number;type:string;status:string;items:string|null;expiresAt:string|null;originAreaId:string|null;originPostalCode:string|null;originLabel:string|null}>();
     if(!listing||listing.status!=='ACTIVE'||(listing.expiresAt&&new Date(`${listing.expiresAt.replace(' ','T')}Z`).getTime()<=Date.now()))throw new HttpError(404,'This listing is no longer available.');
-    if(listing.currency!=='IDR')throw new HttpError(400,'Checkout currently supports IDR listings only.');
+    if(!isIntl&&listing.tradeScope==='GLOBAL_ONLY')throw new HttpError(400,'This listing uses international shipping only.');
+    if(isIntl&&listing.tradeScope==='ID_ONLY')throw new HttpError(400,'This listing ships within Indonesia only.');
+    if(!isIntl&&listing.currency!=='IDR')throw new HttpError(400,'Domestic Indonesia checkout uses IDR listings or USD Credits.');
     let acceptedOffer:AcceptedOffer|null=null;
     if(input.offerId){
       acceptedOffer=await database.prepare(`SELECT f.id,f.actor_id AS actorId,f.listing_id AS listingId,f.status,f.amount,f.items,l.type AS listingType,l.sealed_product_id AS sealedProductId,l.seller_id AS listingOwnerId,
@@ -96,16 +109,17 @@ export async function POST(request:Request){
     }
     const fulfillmentSellerId=listing.type==='WTB'?acceptedOffer!.initialActorId:listing.sellerId;
 
-    const address=await database.prepare('SELECT recipient_name AS recipientName,phone,address_line AS addressLine,city,postal_code AS postalCode,area_id AS areaId,latitude,longitude,label FROM seller_shipping_origins WHERE owner_id=?').bind(profile.id).first<{recipientName:string|null;phone:string|null;addressLine:string;city:string;postalCode:string;areaId:string|null;latitude:number|null;longitude:number|null;label:string}>();
+    const address=!isIntl?await database.prepare('SELECT recipient_name AS recipientName,phone,address_line AS addressLine,city,postal_code AS postalCode,area_id AS areaId,latitude,longitude,label FROM seller_shipping_origins WHERE owner_id=?').bind(profile.id).first<{recipientName:string|null;phone:string|null;addressLine:string;city:string;postalCode:string;areaId:string|null;latitude:number|null;longitude:number|null;label:string}>():null;
     if(address)address.phone=address.phone||profile.phone;
     if(address)address.recipientName=address.recipientName?.trim()||profile.display_name;
-    if(!address?.addressLine||!address.city||!address.phone||(!/^\d{5}$/.test(address.postalCode)&&!isBiteshipAreaId(address.areaId)))throw new HttpError(400,'Save a delivery address, valid postal code or delivery area, and mobile number in your profile before checkout.');
+    if(!isIntl&&(!address?.addressLine||!address.city||!address.phone||(!/^\d{5}$/.test(address.postalCode)&&!isBiteshipAreaId(address.areaId))))throw new HttpError(400,'Save a delivery address, valid postal code or delivery area, and mobile number in your profile before checkout.');
+    if(isIntl&&!input.intlRecipient)throw new HttpError(400,'Enter your international shipping address before checkout.');
     const seller=await database.prepare('SELECT area_id AS areaId,postal_code AS postalCode,label,recipient_name AS recipientName,phone,address_line AS addressLine,city,latitude,longitude FROM seller_shipping_origins WHERE owner_id=?').bind(fulfillmentSellerId).first<{areaId:string|null;postalCode:string;label:string|null;recipientName:string|null;phone:string|null;addressLine:string;city:string;latitude:number|null;longitude:number|null}>();
-    if(!seller)throw new HttpError(400,'The seller has not set a shipping address.');
+    if(!isIntl&&!seller)throw new HttpError(400,'The seller has not set a shipping address.');
     let sellerMethods:string[]=[];
-    try{const parsed=JSON.parse(seller.label??'{}');if(Array.isArray(parsed.methods))sellerMethods=parsed.methods.filter((item:unknown):item is string=>typeof item==='string')}catch{}
+    if(seller){try{const parsed=JSON.parse(seller.label??'{}');if(Array.isArray(parsed.methods))sellerMethods=parsed.methods.filter((item:unknown):item is string=>typeof item==='string')}catch{}}
     const couriers=enabledShippingCouriers(sellerMethods);
-    if(!couriers.length)throw new HttpError(400,'The seller has not enabled a delivery method.');
+    if(!isIntl&&!couriers.length)throw new HttpError(400,'The seller has not enabled a delivery method.');
 
     const requestedLines=input.lines?.length?input.lines.map(line=>({listingId:line.listingId,items:line.items})): [{listingId:listing.id,items:input.items}];
     if(!input.lines?.length&&input.items.length>60)throw new HttpError(400,'Select up to 60 card entries.');
@@ -156,11 +170,96 @@ export async function POST(request:Request){
       if(subtotal!==acceptedOffer.amount)throw new HttpError(400,'The accepted offer total does not match its card prices.');
     }
 
+    if(isIntl){
+      if(!input.payWithCredits)throw new HttpError(400,'International checkout uses VivrePlay USD Credits. Top up USD Credits first.');
+      const policies=await fetchMarketPolicies(database);
+      const [buyerProfile,sellerProfile]=await Promise.all([
+        database.prepare('SELECT tier FROM profiles WHERE id=?').bind(profile.id).first<{tier:string}>(),
+        database.prepare('SELECT tier FROM profiles WHERE id=?').bind(fulfillmentSellerId).first<{tier:string}>(),
+      ]);
+      const buyerIsPro=buyerProfile?.tier==='pro';
+      const buyerFeePercent=policies[buyerIsPro?'pro':'free'].commissionPercent;
+      const sellerPolicy=policies[sellerProfile?.tier==='pro'?'pro':'free'];
+      const rawIntlShipping=Math.max(0,Number(listing.intlShippingFee)||0);
+      const toUsd=(val:number)=>listing.currency==='USD'?val:convertMoney(val,'IDR','USD');
+      const subtotalUsd=toUsd(subtotal);
+      const shippingUsd=toUsd(rawIntlShipping);
+      const buyerFeeUsd=Math.max(50,Math.round((subtotalUsd*buyerFeePercent)/100));
+      const sellerFeeUsd=Math.max(50,Math.round((subtotalUsd*sellerPolicy.commissionPercent)/100));
+      const sellerNetUsd=Math.max(0,subtotalUsd-sellerFeeUsd);
+      const totalUsd=subtotalUsd+shippingUsd+buyerFeeUsd;
+      const id=crypto.randomUUID();
+      const intlRecipient=input.intlRecipient!;
+      const intlDetails={
+        shippingMode:'INTERNATIONAL_FLAT',
+        recipientName:intlRecipient.recipientName,
+        country:intlRecipient.country,
+        addressLine:intlRecipient.addressLine,
+        city:intlRecipient.city,
+        postalCode:intlRecipient.postalCode,
+        phone:intlRecipient.phone,
+        courierName:'International Tracked',
+        courierServiceName:listing.intlShippingNote||'Flat-rate International Shipping',
+        courierCode:'intl_flat',
+        courierServiceCode:'intl_flat',
+        courierType:'parcel',
+        marketBuyerFeePercent:buyerFeePercent,
+        marketBuyerFeeAmount:buyerFeeUsd,
+        marketSellerFeePercent:sellerPolicy.commissionPercent,
+        marketSellerFeeAmount:sellerFeeUsd,
+        originalListingCurrency:listing.currency,
+        originalListingSubtotal:subtotal,
+        creditsUsedUsd:totalUsd,
+      };
+      const spend=await spendCredits(database,{
+        profileId:profile.id,
+        amount:totalUsd,
+        currency:'USD',
+        kind:'MARKET_ORDER',
+        referenceId:id,
+        description:`International order ${listing.title} ($${(totalUsd/100).toFixed(2)})`,
+      });
+      if(!spend.ok)throw new HttpError(402,'Insufficient USD Credits balance. Top up USD Credits via Polar.sh first.');
+      const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
+      const paymentId=`credits-usd:${id}`;
+      await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,seller_net_amount,shipping_fee,amount,currency,payment_id,status,expires_at)
+        VALUES (?,'MARKET',?,?,?,?,?,?,?,?,?,?,'USD',?,'PENDING_PAYMENT',?)`).bind(
+        id,
+        profile.id,
+        fulfillmentSellerId,
+        listing.id,
+        acceptedOffer?.id??null,
+        JSON.stringify(orderItems),
+        JSON.stringify(intlDetails),
+        subtotalUsd,
+        sellerNetUsd,
+        shippingUsd,
+        totalUsd,
+        paymentId,
+        expiresAt,
+      ).run();
+      await fulfillCheckoutOrder(database,{
+        id,
+        kind:'MARKET',
+        buyerId:profile.id,
+        sellerId:fulfillmentSellerId,
+        listingId:listing.id,
+        items:JSON.stringify(orderItems),
+        details:JSON.stringify(intlDetails),
+        subtotal:subtotalUsd,
+        currency:'USD',
+        paymentId,
+      });
+      return Response.json({id,checkoutUrl:`/checkout/order/${id}`,paidWithCredits:true,currency:'USD',amount:totalUsd},{status:201});
+    }
+
+    if(!seller||!address)throw new HttpError(400,'Shipping addresses are required.');
+    if(!input.courierCode||!input.courierName||!input.courierServiceName||!input.courierServiceCode||!input.courierType)throw new HttpError(400,'Select a delivery courier service.');
     if(!couriers.includes(input.courierCode))throw new HttpError(409,'The seller no longer offers this courier. Choose another service.');
     const apiKey=process.env.BITESHIP_API_KEY;
     if(!apiKey)throw new HttpError(503,'Live shipping quotes are not configured yet.');
-    const pickup=biteshipDestination(seller.postalCode,seller.areaId);
-    const dropoff=biteshipDestination(address.postalCode,isBiteshipAreaId(address.areaId)?address.areaId:null);
+    const pickup=biteshipDestination(seller!.postalCode,seller!.areaId);
+    const dropoff=biteshipDestination(address!.postalCode,isBiteshipAreaId(address!.areaId)?address!.areaId:null);
     if(!pickup.areaId&&!pickup.postalCode)throw new HttpError(400,'The seller needs a valid 5-digit pickup postal code.');
     if(!dropoff.areaId&&!dropoff.postalCode)throw new HttpError(400,'Save a valid 5-digit delivery postal code in your profile.');
     const quantity=orderItems.reduce((sum,item)=>sum+item.quantity,0);

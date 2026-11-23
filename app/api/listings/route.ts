@@ -1,7 +1,8 @@
 import {after} from 'next/server';
 import {notifyListingWatchers} from '@/lib/server/market-watch-alerts';
 import {z} from 'zod';
-import {user,db,errorResponse,guard,market,HttpError} from '@/lib/server/store';
+import {user,db,ensureListingGlobalSchema,errorResponse,guard,market,HttpError} from '@/lib/server/store';
+import {minListingUnitAmount} from '@/lib/market/global';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
 import {MARKET_MAX_COPIES_PER_CARD,MARKET_ABSOLUTE_MAX_LISTING_COPIES,listingLimitMessage} from '@/lib/market/listing-limits';
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
@@ -14,14 +15,14 @@ import {recordMarketActivity} from '@/lib/server/market-activity-progress';
 
 const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),itemKey:z.string().trim().min(1).max(160).optional(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),productType:z.enum(['RAW','GRADED']).optional(),gradingCompany:z.string().trim().max(40).optional(),grade:z.string().trim().max(20).optional(),certification:z.string().trim().max(100).optional(),slabLabelStyle:z.enum(['clear','standard']).optional(),unitAmount:z.number().int().nonnegative().optional(),photoIds:z.array(z.string().min(1).max(120)).max(6).optional()});
 const auctionSchema=z.object({
-  startingBid:z.number().int().min(1000).max(100000000000),
-  buyNowPrice:z.number().int().min(1000).max(100000000000).nullable().optional(),
-  minIncrement:z.number().int().min(1000).max(100000000).default(10000),
+  startingBid:z.number().int().min(100).max(100000000000),
+  buyNowPrice:z.number().int().min(100).max(100000000000).nullable().optional(),
+  minIncrement:z.number().int().min(50).max(100000000).default(10000),
   durationMode:z.enum(['FIXED','ROLLING_24H','ROLLING_48H']).default('ROLLING_24H'),
   fixedHours:z.number().int().min(1).max(168).optional(),
   fixedEndsAt:z.string().trim().max(64).optional(),
 });
-const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(MARKET_ABSOLUTE_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB','WTA']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional(),auction:auctionSchema.optional(),auctions:z.array(auctionSchema.extend({itemKey:z.string().trim().min(1).max(160)})).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional()});
+const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),currency:z.enum(['IDR','USD']).default('IDR'),tradeScope:z.enum(['ID_ONLY','GLOBAL_ONLY','BOTH']).default('ID_ONLY'),intlShippingFee:z.number().int().nonnegative().max(100000000).nullable().optional(),intlShippingNote:z.string().trim().max(240).nullable().optional(),quantity:z.number().int().positive().max(MARKET_ABSOLUTE_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB','WTA']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional(),auction:auctionSchema.optional(),auctions:z.array(auctionSchema.extend({itemKey:z.string().trim().min(1).max(160)})).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional()});
 
 function labelStyleFromSubgrades(value:string|Record<string,unknown>|null|undefined):'clear'|'standard'{
   try{
@@ -79,13 +80,17 @@ export async function POST(request:Request){
   try{
     guard(request);
     const profile=await user();
-    if(profile.region!=='ID')throw new HttpError(403,'Seller listings currently require an Indonesian profile. Global collection and deck access remain available.');
     const database=db();
+    await ensureListingGlobalSchema(database);
     const policy=await getDynamicListingPolicy(profile.tier,database,profile.pro_billing_period);
     const activeCount=await database.prepare("SELECT COUNT(*) AS total FROM listings WHERE seller_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)").bind(profile.id).first<{total:number}>();
     if((activeCount?.total??0)>=policy.maxActiveListings)throw new HttpError(400,`You have reached the limit of ${policy.maxActiveListings} active listings for your account.`);
 
     const body=await request.json() as Record<string,unknown>;
+    const requestedScope=body?.tradeScope==='GLOBAL_ONLY'||body?.tradeScope==='BOTH'?body.tradeScope:'ID_ONLY';
+    if(profile.region!=='ID'&&requestedScope!=='GLOBAL_ONLY'){
+      throw new HttpError(403,'Indonesia domestic listings require an Indonesian profile. Switch Trade Scope to International only (Global) to list from outside Indonesia.');
+    }
     const requestedItems=Array.isArray(body.items)?body.items as Array<Record<string,unknown>>:[];
     if(body.type==='WTS'&&requestedItems.some(item=>item.productType==='SEALED'||item.productType==='GENERAL')){
       const response=await createMixedListing(body,profile.id,policy.durationDays,policy.maxActiveListings,{maxListingCopies:policy.maxListingCopies,maxCopiesPerCard:policy.maxCopiesPerCard,maxCardTypes:policy.maxCardTypes,maxProductStock:policy.maxProductStock});
@@ -100,7 +105,7 @@ export async function POST(request:Request){
       if(!bundle)throw new HttpError(400,'Add at least one card to your buying request.');
       if(value.instanceId||bundle.some(item=>item.instanceId))throw new HttpError(400,'A buying request cannot reserve a Vault item.');
       const delivery=await database.prepare('SELECT city FROM seller_shipping_origins WHERE owner_id=?').bind(profile.id).first<{city:string}>();
-      const buyerCity=delivery?.city?.trim();
+      const buyerCity=delivery?.city?.trim()||(value.tradeScope==='GLOBAL_ONLY'?value.city:'');
       if(!buyerCity)throw new HttpError(400,'Add a delivery address before posting a buying request.');
       const bundleQuantity=bundle.reduce((sum,item)=>sum+item.quantity,0);
       const bundleAmount=bundle.reduce((sum,item)=>sum+(item.unitAmount??0)*item.quantity,0);
@@ -116,8 +121,8 @@ export async function POST(request:Request){
       const id=crypto.randomUUID();
       const expiresAt=computeListingExpiration(policy.durationDays);
       const first=bundle[0];
-      await database.prepare(`INSERT INTO listings (id,seller_id,printing_id,instance_id,title,amount,currency,quantity,condition,type,city,expires_at,items,negotiable)
-        VALUES (?,?,?,NULL,?,?,'IDR',?,?,?,?,?,?,?)`).bind(id,profile.id,first.printingId,value.title,value.amount,value.quantity,first.productType==='GRADED'?'GRADED':first.condition??'NM','WTB',buyerCity,expiresAt,JSON.stringify(bundle),value.negotiable?1:0).run();
+      await database.prepare(`INSERT INTO listings (id,seller_id,printing_id,instance_id,title,amount,currency,trade_scope,intl_shipping_fee,intl_shipping_note,quantity,condition,type,city,expires_at,items,negotiable)
+        VALUES (?,?,?,NULL,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,profile.id,first.printingId,value.title,value.amount,value.currency,value.tradeScope,value.intlShippingFee??null,value.intlShippingNote??null,value.quantity,first.productType==='GRADED'?'GRADED':first.condition??'NM','WTB',buyerCity,expiresAt,JSON.stringify(bundle),value.negotiable?1:0).run();
       await recordMarketActivity(database,profile.id,'listing_published',id);
       after(()=>notifyListingWatchers(id));
       return Response.json({id,expiresAt,durationDays:policy.durationDays},{status:201});
@@ -168,8 +173,8 @@ export async function POST(request:Request){
         : {...item,condition:owned.condition,productType:'RAW',gradingCompany:undefined,grade:undefined,certification:undefined};
     })):null;
     const result=await database.prepare(`
-      INSERT INTO listings (id,seller_id,printing_id,instance_id,title,amount,currency,quantity,condition,type,city,expires_at,items,negotiable)
-      SELECT ?,?,?,?,?,?,'IDR',?,?,?,?,?,?,?
+      INSERT INTO listings (id,seller_id,printing_id,instance_id,title,amount,currency,trade_scope,intl_shipping_fee,intl_shipping_note,quantity,condition,type,city,expires_at,items,negotiable)
+      SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
       WHERE ? <= ? - (
         COALESCE((SELECT SUM(CASE WHEN items IS NULL THEN quantity ELSE 0 END) FROM listings WHERE instance_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP)),0)
         + COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM listings l,json_each(l.items) entry WHERE json_extract(entry.value,'$.instanceId')=? AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0)
@@ -184,16 +189,25 @@ export async function POST(request:Request){
           + COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM listings l,json_each(l.items) entry WHERE json_extract(entry.value,'$.instanceId')=requested.instanceId AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0)
         )
       )
-    `).bind(id,profile.id,primary.printing_id,value.instanceId,value.title,value.amount,value.quantity,primary.condition,value.type,value.city,expiresAt,itemsJson,value.negotiable?1:0,primaryQuantity,primary.quantity,value.instanceId,value.instanceId,itemsJson,profile.id).run();
+    `).bind(id,profile.id,primary.printing_id,value.instanceId,value.title,value.amount,value.currency,value.tradeScope,value.intlShippingFee??null,value.intlShippingNote??null,value.quantity,primary.condition,value.type,value.city,expiresAt,itemsJson,value.negotiable?1:0,primaryQuantity,primary.quantity,value.instanceId,value.instanceId,itemsJson,profile.id).run();
     if(!result.meta.changes)throw new HttpError(409,'That quantity is already listed.');
     let createdAuction=null;
     let finalExpiresAt=expiresAt;
     if(value.type==='WTA'){
+      const minStart=minListingUnitAmount(value.currency);
+      const minStep=value.currency==='USD'?50:1000;
+      const defaultStep=value.currency==='USD'?100:10000;
       const slotInputs=value.auctions?.length
         ?value.auctions
-        :[{...(value.auction??{startingBid:value.amount,minIncrement:10000,durationMode:'ROLLING_24H' as const}),itemKey:'__LOT__'}];
+        :[{...(value.auction??{startingBid:value.amount,minIncrement:defaultStep,durationMode:'ROLLING_24H' as const}),itemKey:'__LOT__'}];
       for(const slot of slotInputs){
         const startingBid=slot.startingBid||value.amount;
+        if(startingBid<minStart){
+          throw new HttpError(400,value.currency==='USD'?'Minimum starting bid is $1.00.':'Minimum starting bid is Rp 1.000.');
+        }
+        if((slot.minIncrement??defaultStep)<minStep){
+          throw new HttpError(400,value.currency==='USD'?'Minimum bid increment is $0.50.':'Minimum bid increment is Rp 1.000.');
+        }
         if(slot.buyNowPrice&&slot.buyNowPrice<=startingBid){
           throw new HttpError(400,'Buy Out price must be higher than the starting bid.');
         }
