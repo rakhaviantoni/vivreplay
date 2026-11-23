@@ -53,6 +53,7 @@ export async function ensureAuctionSchema(db:DB){
     db.prepare('CREATE INDEX IF NOT EXISTS idx_market_auctions_status_ends ON market_auctions(status,ends_at)'),
   ]);
   await db.prepare('ALTER TABLE market_auctions ADD COLUMN buy_now_price INTEGER').run().catch(()=>undefined);
+  await db.prepare('ALTER TABLE market_auctions ADD COLUMN starts_at TEXT').run().catch(()=>undefined);
   await db.prepare(`ALTER TABLE market_auction_bids ADD COLUMN item_key TEXT NOT NULL DEFAULT '__LOT__'`).run().catch(()=>undefined);
   const cols=(await db.prepare('PRAGMA table_info(market_auctions)').all<{name:string}>()).results??[];
   if(!cols.some(col=>col.name==='item_key')){
@@ -105,6 +106,7 @@ function toSummary(row:{
   highestBidderName:string|null;
   bidCount:number;
   durationMode:string;
+  startsAt?:string|null;
   endsAt:string;
   status:string;
   winnerOrderId?:string|null;
@@ -121,6 +123,7 @@ function toSummary(row:{
     highestBidderName:row.highestBidderName??null,
     bidCount:Number(row.bidCount)||0,
     durationMode:(row.durationMode==='FIXED'||row.durationMode==='ROLLING_48H'?'ROLLING_48H'===row.durationMode?'ROLLING_48H':'FIXED':'ROLLING_24H') as AuctionDurationMode,
+    startsAt:row.startsAt??null,
     endsAt:row.endsAt,
     status:(row.status==='ENDED'||row.status==='CANCELLED'?row.status:'ACTIVE') as AuctionStatus,
     winnerOrderId:row.winnerOrderId??null,
@@ -139,19 +142,23 @@ export async function createAuctionForListing(
     durationMode:AuctionDurationMode;
     fixedHours?:number;
     fixedEndsAt?:string;
+    startsAt?:string|null;
   },
 ):Promise<AuctionSummary>{
   await ensureAuctionSchema(db);
   const itemKey=params.itemKey||DEFAULT_AUCTION_ITEM_KEY;
   const nowMs=Date.now();
-  const endsAtMs=computeInitialAuctionEndsAtMs(params.durationMode,nowMs,params.fixedHours,params.fixedEndsAt);
+  const parsedStartMs=params.startsAt?Date.parse(params.startsAt):NaN;
+  const startsAt=Number.isFinite(parsedStartMs)&&parsedStartMs>nowMs?new Date(parsedStartMs).toISOString():null;
+  const anchorMs=startsAt?parsedStartMs:nowMs;
+  const endsAtMs=computeInitialAuctionEndsAtMs(params.durationMode,anchorMs,params.fixedHours,params.fixedEndsAt);
   const endsAt=new Date(endsAtMs).toISOString();
-  const startingBid=Math.max(1_000,Math.round(params.startingBid));
+  const startingBid=Math.max(100,Math.round(params.startingBid));
   const buyNowPrice=params.buyNowPrice&&params.buyNowPrice>startingBid?Math.round(params.buyNowPrice):null;
-  const minIncrement=Math.max(1_000,Math.round(params.minIncrement));
+  const minIncrement=Math.max(50,Math.round(params.minIncrement));
 
-  await db.prepare(`INSERT INTO market_auctions (listing_id,item_key,seller_id,starting_bid,buy_now_price,min_increment,current_bid,highest_bidder_id,highest_bidder_name,bid_count,duration_mode,ends_at,status)
-    VALUES (?,?,?,?,?,?,0,NULL,NULL,0,?,?,'ACTIVE')`).bind(
+  await db.prepare(`INSERT INTO market_auctions (listing_id,item_key,seller_id,starting_bid,buy_now_price,min_increment,current_bid,highest_bidder_id,highest_bidder_name,bid_count,duration_mode,starts_at,ends_at,status)
+    VALUES (?,?,?,?,?,?,0,NULL,NULL,0,?,?,?,'ACTIVE')`).bind(
     params.listingId,
     itemKey,
     params.sellerId,
@@ -159,6 +166,7 @@ export async function createAuctionForListing(
     buyNowPrice,
     minIncrement,
     params.durationMode,
+    startsAt,
     endsAt,
   ).run();
 
@@ -174,6 +182,7 @@ export async function createAuctionForListing(
     highestBidderName:null,
     bidCount:0,
     durationMode:params.durationMode,
+    startsAt,
     endsAt,
     status:'ACTIVE',
     winnerOrderId:null,
@@ -201,7 +210,7 @@ export async function getAuctionSlotsMap(db:DB,listingIds:string[]):Promise<Map<
   try{
     await ensureAuctionSchema(db);
     const placeholders=listingIds.map(()=>'?').join(',');
-    const rows=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
+    const rows=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,starts_at AS startsAt,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
       FROM market_auctions WHERE listing_id IN (${placeholders}) ORDER BY rowid ASC`).bind(...listingIds).all<Parameters<typeof toSummary>[0]>();
     for(const row of rows.results??[]){
       const list=map.get(row.listingId)??[];
@@ -229,7 +238,7 @@ export async function getAuctionDetail(
   itemKey:string=DEFAULT_AUCTION_ITEM_KEY,
 ):Promise<{auction:AuctionSummary;bids:AuctionBidRecord[]}|null>{
   await ensureAuctionSchema(db);
-  const row=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
+  const row=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,starts_at AS startsAt,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
     FROM market_auctions WHERE listing_id=? AND item_key=?`).bind(listingId,itemKey).first<Parameters<typeof toSummary>[0]>();
   if(!row)return null;
   let auction=toSummary(row);
@@ -253,7 +262,7 @@ export async function getAuctionSlotsDetail(
   listingId:string,
 ):Promise<Array<{auction:AuctionSummary;bids:AuctionBidRecord[]}>>{
   await ensureAuctionSchema(db);
-  const rows=(await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
+  const rows=(await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,starts_at AS startsAt,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
     FROM market_auctions WHERE listing_id=? ORDER BY rowid ASC`).bind(listingId).all<Parameters<typeof toSummary>[0]>()).results??[];
   const out:Array<{auction:AuctionSummary;bids:AuctionBidRecord[]}>=[];
   for(const row of rows){
@@ -286,10 +295,13 @@ export async function placeAuctionBid(
 ):Promise<{auction:AuctionSummary;bid:AuctionBidRecord}>{
   await ensureAuctionSchema(db);
   const itemKey=params.itemKey||DEFAULT_AUCTION_ITEM_KEY;
-  const row=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
+  const row=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,starts_at AS startsAt,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
     FROM market_auctions WHERE listing_id=? AND item_key=?`).bind(params.listingId,itemKey).first<Parameters<typeof toSummary>[0]>();
   if(!row)throw new HttpError(404,'Auction not found.');
   const current=toSummary(row);
+  if(current.startsAt&&Date.parse(current.startsAt)>Date.now()){
+    throw new HttpError(409,'This auction has not started yet.');
+  }
   const prevHighestBidderId=current.highestBidderId;
   const bidId=crypto.randomUUID();
   const stub=getAuctionRoomStub(params.listingId,itemKey);
@@ -408,7 +420,7 @@ export async function finalizeAuction(
   itemKey:string=DEFAULT_AUCTION_ITEM_KEY,
 ):Promise<AuctionSummary|null>{
   await ensureAuctionSchema(db);
-  const row=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
+  const row=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,starts_at AS startsAt,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
     FROM market_auctions WHERE listing_id=? AND item_key=?`).bind(listingId,itemKey).first<Parameters<typeof toSummary>[0]>();
   if(!row)return null;
   if(row.status!=='ACTIVE')return toSummary(row);
@@ -438,10 +450,11 @@ export async function buyOutAuction(
 ):Promise<{auction:AuctionSummary}>{
   await ensureAuctionSchema(db);
   const itemKey=params.itemKey||DEFAULT_AUCTION_ITEM_KEY;
-  const row=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
+  const row=await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey,seller_id AS sellerId,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,duration_mode AS durationMode,starts_at AS startsAt,ends_at AS endsAt,status,winner_order_id AS winnerOrderId
     FROM market_auctions WHERE listing_id=? AND item_key=?`).bind(params.listingId,itemKey).first<Parameters<typeof toSummary>[0]>();
   if(!row)throw new HttpError(404,'Auction not found.');
   const current=toSummary(row);
+  if(current.startsAt&&Date.parse(current.startsAt)>Date.now())throw new HttpError(409,'This auction has not started yet.');
   if(current.status!=='ACTIVE'||Date.parse(current.endsAt)<=Date.now())throw new HttpError(409,'This auction has already ended.');
   if(params.buyerId===current.sellerId)throw new HttpError(400,'You cannot buy out your own auction.');
   if(!current.buyNowPrice||current.buyNowPrice<=0)throw new HttpError(400,'Buy Out is not enabled for this auction.');

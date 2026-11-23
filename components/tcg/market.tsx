@@ -759,6 +759,12 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
   const [auctionBundleMode,setAuctionBundleMode]=useState<'separate'|'multi'|'lot'>('separate');
   const [editingBundleCard,setEditingBundleCard]=useState(false);
   const [auctionDurationMode,setAuctionDurationMode]=useState<'ROLLING_24H'|'ROLLING_48H'|'FIXED'>('ROLLING_24H');
+  const [auctionStartMode,setAuctionStartMode]=useState<'immediate'|'scheduled'>('immediate');
+  const [auctionStartsAt,setAuctionStartsAt]=useState(()=>{
+    const target=new Date(Date.now()+60*60*1000);
+    const pad=(n:number)=>String(n).padStart(2,'0');
+    return `${target.getFullYear()}-${pad(target.getMonth()+1)}-${pad(target.getDate())}T${pad(target.getHours())}:${pad(target.getMinutes())}`;
+  });
   const [auctionFixedHours,setAuctionFixedHours]=useState('48');
   const [auctionFixedMode,setAuctionFixedMode]=useState<'preset'|'custom'>('preset');
   const [auctionFixedEndsAt,setAuctionFixedEndsAt]=useState(()=>{
@@ -1518,6 +1524,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
               buyNowPrice:cfg.buyNowPrice,
               minIncrement:cfg.minIncrement,
               durationMode:cfg.durationMode,
+              ...(auctionStartMode==='scheduled'&&auctionStartsAt?{startsAt:new Date(auctionStartsAt).toISOString()}:{}),
               ...(cfg.durationMode==='FIXED'?(cfg.fixedMode==='custom'&&cfg.fixedEndsAt?{fixedEndsAt:new Date(cfg.fixedEndsAt).toISOString()}:{fixedHours:Math.min(168,Math.max(1,Number(cfg.fixedHours)||48))}):{}),
             },
             items:[{
@@ -1581,9 +1588,10 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
               buyNowPrice:cfg.buyNowPrice,
               minIncrement:cfg.minIncrement,
               durationMode:cfg.durationMode,
+              ...(auctionStartMode==='scheduled'&&auctionStartsAt?{startsAt:new Date(auctionStartsAt).toISOString()}:{}),
               ...(cfg.durationMode==='FIXED'?(cfg.fixedMode==='custom'&&cfg.fixedEndsAt?{fixedEndsAt:new Date(cfg.fixedEndsAt).toISOString()}:{fixedHours:Math.min(168,Math.max(1,Number(cfg.fixedHours)||48))}):{}),
             }))}
-          :listingType==='WTA'?{auction:{startingBid:Number(listingPrice),buyNowPrice:auctionBuyNowPrice?Number(auctionBuyNowPrice):null,minIncrement:Math.max(1000,Number(auctionIncrement)||10000),durationMode:auctionDurationMode,...(auctionDurationMode==='FIXED'?(auctionFixedMode==='custom'&&auctionFixedEndsAt?{fixedEndsAt:new Date(auctionFixedEndsAt).toISOString()}:{fixedHours:Math.min(168,Math.max(1,Number(auctionFixedHours)||48))}):{})}}:{}),
+          :listingType==='WTA'?{auction:{startingBid:Number(listingPrice),buyNowPrice:auctionBuyNowPrice?Number(auctionBuyNowPrice):null,minIncrement:Math.max(100,Number(auctionIncrement)||10000),durationMode:auctionDurationMode,...(auctionStartMode==='scheduled'&&auctionStartsAt?{startsAt:new Date(auctionStartsAt).toISOString()}:{}),...(auctionDurationMode==='FIXED'?(auctionFixedMode==='custom'&&auctionFixedEndsAt?{fixedEndsAt:new Date(auctionFixedEndsAt).toISOString()}:{fixedHours:Math.min(168,Math.max(1,Number(auctionFixedHours)||48))}):{})}}:{}),
         items:[...bundleCards.map((item,idx)=>({
           instanceId:item.instanceId,
           printingId:item.printing.id,
@@ -1881,24 +1889,30 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                           const activeSlots=slots.filter(s=>s.status==='ACTIVE'&&Date.parse(s.endsAt)>Date.now());
                           const nearestSlot=(activeSlots.length?activeSlots:slots).reduce((best,cur)=>Date.parse(cur.endsAt)<Date.parse(best.endsAt)?cur:best,slots[0]);
                           const a=nearestSlot;
-                          const remainingMs=Date.parse(a.endsAt)-Date.now();
+                          const startsAtMs=a.startsAt?Date.parse(a.startsAt):NaN;
+                          const isScheduled=a.status==='ACTIVE'&&Number.isFinite(startsAtMs)&&startsAtMs>Date.now();
+                          const targetMs=isScheduled?startsAtMs:Date.parse(a.endsAt);
+                          const remainingMs=targetMs-Date.now();
                           const totalMin=Math.max(0,Math.floor(remainingMs/60000));
                           const days=Math.floor(totalMin/1440);
                           const hours=Math.floor((totalMin%1440)/60);
                           const mins=totalMin%60;
-                          const timeLabel=remainingMs<=0||a.status!=='ACTIVE'
-                            ?(locale==='ID'?'Berakhir':'Ended')
-                            :days>0?(locale==='ID'?`${days}h ${hours}j lagi`:`${days}d ${hours}h left`)
-                            :hours>0?(locale==='ID'?`${hours}j ${mins}m lagi`:`${hours}h ${mins}m left`)
-                            :(locale==='ID'?`${Math.max(1,mins)}m lagi`:`${Math.max(1,mins)}m left`);
+                          const durationText=days>0?(locale==='ID'?`${days}h ${hours}j`:`${days}d ${hours}h`)
+                            :hours>0?(locale==='ID'?`${hours}j ${mins}m`:`${hours}h ${mins}m`)
+                            :`${Math.max(1,mins)}m`;
+                          const timeLabel=isScheduled
+                            ?(locale==='ID'?`Mulai ${durationText} lagi`:`Starts in ${durationText}`)
+                            :remainingMs<=0||a.status!=='ACTIVE'
+                              ?(locale==='ID'?'Berakhir':'Ended')
+                              :(locale==='ID'?`${durationText} lagi`:`${durationText} left`);
                           const livePrice=a.bidCount>0?a.currentBid:(a.startingBid||listing.amount);
-                          const isEndingSoon=a.status==='ACTIVE'&&remainingMs>0&&remainingMs<=2*60*60*1000;
-                          const isNearBin=a.status==='ACTIVE'&&Boolean(a.buyNowPrice)&&a.bidCount>0&&livePrice>=(a.buyNowPrice??0)*0.85;
-                          const isHot=a.status==='ACTIVE'&&totalBids>=5;
+                          const isEndingSoon=!isScheduled&&a.status==='ACTIVE'&&remainingMs>0&&remainingMs<=2*60*60*1000;
+                          const isNearBin=!isScheduled&&a.status==='ACTIVE'&&Boolean(a.buyNowPrice)&&a.bidCount>0&&livePrice>=(a.buyNowPrice??0)*0.85;
+                          const isHot=!isScheduled&&a.status==='ACTIVE'&&totalBids>=5;
                           return <>
-                            <span className="market-feed-held-count">{totalBids>0?(locale==='ID'?`${totalBids} bid`:`${totalBids} ${totalBids===1?'bid':'bids'}`):(locale==='ID'?'Belum ada bid':'No bids yet')}</span>
+                            {!isScheduled&&<span className="market-feed-held-count">{totalBids>0?(locale==='ID'?`${totalBids} bid`:`${totalBids} ${totalBids===1?'bid':'bids'}`):(locale==='ID'?'Belum ada bid':'No bids yet')}</span>}
                             <span className="market-feed-auction-timer">{timeLabel}</span>
-                            {isEndingSoon?<span className="market-feed-auction-tag is-ending">{locale==='ID'?'Segera berakhir':'Ending soon'}</span>:isNearBin?<span className="market-feed-auction-tag is-close-bin">{locale==='ID'?'Dekat Buy Out':'Near Buy Out'}</span>:isHot?<span className="market-feed-auction-tag is-hot">{locale==='ID'?'Ramai':'Hot'}</span>:null}
+                            {isScheduled?<span className="market-feed-auction-tag is-scheduled">{locale==='ID'?'Akan datang':'Upcoming'}</span>:isEndingSoon?<span className="market-feed-auction-tag is-ending">{locale==='ID'?'Segera berakhir':'Ending soon'}</span>:isNearBin?<span className="market-feed-auction-tag is-close-bin">{locale==='ID'?'Dekat Buy Out':'Near Buy Out'}</span>:isHot?<span className="market-feed-auction-tag is-hot">{locale==='ID'?'Ramai':'Hot'}</span>:null}
                           </>;
                         })()}
                         {heldCards>0&&!fullyReserved&&listing.type==='WTS'&&<span className="market-feed-held-count">{locale==='ID'?`${heldCards} ${isGeneralListing?'barang':'kartu'} dipesan`:`${heldCards} ${isGeneralListing?(heldCards===1?'item':'items'):(heldCards===1?'card':'cards')} reserved`}</span>}
@@ -2611,6 +2625,33 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                         )}
                       </div>
                     )}
+                  </div>
+                )}
+                {listingType==='WTA'&&(
+                  <div className="market-global-scope-box">
+                    <div className="market-global-scope-row">
+                      <label>
+                        <span>{locale==='ID'?'Waktu mulai lelang':'Auction start timing'}</span>
+                        <select
+                          value={auctionStartMode}
+                          onChange={event=>setAuctionStartMode(event.target.value==='scheduled'?'scheduled':'immediate')}
+                        >
+                          <option value="immediate">{locale==='ID'?'Mulai sekarang (langsung aktif)':'Start immediately (live now)'}</option>
+                          <option value="scheduled">{locale==='ID'?'Jadwalkan mulai nanti (Upcoming)':'Schedule start (Upcoming)'}</option>
+                        </select>
+                      </label>
+                      {auctionStartMode==='scheduled'&&(
+                        <label>
+                          <span>{locale==='ID'?'Tanggal & jam mulai':'Scheduled start date & time'}</span>
+                          <input
+                            type="datetime-local"
+                            value={auctionStartsAt}
+                            onChange={event=>setAuctionStartsAt(event.target.value)}
+                            required
+                          />
+                        </label>
+                      )}
+                    </div>
                   </div>
                 )}
                 <div className="market-global-scope-box">

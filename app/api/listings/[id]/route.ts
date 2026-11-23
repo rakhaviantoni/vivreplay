@@ -22,7 +22,13 @@ export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>})
     const p=await user();
     const {id}=await params;
 
-    const result=await db().prepare(
+    const d=db();
+    const activeBid=await d.prepare("SELECT 1 AS found FROM market_auctions WHERE listing_id=? AND status='ACTIVE' AND bid_count>0 LIMIT 1").bind(id).first<{found:number}>().catch(()=>null);
+    if(activeBid){
+      throw new HttpError(409,'An active auction with bids cannot be closed until it finishes.');
+    }
+
+    const result=await d.prepare(
       "UPDATE listings SET status='CLOSED' WHERE id=? AND seller_id=? AND status!='SOLD'"
     ).bind(id,p.id).run();
 
@@ -197,6 +203,8 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
     if(!listing)throw new HttpError(404,'Listing not found or you do not have permission to manage it.');
     if(body.action==='pause'){
       if(listing.status!=='ACTIVE')throw new HttpError(400,'Only active listings can be paused.');
+      const activeBid=await d.prepare("SELECT 1 AS found FROM market_auctions WHERE listing_id=? AND status='ACTIVE' AND bid_count>0 LIMIT 1").bind(id).first<{found:number}>().catch(()=>null);
+      if(activeBid)throw new HttpError(409,'An active auction with bids cannot be paused until it finishes.');
       const changed=await d.prepare("UPDATE listings SET status='PAUSED' WHERE id=? AND seller_id=? AND status='ACTIVE'").bind(id,p.id).run();
       if(!changed.meta.changes)throw new HttpError(409,'This listing changed before it could be paused. Refresh and try again.');
       return Response.json({ok:true,id,status:'PAUSED'});

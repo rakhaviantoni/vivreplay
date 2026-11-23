@@ -13,16 +13,26 @@ import {
 } from '@/lib/market/auction';
 import {IdrInput} from '@/components/ui/idr-input';
 
-function formatBidTimestamp(raw:string,locale:'EN'|'ID'){
+function formatRelativeTimeAgo(diffMs:number,locale:'EN'|'ID'){
+  const sec=Math.max(0,Math.floor(diffMs/1000));
+  if(sec<60)return locale==='ID'?`${sec}d lalu`:`${sec}s ago`;
+  const min=Math.floor(sec/60);
+  if(min<60)return locale==='ID'?`${min}m lalu`:`${min}m ago`;
+  const hr=Math.floor(min/60);
+  if(hr<24)return locale==='ID'?`${hr}j lalu`:`${hr}h ago`;
+  const days=Math.floor(hr/24);
+  return locale==='ID'?`${days}h lalu`:`${days}d ago`;
+}
+
+function formatBidTimestamp(raw:string,locale:'EN'|'ID',nowMs:number){
   const normalized=/[zZ]|[+-]\d{2}:?\d{2}$/.test(raw)?raw:`${raw.replace(' ','T')}Z`;
   const date=new Date(normalized);
   if(Number.isNaN(date.getTime()))return{label:raw,title:raw,iso:raw};
   const intlLocale=locale==='ID'?'id-ID':'en-US';
-  const now=new Date();
-  const sameDay=date.getFullYear()===now.getFullYear()&&date.getMonth()===now.getMonth()&&date.getDate()===now.getDate();
-  const label=sameDay
-    ?new Intl.DateTimeFormat(intlLocale,{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(date)
-    :new Intl.DateTimeFormat(intlLocale,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(date);
+  const datePart=new Intl.DateTimeFormat(intlLocale,{day:'numeric',month:'short'}).format(date);
+  const timePart=new Intl.DateTimeFormat(intlLocale,{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(date);
+  const ago=formatRelativeTimeAgo(nowMs-date.getTime(),locale);
+  const label=`${datePart} ${timePart} (${ago})`;
   const title=new Intl.DateTimeFormat(intlLocale,{dateStyle:'medium',timeStyle:'medium',hour12:false}).format(date);
   return{label,title,iso:date.toISOString()};
 }
@@ -189,6 +199,9 @@ export function MarketAuctionPanel({
     };
   },[listingId,itemKey,auction.status]);
 
+  const startsAtMs=auction.startsAt?Date.parse(auction.startsAt):NaN;
+  const isScheduled=auction.status==='ACTIVE'&&Number.isFinite(startsAtMs)&&nowMs<startsAtMs;
+  const startsInMs=isScheduled?Math.max(0,startsAtMs-nowMs):0;
   const endsAtMs=Date.parse(auction.endsAt);
   const remainingMs=Number.isFinite(endsAtMs)?Math.max(0,endsAtMs-nowMs):0;
   const isEnded=auction.status!=='ACTIVE'||remainingMs<=0;
@@ -235,9 +248,9 @@ export function MarketAuctionPanel({
     <>
     <section ref={panelRef} className="market-auction-panel" aria-label={locale==='ID'?'Detail lelang':'Auction details'}>
       <div className="market-auction-header">
-        <span className={`market-auction-pill${isEnded?' is-ended':''}`}>
+        <span className={`market-auction-pill${isEnded?' is-ended':isScheduled?' is-scheduled':''}`}>
           <Gavel size={14} weight="bold"/>
-          <span>{itemTitle?`${itemTitle} - ${isEnded?(locale==='ID'?'Berakhir':'Ended'):(locale==='ID'?'Aktif':'Live')}`:(isEnded?(locale==='ID'?'Lelang berakhir':'Auction ended'):(locale==='ID'?'Lelang aktif':'Live auction'))}</span>
+          <span>{itemTitle?`${itemTitle} - ${isEnded?(locale==='ID'?'Berakhir':'Ended'):isScheduled?(locale==='ID'?'Akan datang':'Upcoming'):(locale==='ID'?'Aktif':'Live')}`:(isEnded?(locale==='ID'?'Lelang berakhir':'Auction ended'):isScheduled?(locale==='ID'?'Lelang terjadwal':'Upcoming auction'):(locale==='ID'?'Lelang aktif':'Live auction'))}</span>
         </span>
         <span className="market-auction-rule">{formatAuctionDurationLabel(auction.durationMode,locale)}</span>
       </div>
@@ -246,14 +259,21 @@ export function MarketAuctionPanel({
         <div>
           <small>{auction.bidCount>0?(locale==='ID'?'Bid tertinggi':'Current bid'):(locale==='ID'?'Bid awal':'Starting bid')}</small>
           <strong>{formatMoney(auction.bidCount>0?auction.currentBid:auction.startingBid,currency)}</strong>
-          <span>{auction.bidCount>0?(locale==='ID'?`${auction.bidCount} bid oleh ${auction.highestBidderName||'Kolektor'}`:`${auction.bidCount} ${auction.bidCount===1?'bid':'bids'} by ${auction.highestBidderName||'Collector'}`):(locale==='ID'?'Jadilah penawar pertama':'Be the first to bid')}</span>
+          <span>{isScheduled?(locale==='ID'?'Bidding belum dibuka':'Bidding opens soon'):auction.bidCount>0?(locale==='ID'?`${auction.bidCount} bid oleh ${auction.highestBidderName||'Kolektor'}`:`${auction.bidCount} ${auction.bidCount===1?'bid':'bids'} by ${auction.highestBidderName||'Collector'}`):(locale==='ID'?'Jadilah penawar pertama':'Be the first to bid')}</span>
         </div>
         <div className="market-auction-timer">
-          <small><Clock size={12}/><span>{locale==='ID'?'Sisa waktu':'Time left'}</span></small>
-          <strong>{formatCountdown(remainingMs,locale)}</strong>
+          <small><Clock size={12}/><span>{isScheduled?(locale==='ID'?'Mulai dalam':'Starts in'):(locale==='ID'?'Sisa waktu':'Time left')}</span></small>
+          <strong>{isScheduled?formatCountdown(startsInMs,locale):formatCountdown(remainingMs,locale)}</strong>
           <span>{locale==='ID'?`Kelipatan min. ${formatMoney(auction.minIncrement,currency)}`:`Min. step ${formatMoney(auction.minIncrement,currency)}`}</span>
         </div>
       </div>
+
+      {isScheduled&&(
+        <div className="market-auction-scheduled-banner" role="status">
+          <strong>{locale==='ID'?'Lelang belum dimulai':'Auction is scheduled'}</strong>
+          <span>{locale==='ID'?'Simpan (bookmark) listing ini untuk menandai dan mendapatkan notifikasi saat bidding dibuka.':'Save (bookmark) this listing to track it and get notified when bidding opens.'}</span>
+        </div>
+      )}
 
       {isWinner&&!auction.winnerOrderId&&(
         <div className="market-auction-winner-banner">
@@ -273,12 +293,12 @@ export function MarketAuctionPanel({
       )}
 
       {auction.buyNowPrice&&auction.buyNowPrice>0&&(
-        <div className={`market-auction-buyout-row${isEnded||isOwner||auction.currentBid>=auction.buyNowPrice?' is-readonly':''}`}>
+        <div className={`market-auction-buyout-row${isEnded||isScheduled||isOwner||auction.currentBid>=auction.buyNowPrice?' is-readonly':''}`}>
           <div>
             <small>{locale==='ID'?'Harga Buy Out (langsung menang)':'Buy Out price (instant win)'}</small>
             <strong>{formatMoney(auction.buyNowPrice,currency)}</strong>
           </div>
-          {!isEnded&&!isOwner&&auction.buyNowPrice>auction.currentBid?(
+          {!isEnded&&!isScheduled&&!isOwner&&auction.buyNowPrice>auction.currentBid?(
             <button
               type="button"
               className="button secondary"
@@ -310,7 +330,9 @@ export function MarketAuctionPanel({
             <span className="market-auction-buyout-status">
               {auction.currentBid>=auction.buyNowPrice
                 ?(locale==='ID'?'Terlampaui oleh bid':'Passed by bids')
-                :isOwner
+                :isScheduled
+                  ?(locale==='ID'?'Menunggu mulai':'Opens soon')
+                  :isOwner
                   ?(locale==='ID'?'Aktif untuk pembeli':'Available to buyers')
                   :(locale==='ID'?'Lelang berakhir':'Auction ended')}
             </span>
@@ -318,7 +340,7 @@ export function MarketAuctionPanel({
         </div>
       )}
 
-      {!isEnded&&!isOwner&&(
+      {!isEnded&&!isScheduled&&!isOwner&&(
         <form className="market-auction-bid-form" onSubmit={handlePlaceBid}>
           {isHighestBidder&&(
             <p className="market-auction-leading">{locale==='ID'?'Anda saat ini pemegang bid tertinggi.':'You currently hold the highest bid.'}</p>
@@ -362,7 +384,7 @@ export function MarketAuctionPanel({
           <h4>{locale==='ID'?'Riwayat bid terbaru':'Recent bids'}</h4>
           <ul>
             {bids.map((bid,idx)=>{
-              const ts=formatBidTimestamp(bid.createdAt,locale);
+              const ts=formatBidTimestamp(bid.createdAt,locale,nowMs);
               return (
                 <li key={bid.id} className={idx===0?'is-top':''}>
                   <span className="market-auction-history-bidder">

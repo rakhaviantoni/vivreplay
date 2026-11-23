@@ -10,7 +10,7 @@ import {createSealedListing} from '@/lib/server/sealed-listings';
 import {createGeneralListing} from '@/lib/server/general-listings';
 import {createMixedListing} from '@/lib/server/mixed-listings';
 import {createAuctionForListing} from '@/lib/server/auctions';
-import {validateFixedAuctionEndsAt} from '@/lib/market/auction';
+import {validateFixedAuctionEndsAt,validateScheduledStartAt} from '@/lib/market/auction';
 import {recordMarketActivity} from '@/lib/server/market-activity-progress';
 
 const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),itemKey:z.string().trim().min(1).max(160).optional(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),productType:z.enum(['RAW','GRADED']).optional(),gradingCompany:z.string().trim().max(40).optional(),grade:z.string().trim().max(20).optional(),certification:z.string().trim().max(100).optional(),slabLabelStyle:z.enum(['clear','standard']).optional(),unitAmount:z.number().int().nonnegative().optional(),photoIds:z.array(z.string().min(1).max(120)).max(6).optional()});
@@ -19,6 +19,7 @@ const auctionSchema=z.object({
   buyNowPrice:z.number().int().min(100).max(100000000000).nullable().optional(),
   minIncrement:z.number().int().min(50).max(100000000).default(10000),
   durationMode:z.enum(['FIXED','ROLLING_24H','ROLLING_48H']).default('ROLLING_24H'),
+  startsAt:z.string().trim().max(64).nullable().optional(),
   fixedHours:z.number().int().min(1).max(168).optional(),
   fixedEndsAt:z.string().trim().max(64).optional(),
 });
@@ -211,6 +212,10 @@ export async function POST(request:Request){
         if(slot.buyNowPrice&&slot.buyNowPrice<=startingBid){
           throw new HttpError(400,'Buy Out price must be higher than the starting bid.');
         }
+        if(slot.startsAt){
+          const startCheck=validateScheduledStartAt(slot.startsAt);
+          if(!startCheck.ok)throw new HttpError(400,startCheck.error);
+        }
         if(slot.durationMode==='FIXED'&&slot.fixedEndsAt){
           const check=validateFixedAuctionEndsAt(slot.fixedEndsAt);
           if(!check.ok)throw new HttpError(400,check.error);
@@ -226,6 +231,7 @@ export async function POST(request:Request){
           buyNowPrice:slot.buyNowPrice??null,
           minIncrement:slot.minIncrement??10000,
           durationMode:slot.durationMode??'ROLLING_24H',
+          startsAt:slot.startsAt??null,
           fixedHours:slot.fixedHours,
           fixedEndsAt:slot.fixedEndsAt,
         });

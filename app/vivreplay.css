@@ -4876,3 +4876,8 @@ html[data-theme='dark'] .market-listing-type-badge.is-auction{color:#e87a4d}
 @media(max-width:600px){
   .market-global-scope-row,.market-credits-dual-balance{grid-template-columns:1fr}
 }
+.market-auction-pill.is-scheduled,.market-feed-auction-tag.is-scheduled{background:color-mix(in srgb,#0284c7 14%,transparent);color:#0369a1}
+.market-auction-scheduled-banner{display:grid;gap:4px;padding:12px 14px;border-radius:10px;border:1px solid color-mix(in srgb,#0284c7 30%,var(--line));background:color-mix(in srgb,#0284c7 8%,transparent);font-size:13px}
+.market-auction-scheduled-banner strong{color:#0369a1;font-size:13.5px}
+.market-auction-scheduled-banner span{color:var(--muted);line-height:1.4}
+[data-theme="dark"] .market-auction-pill.is-scheduled,[data-theme="dark"] .market-feed-auction-tag.is-scheduled,[data-theme="dark"] .market-auction-scheduled-banner strong{color:#38bdf8}

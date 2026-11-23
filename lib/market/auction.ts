@@ -13,6 +13,7 @@ export interface AuctionSummary {
   highestBidderName: string | null;
   bidCount: number;
   durationMode: AuctionDurationMode;
+  startsAt?: string | null;
   endsAt: string;
   status: AuctionStatus;
   winnerOrderId?: string | null;
@@ -42,6 +43,35 @@ export const AUCTION_MIN_FIXED_HOURS = 1;
 export const AUCTION_MAX_FIXED_HOURS = 168; // 7 days
 export const AUCTION_MIN_FIXED_MS = 60 * 60 * 1000;
 export const AUCTION_MAX_FIXED_MS = 30 * 24 * 60 * 60 * 1000;
+
+export const AUCTION_MIN_SCHEDULE_MS = 5 * 60 * 1000;
+export const AUCTION_MAX_SCHEDULE_MS = 14 * 24 * 60 * 60 * 1000;
+
+export function validateScheduledStartAt(
+  startsAt: string,
+  nowMs: number = Date.now(),
+): { ok: true; startsAtMs: number } | { ok: false; error: string } {
+  const parsed = Date.parse(startsAt);
+  if (!Number.isFinite(parsed)) {
+    return { ok: false, error: 'Choose a valid scheduled start date and time.' };
+  }
+  if (parsed < nowMs + AUCTION_MIN_SCHEDULE_MS) {
+    return { ok: false, error: 'Scheduled start must be at least 5 minutes from now.' };
+  }
+  if (parsed > nowMs + AUCTION_MAX_SCHEDULE_MS) {
+    return { ok: false, error: 'Scheduled start cannot exceed 14 days from now.' };
+  }
+  return { ok: true, startsAtMs: parsed };
+}
+
+export function isAuctionScheduled(
+  auction: { startsAt?: string | null; status?: AuctionStatus },
+  nowMs: number = Date.now(),
+): boolean {
+  if (!auction.startsAt || auction.status !== 'ACTIVE') return false;
+  const parsed = Date.parse(auction.startsAt);
+  return Number.isFinite(parsed) && parsed > nowMs;
+}
 
 export function validateFixedAuctionEndsAt(
   fixedEndsAt: string,
@@ -115,6 +145,7 @@ export function validateAuctionBid(params: {
   sellerId: string;
   bidderId: string;
   status: AuctionStatus;
+  startsAtMs?: number | null;
   endsAtMs: number;
   nowMs: number;
   startingBid: number;
@@ -126,6 +157,9 @@ export function validateAuctionBid(params: {
 }): { ok: true; minimumBid: number } | { ok: false; status: number; error: string } {
   if (params.status !== 'ACTIVE') {
     return { ok: false, status: 409, error: 'This auction has already ended.' };
+  }
+  if (params.startsAtMs && Number.isFinite(params.startsAtMs) && params.nowMs < params.startsAtMs) {
+    return { ok: false, status: 409, error: 'This auction has not started yet.' };
   }
   if (!Number.isFinite(params.endsAtMs) || params.nowMs >= params.endsAtMs) {
     return { ok: false, status: 409, error: 'This auction has already ended.' };

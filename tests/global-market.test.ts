@@ -49,3 +49,32 @@ test('Polar webhook HMAC-SHA256 signature verification validates authentic reque
   });
   assert.equal(await verifyPolarWebhookSignature(body,oldHeaders,webhookSecret),false);
 });
+
+test('scheduled auctions validate start time and block early bids', async () => {
+  const { validateAuctionBid, validateScheduledStartAt, isAuctionScheduled } = await import('../lib/market/auction');
+  const now = Date.now();
+  const futureIso = new Date(now + 60 * 60 * 1000).toISOString();
+  const tooSoonIso = new Date(now + 60 * 1000).toISOString();
+
+  assert.equal(validateScheduledStartAt(tooSoonIso, now).ok, false);
+  assert.equal(validateScheduledStartAt(futureIso, now).ok, true);
+  assert.equal(isAuctionScheduled({ startsAt: futureIso, status: 'ACTIVE' }, now), true);
+  assert.equal(isAuctionScheduled({ startsAt: futureIso, status: 'ACTIVE' }, now + 2 * 60 * 60 * 1000), false);
+
+  const earlyBid = validateAuctionBid({
+    sellerId: 'seller-1',
+    bidderId: 'buyer-1',
+    status: 'ACTIVE',
+    startsAtMs: now + 60 * 60 * 1000,
+    endsAtMs: now + 25 * 60 * 60 * 1000,
+    nowMs: now,
+    startingBid: 100_000,
+    currentBid: 0,
+    minIncrement: 10_000,
+    bidCount: 0,
+    highestBidderId: null,
+    amount: 100_000,
+  });
+  assert.equal(earlyBid.ok, false);
+  if (!earlyBid.ok) assert.equal(earlyBid.status, 409);
+});
