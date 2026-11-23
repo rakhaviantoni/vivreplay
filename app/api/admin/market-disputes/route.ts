@@ -37,7 +37,7 @@ export async function PATCH(request:Request){
     if(input.decision==='RESHIP'&&dispute.orderStatus!=='SHIPPED')throw new HttpError(409,'A replacement shipment can only be arranged while the original order is awaiting confirmation.');
     let details:Record<string,unknown>={};try{details=JSON.parse(dispute.details||'{}') as Record<string,unknown>}catch{}
     details.marketDisputeResolution={decision:input.decision,refundAmount,shippingRefund,refundReference:input.refundReference?.trim()||null,serviceFeeRefund:0,decidedAt:new Date().toISOString()};
-    const feePercent=typeof details.marketFeePercent==='number'?details.marketFeePercent:1.5;
+    const feePercent=typeof details.marketFeePercent==='number'?details.marketFeePercent:1.75;
     const feeMinimum=typeof details.marketSellerFeeMinimum==='number'?details.marketSellerFeeMinimum:MARKET_SELLER_FEE_MINIMUM;
     const remainingSubtotal=Math.max(0,dispute.subtotal-refundAmount);
     const sellerNetAmount=input.decision==='FULL_REFUND'?0:input.decision==='PARTIAL_REFUND'?Math.max(0,remainingSubtotal-calculateSellerServiceFee(remainingSubtotal,feePercent,feeMinimum)):(dispute.sellerNetAmount??dispute.subtotal);

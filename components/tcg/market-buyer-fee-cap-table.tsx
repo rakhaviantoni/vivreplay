@@ -30,7 +30,7 @@ export function MarketBuyerFeeCapTable({locale='en',className='',minimum=MARKET_
   </section>;
 }
 
-export function MarketServiceFeeInfo({locale='en',defaultTab='buyer',freePercent=1.5,proPercent=0.75,buyerMinimum=MARKET_BUYER_FEE_MINIMUM,sellerMinimum=MARKET_SELLER_FEE_MINIMUM}:{locale?:'en'|'id';defaultTab?:'buyer'|'seller';freePercent?:number;proPercent?:number;buyerMinimum?:number;sellerMinimum?:number}){
+export function MarketServiceFeeInfo({locale='en',defaultTab='buyer',freePercent=1.75,proPercent=0.75,buyerMinimum=MARKET_BUYER_FEE_MINIMUM,sellerMinimum=MARKET_SELLER_FEE_MINIMUM}:{locale?:'en'|'id';defaultTab?:'buyer'|'seller';freePercent?:number;proPercent?:number;buyerMinimum?:number;sellerMinimum?:number}){
   const [open,setOpen]=useState(false);
   const [tab,setTab]=useState<'buyer'|'seller'>(defaultTab);
   const [subtotal,setSubtotal]=useState('3500000');

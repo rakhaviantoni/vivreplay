@@ -663,6 +663,8 @@ html[data-theme='dark'] .market-product-details-art{background:#0e2029}
   flex-wrap: nowrap!important;
   overflow-x: auto!important;
   scrollbar-width: none!important;
+  padding: 4px 2px!important;
+  margin: -4px -2px!important;
 }
 .market-trade-chips::-webkit-scrollbar{display:none}
 .market-trade-chip{
@@ -683,7 +685,9 @@ html[data-theme='dark'] .market-product-details-art{background:#0e2029}
   white-space: nowrap!important;
 }
 .market-trade-chip small{font-variant-numeric:tabular-nums}
-.market-trade-chip:hover{
+.market-trade-chip:hover,
+.market-trade-chip:focus-visible{
+  transform: none!important;
   border-color: var(--accent)!important;
   color: var(--ink)!important;
   background: color-mix(in srgb,var(--accent) 5%,var(--surface-raised))!important;
@@ -803,7 +807,9 @@ html[data-theme='dark'] .market-trade-chip{
   border-color: #25404d!important;
   color: #a4bcc7!important;
 }
-html[data-theme='dark'] .market-trade-chip:hover{
+html[data-theme='dark'] .market-trade-chip:hover,
+html[data-theme='dark'] .market-trade-chip:focus-visible{
+  transform: none!important;
   border-color: var(--accent)!important;
   color: #edf5f0!important;
   background: #0e2430!important;
@@ -844,7 +850,8 @@ html[data-theme='dark'] .market-view-toggle button.active{
   }
   .market-trade-chips{
     overflow-x: auto!important;
-    padding-bottom: 2px!important;
+    padding: 4px 2px!important;
+    margin: -4px -2px!important;
     flex-wrap: nowrap!important;
   }
   .market-feed-filters{
