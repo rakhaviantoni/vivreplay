@@ -389,7 +389,7 @@ export function ProfileSocialsPanel({
           <div>
             <h2>
               <Sparkle size={16} weight="fill" />
-              {t('Social Auto-Post Early Access', 'Akses Awal Auto-Post Media Sosial')}
+              {t('Social Auto-Post (Early-Access / Tester)', 'Auto-Post Media Sosial (Akses Awal / Tester)')}
             </h2>
             <p>
               {t(

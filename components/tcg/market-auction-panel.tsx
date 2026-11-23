@@ -81,6 +81,20 @@ export function MarketAuctionPanel({
   const [bids,setBids]=useState<AuctionBidRecord[]>(initialBids);
   const [watchers,setWatchers]=useState<AuctionWatcher[]>(initialWatchers);
   const [trackingBusy,setTrackingBusy]=useState(false);
+
+  useEffect(()=>{
+    const onSavedChanged=(event:Event)=>{
+      const detail=(event as CustomEvent<{listingId?:string;saved?:boolean}>).detail;
+      if(!currentUserId||detail?.listingId!==listingId||typeof detail.saved!=='boolean')return;
+      if(detail.saved){
+        setWatchers(prev=>prev.some(w=>w.userId===currentUserId)?prev:[{userId:currentUserId,name:locale==='ID'?'Anda':'You',username:null,verified:false,createdAt:new Date().toISOString()},...prev]);
+      }else{
+        setWatchers(prev=>prev.filter(w=>w.userId!==currentUserId));
+      }
+    };
+    window.addEventListener('vivreplay:saved-changed',onSavedChanged);
+    return()=>window.removeEventListener('vivreplay:saved-changed',onSavedChanged);
+  },[currentUserId,listingId,locale]);
   const prevAuctionRef=useRef<AuctionSummary>(initialAuction);
   const [nowMs,setNowMs]=useState(()=>Date.now());
   const [submitting,setSubmitting]=useState(false);
@@ -432,12 +446,12 @@ export function MarketAuctionPanel({
                         body:JSON.stringify({listingId,saved:nextSaved,alerts:true}),
                       });
                       if(!res.ok)throw new Error(locale==='ID'?'Gagal menyimpan status Jejak.':'Could not update tracking status.');
+                      window.dispatchEvent(new Event('vivreplay:saved-listings'));
+                      window.dispatchEvent(new CustomEvent('vivreplay:saved-changed',{detail:{listingId,saved:nextSaved}}));
                       if(nextSaved){
-                        setWatchers(prev=>prev.some(w=>w.userId===currentUserId)?prev:[{userId:currentUserId,name:locale==='ID'?'Anda':'You',username:null,verified:false,createdAt:new Date().toISOString()},...prev]);
-                        toast.success(locale==='ID'?'Berhasil ditandai! Anda akan diberi tahu saat lelang dimulai.':'Tracked! You will be notified when the auction starts.');
+                        toast.success(locale==='ID'?'Disimpan (Jejak)! Anda akan diberi tahu saat lelang dimulai.':'Saved (Jejak)! You will be notified when the auction starts.');
                       }else{
-                        setWatchers(prev=>prev.filter(w=>w.userId!==currentUserId));
-                        toast.success(locale==='ID'?'Tanda Jejak dihapus.':'Removed from tracked auctions.');
+                        toast.success(locale==='ID'?'Dihapus dari simpanan.':'Removed from saved listings.');
                       }
                     }catch(cause){
                       toast.error((cause as Error).message);
@@ -447,7 +461,7 @@ export function MarketAuctionPanel({
                   }}
                 >
                   <Bookmark size={14} weight={isTracking?'fill':'regular'}/>
-                  <span>{isTracking?(locale==='ID'?'Ditandai (Jejak)':'Tracking'):(locale==='ID'?'Jejak / Ingatkan':'Track / Jejak')}</span>
+                  <span>{isTracking?(locale==='ID'?'Tersimpan (Jejak)':'Saved (Jejak)'):(locale==='ID'?'Simpan / Jejak':'Save / Jejak')}</span>
                 </button>
               );
             })()}
