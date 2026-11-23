@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {MagnifyingGlassIcon as Search,XIcon as X} from '@phosphor-icons/react';
+import {MagnifyingGlassIcon as Search,UploadSimpleIcon as UploadSimple,XIcon as X} from '@phosphor-icons/react';
 import {useRouteLocale} from '@/components/locale-provider';
 import {generalMarketCategories,generalMarketConditionLabel,generalMarketConditionOptions,type GeneralMarketCategory} from '@/lib/market/general-products';
 import {useMarketListingLimits} from '@/lib/market/use-listing-limits';
@@ -109,8 +109,19 @@ export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle,ini
     <label className="market-general-notes">{copy('Details','Detail')}<textarea maxLength={1000} value={notes} onChange={event=>setNotes(event.target.value)} placeholder={type==='WTB'?copy('Describe the version, condition, or features you want.','Jelaskan versi, kondisi, atau fitur yang dicari.'):copy('Describe its condition, included parts, and any defects.','Jelaskan kondisi, kelengkapan, dan kerusakan jika ada.')}/></label>
     {type==='WTS'&&<>
       <fieldset className="market-product-parcel"><legend>{copy('Packed size','Ukuran paket')}</legend><p>{copy('Enter the parcel measurements after packaging the item.','Masukkan ukuran paket setelah barang dikemas.')}</p><div className="market-general-fields market-general-parcel">{Object.entries(parcel).map(([key,value])=><label key={key}>{({weight:copy('Weight (g)','Berat (g)'),length:copy('Length (cm)','Panjang (cm)'),width:copy('Width (cm)','Lebar (cm)'),height:copy('Height (cm)','Tinggi (cm)')} as Record<string,string>)[key]??key}<input type="number" min={1} value={value} onChange={event=>setParcel(current=>({...current,[key]:event.target.value}))}/></label>)}</div></fieldset>
-      <label className="market-product-photo-upload">{copy('Photos','Foto')}<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy||photos.length>=6} onChange={event=>{void upload(event.target.files);event.target.value='';}}/><small>{copy('Show the item from several angles, including any wear or damage.','Tampilkan barang dari beberapa sisi, termasuk tanda pemakaian atau kerusakan.')}</small></label>
-      <div className="market-sealed-photos">{photos.map(photo=><div key={photo}><img src={`/api/market/product-photos/${photo}`} alt={copy('Item photo','Foto barang')}/><button type="button" onClick={()=>setPhotos(current=>current.filter(id=>id!==photo))}>{copy('Remove','Hapus')}</button></div>)}</div>
+      <div className="market-product-photo-section">
+        <div className="market-product-photo-header">
+          <strong>{copy('Photos','Foto')}</strong>
+          <span>{photos.length} / 6</span>
+        </div>
+        <label className={`market-product-photo-upload${photos.length>=6?' is-full':''}`}>
+          <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy||photos.length>=6} onChange={event=>{void upload(event.target.files);event.target.value='';}}/>
+          <UploadSimple size={18} aria-hidden="true"/>
+          <span>{busy?copy('Uploading photos…','Mengunggah foto…'):photos.length>=6?copy('Maximum 6 photos reached','Maksimal 6 foto tercapai'):copy('Select up to 6 photos (multi-select supported)','Pilih hingga 6 foto (mendukung multi-pilih)')}</span>
+          <small>{copy('Show the item from several angles, including any wear or damage.','Tampilkan barang dari beberapa sisi, termasuk tanda pemakaian atau kerusakan.')}</small>
+        </label>
+        {photos.length>0&&<div className="market-sealed-photos">{photos.map(photo=><div key={photo} className="market-product-photo-card"><img src={`/api/market/product-photos/${photo}`} alt={copy('Item photo','Foto barang')}/><button type="button" className="market-product-photo-remove" onClick={()=>setPhotos(current=>current.filter(id=>id!==photo))} aria-label={copy('Remove photo','Hapus foto')} title={copy('Remove photo','Hapus foto')}><X size={13}/></button></div>)}</div>}
+      </div>
     </>}
     {error&&<p role="alert" className="market-product-error">{error}</p>}
     <div className="market-product-publish-row"><span>{copy('Total','Total')}<strong>IDR {(quantity*Number(price||0)).toLocaleString(isId?'id-ID':'en-US')}</strong></span><button type="button" className="button" disabled={busy||!validTitle||!validPrice||quantity<1||quantity>productStockLimit||(type==='WTS'&&(!photos.length||!validParcel))} onClick={()=>void publish()}>{busy?copy('Saving…','Menyimpan…'):onAddToBundle?copy('Add to bundle','Tambahkan ke paket'):type==='WTS'?copy('Publish listing','Terbitkan listing'):copy('Post buying request','Buat permintaan beli')}</button></div>

@@ -1686,7 +1686,7 @@ html[data-theme='dark'] .checkout-payment-single .checkout-payment-method-copy s
   width:36px;
   height:36px;
   border:1px solid var(--vp-line,#d7cab4);
-  border-radius:999px;
+  border-radius:10px;
   background:var(--vp-surface,#fffaf0);
   color:var(--vp-ink,#2c251d);
   cursor:pointer;

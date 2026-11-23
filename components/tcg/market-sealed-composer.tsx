@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useMemo,useState,type ReactNode} from 'react';
 import {useRouteLocale} from '@/components/locale-provider';
-import {ArrowRightIcon as ArrowRight,MagnifyingGlassIcon as Search,PlusIcon as Plus,XIcon as X} from '@phosphor-icons/react';
+import {ArrowRightIcon as ArrowRight,MagnifyingGlassIcon as Search,PlusIcon as Plus,UploadSimpleIcon as UploadSimple,XIcon as X} from '@phosphor-icons/react';
 import {matchesSealedProductQuery,normalizeSealedProductQuery,sealedProductDisplayName,sealedProductPublicCode,sealedProductLanguage,sealedProducts,sealedProductKinds,type SealedProduct,type SealedProductKind} from '@/lib/market/sealed-products';
 import {isAccessoryKind,productConditionLabel,productConditionOptions} from '@/lib/market/product-conditions';
 import {MarketGeneralComposer} from './market-general-composer';
@@ -141,7 +141,19 @@ export function MarketSealedComposer({type,onPublished,onAddToBundle,modeControl
       <label>{copy('Condition notes','Catatan kondisi')}<textarea maxLength={1000} value={notes} onChange={event=>setNotes(event.target.value)} placeholder={type==='WTB'?copy('Describe the condition or design you want','Jelaskan kondisi atau desain yang dicari'):copy('Mention wear, damage, or missing pieces','Sebutkan tanda pemakaian, kerusakan, atau bagian yang tidak lengkap')}/></label>
       {type==='WTS'&&<>
         <fieldset className="market-product-parcel"><legend>{copy('Packed size','Ukuran paket')}</legend><p>{copy('Measure the parcel after adding protective packaging.','Ukur paket setelah diberi pelindung.')}</p><div className="market-sealed-fields">{Object.entries(parcel).map(([key,value])=><label key={key}>{({weight:copy('Weight (g)','Berat (g)'),length:copy('Length (cm)','Panjang (cm)'),width:copy('Width (cm)','Lebar (cm)'),height:copy('Height (cm)','Tinggi (cm)')} as Record<string,string>)[key]??key}<input type="number" min={key==='weight'?10:1} value={value} onChange={event=>setParcel(current=>({...current,[key]:event.target.value}))}/></label>)}</div></fieldset>
-        <label className="market-product-photo-upload">{copy('Product photos','Foto produk')}<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy||photos.length>=6} onChange={event=>{void upload(event.target.files);event.target.value='';}}/><small>{isAccessoryKind(product.kind)?copy('Show the product and any signs of wear.','Tampilkan produk dan tanda pemakaiannya.'):copy('Show the seal and any wear on the packaging.','Tampilkan segel dan kondisi kemasan.')}</small></label><div className="market-sealed-photos">{photos.map(photo=><div key={photo}><img src={`/api/market/product-photos/${photo}`} alt={copy('Product photo','Foto produk')}/><button type="button" onClick={()=>setPhotos(current=>current.filter(id=>id!==photo))}>{copy('Remove','Hapus')}</button></div>)}</div>
+        <div className="market-product-photo-section">
+          <div className="market-product-photo-header">
+            <strong>{copy('Product photos','Foto produk')}</strong>
+            <span>{photos.length} / 6</span>
+          </div>
+          <label className={`market-product-photo-upload${photos.length>=6?' is-full':''}`}>
+            <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy||photos.length>=6} onChange={event=>{void upload(event.target.files);event.target.value='';}}/>
+            <UploadSimple size={18} aria-hidden="true"/>
+            <span>{busy?copy('Uploading photos…','Mengunggah foto…'):photos.length>=6?copy('Maximum 6 photos reached','Maksimal 6 foto tercapai'):copy('Select up to 6 photos (multi-select supported)','Pilih hingga 6 foto (mendukung multi-pilih)')}</span>
+            <small>{isAccessoryKind(product.kind)?copy('Show the product and any signs of wear.','Tampilkan produk dan tanda pemakaiannya.'):copy('Show the seal and any wear on the packaging.','Tampilkan segel dan kondisi kemasan.')}</small>
+          </label>
+          {photos.length>0&&<div className="market-sealed-photos">{photos.map(photo=><div key={photo} className="market-product-photo-card"><img src={`/api/market/product-photos/${photo}`} alt={copy('Product photo','Foto produk')}/><button type="button" className="market-product-photo-remove" onClick={()=>setPhotos(current=>current.filter(id=>id!==photo))} aria-label={copy('Remove photo','Hapus foto')} title={copy('Remove photo','Hapus foto')}><X size={13}/></button></div>)}</div>}
+        </div>
       </>}
       <div className="market-product-publish-row"><span>{copy('Total','Total')}<strong>IDR {(quantity*Number(price||0)).toLocaleString(isId?'id-ID':'en-US')}</strong></span><button type="button" className="button" disabled={busy||!Number(price)||quantity<1||(type==='WTS'&&(!photos.length||Object.values(parcel).some(value=>!Number(value))))} onClick={()=>void publish()}>{busy?copy('Saving…','Menyimpan…'):onAddToBundle?copy('Add to bundle','Tambahkan ke paket'):type==='WTS'?copy('Publish listing','Terbitkan listing'):copy('Post buying request','Buat permintaan beli')}</button></div>
     </>}
