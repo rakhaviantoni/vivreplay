@@ -6,6 +6,7 @@ import type {Card} from '@/packages/card-data/catalog';
 import type {CollectionItem,SavedDeck,Listing} from '@/packages/domain';
 import {normalizeListingItemPrices} from '@/lib/market/normalize-listing-prices';
 import {generalMarketCategoryLabel} from '@/lib/market/general-products';
+import {getAuctionSummaryMap} from '@/lib/server/auctions';
 export function db(){if(!env.DB)throw new Error('Persistent storage is unavailable. Please retry shortly.');return env.DB;}
 function defaultUsername(email: string | undefined, id: string): string {
   if (!email) return `player-${id.slice(0, 8)}`;
@@ -201,6 +202,7 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
     LEFT JOIN games cg ON cg.id=ci.game_id
     LEFT JOIN seller_shipping_origins o ON o.owner_id=l.seller_id
     WHERE (l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at > CURRENT_TIMESTAMP)
+      ${listingIds?.length?`OR (l.type='WTA' AND l.status IN ('ENDED','RESERVED','SOLD'))`:''}
       OR (l.status='SOLD' AND EXISTS(SELECT 1 FROM checkout_orders sale WHERE sale.kind='MARKET' AND (sale.listing_id=l.id OR EXISTS(SELECT 1 FROM json_each(sale.items) sale_item WHERE json_extract(sale_item.value,'$.listingId')=l.id)) AND (sale.status IN ('PAID','DISPUTED','RECEIVING') OR (sale.status='SHIPPED' AND (sale.delivered_at IS NULL OR sale.delivered_at>datetime('now','-48 hours')))))))
       ${listingFilter}
       ${gameFilter}
@@ -304,6 +306,9 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
     }
   }
 
+  const wtaIds=rows.filter(row=>row.type==='WTA').map(row=>row.id);
+  const auctionSummaries=wtaIds.length?await getAuctionSummaryMap(db(),wtaIds):new Map();
+
   return rows.map(r => {
     const filenameCode = r.cardImageUrl ? r.cardImageUrl.split('?')[0].split('#')[0].split('/').pop()?.replace(/\.[^.]+$/, '') : undefined;
     const printingCode = r.catalogPrintingCode ?? (filenameCode&&!filenameCode.toLowerCase().startsWith('tcg-')?filenameCode:undefined) ?? r.cardCode;
@@ -367,6 +372,7 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
       items,
       shippingOptionCount:couriers.size,
       shippingCouriers:[...couriers],
+      ...(r.type==='WTA'&&auctionSummaries.has(r.id)?{auction:auctionSummaries.get(r.id)}:{}),
     } satisfies Listing;
   });
 }

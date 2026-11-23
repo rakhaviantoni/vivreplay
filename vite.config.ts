@@ -68,6 +68,10 @@ const localBindingConfig = {
   r2_buckets: [
     { binding: "CARD_IMAGES", bucket_name: "tcg-card-images" },
   ] as Array<{ binding: string; bucket_name: string; remote?: boolean }>,
+  durable_objects: {
+    bindings: [{ name: "AUCTION_ROOM", class_name: "AuctionRoom" }],
+  },
+  migrations: [{ tag: "v1", new_sqlite_classes: ["AuctionRoom"] }],
   images: { binding: "IMAGES" },
 };
 

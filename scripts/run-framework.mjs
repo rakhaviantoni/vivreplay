@@ -25,11 +25,142 @@ try {
     writeFileSync(linkShimPath, code, "utf8");
   }
 
-  // Ensure Cloudflare fetch handler injects Google tag directly into <head> for crawlers and verification
+  // Ensure Cloudflare fetch handler injects Google tag directly into <head> and exports AuctionRoom DO
   const fetchHandlerPath = fileURLToPath(new URL("../node_modules/vinext/dist/server/fetch-handler.js", import.meta.url));
   let handlerCode = readFileSync(fetchHandlerPath, "utf8");
-  if (!handlerCode.includes('VivrePlay Market order reminder job')) {
+  if (!handlerCode.includes('VivrePlay Market order reminder job') || !handlerCode.includes('export class AuctionRoom')) {
     handlerCode = `import handler from "virtual:vinext-worker-entry";
+import { DurableObject } from "cloudflare:workers";
+
+export class AuctionRoom extends DurableObject {
+  async getState() {
+    return (await this.ctx.storage.get("auction")) || null;
+  }
+
+  broadcast(payload) {
+    const encoded = JSON.stringify(payload);
+    for (const ws of this.ctx.getWebSockets()) {
+      try {
+        ws.send(encoded);
+      } catch {
+        try { ws.close(1011, "Send failed"); } catch {}
+      }
+    }
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (request.headers.get("upgrade")?.toLowerCase() === "websocket" || url.pathname.endsWith("/ws")) {
+      const pair = new WebSocketPair();
+      const [client, server] = Object.values(pair);
+      this.ctx.acceptWebSocket(server);
+      const state = await this.getState();
+      if (state) {
+        try { server.send(JSON.stringify({ type: "state", state })); } catch {}
+      }
+      return new Response(null, { status: 101, webSocket: client });
+    }
+
+    if (request.method === "GET" && url.pathname.endsWith("/state")) {
+      const state = await this.getState();
+      if (!state) return Response.json({ error: "Auction not initialized" }, { status: 404 });
+      return Response.json({ state });
+    }
+
+    if (request.method === "POST" && url.pathname.endsWith("/init")) {
+      const payload = await request.json();
+      const existing = await this.getState();
+      const state = existing && existing.listingId === payload.listingId ? { ...existing, ...payload } : payload;
+      await this.ctx.storage.put("auction", state);
+      if (state.status === "ACTIVE" && Number.isFinite(state.endsAtMs)) {
+        await this.ctx.storage.setAlarm(state.endsAtMs);
+      }
+      return Response.json({ ok: true, state });
+    }
+
+    if (request.method === "POST" && url.pathname.endsWith("/bid")) {
+      const payload = await request.json();
+      const state = await this.getState();
+      if (!state) return Response.json({ error: "Auction not initialized" }, { status: 404 });
+      const nowMs = Date.now();
+      if (state.status !== "ACTIVE" || nowMs >= state.endsAtMs) {
+        return Response.json({ error: "This auction has already ended." }, { status: 409 });
+      }
+      if (payload.bidderId === state.sellerId) {
+        return Response.json({ error: "You cannot bid on your own auction." }, { status: 400 });
+      }
+      if (state.highestBidderId && payload.bidderId === state.highestBidderId) {
+        return Response.json({ error: "You already hold the highest bid." }, { status: 409 });
+      }
+      const amount = Math.round(Number(payload.amount));
+      const minBid = state.bidCount <= 0 || state.currentBid <= 0
+        ? Math.max(1000, Math.round(state.startingBid))
+        : Math.round(state.currentBid) + Math.max(1000, Math.round(state.minIncrement));
+      if (!Number.isSafeInteger(amount) || amount < minBid || amount > 100000000000) {
+        return Response.json({ error: "Minimum bid is Rp " + minBid.toLocaleString("id-ID") + "." }, { status: 400 });
+      }
+
+      const nextEndsAtMs = state.durationMode === "ROLLING_24H"
+        ? nowMs + 24 * 60 * 60 * 1000
+        : state.durationMode === "ROLLING_48H"
+          ? nowMs + 48 * 60 * 60 * 1000
+          : state.endsAtMs;
+
+      const nextState = {
+        ...state,
+        currentBid: amount,
+        highestBidderId: payload.bidderId,
+        highestBidderName: payload.bidderName,
+        bidCount: Number(state.bidCount || 0) + 1,
+        endsAtMs: nextEndsAtMs,
+        endsAt: new Date(nextEndsAtMs).toISOString(),
+      };
+      const bid = {
+        id: payload.bidId || crypto.randomUUID(),
+        listingId: state.listingId,
+        bidderId: payload.bidderId,
+        bidderName: payload.bidderName,
+        amount,
+        createdAt: new Date(nowMs).toISOString(),
+      };
+      await this.ctx.storage.put("auction", nextState);
+      await this.ctx.storage.setAlarm(nextEndsAtMs);
+      this.broadcast({ type: "bid", state: nextState, bid });
+      return Response.json({ ok: true, state: nextState, bid });
+    }
+
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+
+  async alarm() {
+    const state = await this.getState();
+    if (!state || state.status !== "ACTIVE") return;
+    if (Date.now() < state.endsAtMs) {
+      await this.ctx.storage.setAlarm(state.endsAtMs);
+      return;
+    }
+    const endedState = { ...state, status: "ENDED" };
+    await this.ctx.storage.put("auction", endedState);
+    this.broadcast({ type: "ended", state: endedState });
+    const secret = this.env.PRO_MEMBERSHIP_CRON_SECRET || this.env.BETTER_AUTH_SECRET || "";
+    try {
+      await handler.fetch(new Request("https://vivreplay.com/api/auctions/" + encodeURIComponent(state.listingId) + "/close", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...(secret ? { authorization: "Bearer " + secret } : {}),
+        },
+        body: JSON.stringify({ state: endedState }),
+      }), this.env, this.ctx);
+    } catch (error) {
+      console.error("AuctionRoom alarm finalize failed", state.listingId, error);
+    }
+  }
+
+  webSocketMessage() {}
+  webSocketClose(ws) { try { ws.close(); } catch {} }
+  webSocketError(ws) { try { ws.close(); } catch {} }
+}
 
 // VivrePlay deferred home styles
 const GTAG_SNIPPET = \`<!-- Google tag (gtag.js) -->

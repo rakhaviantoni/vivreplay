@@ -497,7 +497,7 @@
   .market-feed-row .market-feed-stack {
     grid-column: 1 !important;
     grid-row: 1 / span 2 !important;
-    width: 80px !important;
+    width: 72px !important;
     height: 84px !important;
     align-self: center !important;
   }
@@ -505,7 +505,7 @@
   .market-feed-row .market-feed-stack .market-feed-art {
     width: 50px !important;
     height: 70px !important;
-    left: calc(var(--stack-index) * 14px) !important;
+    left: calc(var(--stack-index) * 8px) !important;
   }
   .market-feed-list.is-list .market-feed-copy,
   .market-feed-row .market-feed-copy {
@@ -563,7 +563,7 @@
   .market-feed-list.is-grid .market-feed-stack .market-feed-art {
     width: 52px !important;
     height: 72px !important;
-    left: calc(50% - 26px + (var(--stack-index) * 12px)) !important;
+    left: calc(50% - 26px + (var(--stack-index) * 7px)) !important;
   }
   .market-feed-list.is-grid .market-feed-stack.is-single .market-feed-art {
     left: calc(50% - 26px) !important;

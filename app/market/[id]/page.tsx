@@ -16,6 +16,7 @@ import {listingIdFromMarketPath,marketListingPath,marketListingSelectorFromPath}
 import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 import {normalizeListingItemPrices} from '@/lib/market/normalize-listing-prices';
 import {normalizeSlabLabelStyle,slabLabelStyleFromSubgrades,type SlabLabelStyle} from '@/lib/market/slab-label-style';
+import {getAuctionDetail} from '@/lib/server/auctions';
 
 export const dynamic='force-dynamic';
 
@@ -272,6 +273,7 @@ async function Page({params}:{params:Promise<{id:string}>}){
   if(stored.type==='WTS'&&reservedCount>0&&!isOwner){listing.quantity=cardCount;if(cardCount>0)listing.amount=listingCards.reduce((total,item)=>total+(item.availableQuantity??item.quantity)*item.unitAmount,0);}
 
   const sellerSocials = stored?.sellerId ? await getPublicSellerSocials(stored.sellerId) : [];
+  const auctionDetail = stored?.type === 'WTA' ? await getAuctionDetail(db(), stored.id) : null;
 
   return (
     <>
@@ -290,6 +292,8 @@ async function Page({params}:{params:Promise<{id:string}>}){
         initialStatus={initialStatus}
         reservedCount={reservedCount}
         renewDurationDays={renewDurationDays}
+        auctionDetail={auctionDetail}
+        currentUserId={me?.id ?? null}
       />
       <Market modalOnly listenForDeliveryEvents/>
     </>

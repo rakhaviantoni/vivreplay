@@ -79,7 +79,14 @@ export async function POST(request:Request){
       }
     }
     if(listing.type==='WTB'&&(!acceptedOffer||acceptedOffer.listingType!=='WTB'||!listing.sealedProductId))throw new HttpError(400,'A sealed buying request needs an accepted seller offer before checkout.');
-    if(listing.type==='WTS'&&listing.sellerId===profile.id)throw new HttpError(403,'You cannot purchase from your own listing.');
+    if((listing.type==='WTS'||listing.type==='WTA')&&listing.sellerId===profile.id)throw new HttpError(403,'You cannot purchase from your own listing.');
+    if(listing.type==='WTA'){
+      const auction=await database.prepare('SELECT current_bid AS currentBid,highest_bidder_id AS highestBidderId,status,ends_at AS endsAt FROM market_auctions WHERE listing_id=?').bind(listing.id).first<{currentBid:number;highestBidderId:string|null;status:string;endsAt:string}>();
+      if(!auction||auction.highestBidderId!==profile.id||(auction.status!=='ENDED'&&Date.parse(auction.endsAt)>Date.now())){
+        throw new HttpError(403,'Only the winning bidder can check out after the auction ends.');
+      }
+      if(auction.currentBid>0)listing.amount=auction.currentBid;
+    }
     const fulfillmentSellerId=listing.type==='WTB'?acceptedOffer!.initialActorId:listing.sellerId;
 
     const address=await database.prepare('SELECT recipient_name AS recipientName,phone,address_line AS addressLine,city,postal_code AS postalCode,area_id AS areaId,latitude,longitude,label FROM seller_shipping_origins WHERE owner_id=?').bind(profile.id).first<{recipientName:string|null;phone:string|null;addressLine:string;city:string;postalCode:string;areaId:string|null;latitude:number|null;longitude:number|null;label:string}>();
@@ -100,7 +107,7 @@ export async function POST(request:Request){
     const listingRows=await database.prepare(`SELECT l.id,l.seller_id AS sellerId,COALESCE(l.printing_id,l.sealed_product_id) AS printingId,l.instance_id AS instanceId,l.title,l.amount,l.currency,l.quantity,l.type,l.status,l.items,l.expires_at AS expiresAt FROM listings l WHERE l.id IN (${requestedLines.map(()=>'?').join(',')})`).bind(...requestedLines.map(line=>line.listingId)).all<{id:string;sellerId:string;printingId:string;instanceId:string|null;title:string;amount:number;currency:string;quantity:number;type:string;status:string;items:string|null;expiresAt:string|null}>();
     const listingById=new Map(listingRows.results.map(row=>[row.id,row]));
     if(listingById.size!==requestedLines.length)throw new HttpError(404,'One or more listings are no longer available.');
-    for(const row of listingRows.results){if(row.sellerId!==listing.sellerId)throw new HttpError(400,'A cart can only include listings from one seller.');if(!(row.type==='WTS'||(acceptedOffer?.listingType==='WTB'&&row.type==='WTB'))||row.status!=='ACTIVE'||(row.expiresAt&&new Date(`${row.expiresAt.replace(' ','T')}Z`).getTime()<=Date.now()))throw new HttpError(409,'One or more listings are no longer available.');if(row.currency!==listing.currency)throw new HttpError(400,'Cart listings must use the same currency.');}
+    for(const row of listingRows.results){if(row.sellerId!==listing.sellerId)throw new HttpError(400,'A cart can only include listings from one seller.');const isWonAuction=row.type==='WTA'&&listing.id===row.id&&(row.status==='ACTIVE'||row.status==='ENDED'||row.status==='RESERVED');if(isWonAuction){row.amount=listing.amount;continue;}if(!(row.type==='WTS'||(acceptedOffer?.listingType==='WTB'&&row.type==='WTB'))||row.status!=='ACTIVE'||(row.expiresAt&&new Date(`${row.expiresAt.replace(' ','T')}Z`).getTime()<=Date.now()))throw new HttpError(409,'One or more listings are no longer available.');if(row.currency!==listing.currency)throw new HttpError(400,'Cart listings must use the same currency.');}
     const bundleByListing=new Map<string,BundleEntry[]>();
     for(const row of listingRows.results){let bundle:BundleEntry[];try{const parsed=row.items?JSON.parse(row.items) as BundleEntry[]:[];const valid=parsed.filter(item=>typeof item.printingId==='string'&&item.printingId&&Number.isInteger(item.quantity)&&item.quantity>0);const total=valid.reduce((sum,item)=>sum+item.quantity,0)||row.quantity;const fallback=Math.max(1,Math.floor(row.amount/Math.max(1,total)));bundle=valid.length?valid.map(item=>({...item,listingId:row.id,unitAmount:Number.isSafeInteger(item.unitAmount)&&item.unitAmount>0?item.unitAmount:fallback})):[{instanceId:row.instanceId??undefined,printingId:row.printingId,quantity:row.quantity,unitAmount:Math.max(1,Math.round(row.amount/row.quantity)),listingId:row.id}]}catch{bundle=[{instanceId:row.instanceId??undefined,printingId:row.printingId,quantity:row.quantity,unitAmount:Math.round(row.amount/row.quantity),listingId:row.id}]}bundleByListing.set(row.id,bundle);}
     const firstWanted=new Map<string,number>();for(const item of requestedLines[0].items)firstWanted.set(item.printingId,(firstWanted.get(item.printingId)??0)+item.quantity);

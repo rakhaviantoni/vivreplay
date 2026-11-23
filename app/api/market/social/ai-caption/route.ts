@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { user as loadProfile } from '@/lib/server/store';
+import { getListingPolicy } from '@/lib/market/policy';
 
 const baseUrl = (
   process.env.AZEKHA_AI_GATEWAY_URL ??
@@ -27,6 +29,16 @@ export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const profile = await loadProfile().catch(() => null);
+  if (!profile || getListingPolicy(profile.tier, profile.pro_billing_period).tier !== 'pro') {
+    return NextResponse.json(
+      {
+        error: 'AI Captions is a Market Pro feature. Upgrade to Market Pro to generate captions with AI.',
+        requiresPro: true,
+      },
+      { status: 403 },
+    );
   }
 
   const body = (await request.json().catch(() => null)) as {

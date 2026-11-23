@@ -15,5 +15,7 @@ declare namespace Cloudflare {
     TURNSTILE_SECRET_KEY?: string;
     VAPID_PUBLIC_KEY?: string;
     VAPID_PRIVATE_JWK?: string;
+    AUCTION_ROOM?: DurableObjectNamespace;
+    PRO_MEMBERSHIP_CRON_SECRET?: string;
   }
 }

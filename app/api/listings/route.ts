@@ -8,10 +8,17 @@ import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 import {createSealedListing} from '@/lib/server/sealed-listings';
 import {createGeneralListing} from '@/lib/server/general-listings';
 import {createMixedListing} from '@/lib/server/mixed-listings';
+import {createAuctionForListing} from '@/lib/server/auctions';
 import {recordMarketActivity} from '@/lib/server/market-activity-progress';
 
 const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),productType:z.enum(['RAW','GRADED']).optional(),gradingCompany:z.string().trim().max(40).optional(),grade:z.string().trim().max(20).optional(),certification:z.string().trim().max(100).optional(),slabLabelStyle:z.enum(['clear','standard']).optional(),unitAmount:z.number().int().nonnegative().optional(),photoIds:z.array(z.string().min(1).max(120)).max(6).optional()});
-const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(MARKET_ABSOLUTE_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional()});
+const auctionSchema=z.object({
+  startingBid:z.number().int().min(1000).max(100000000000),
+  minIncrement:z.number().int().min(1000).max(100000000).default(10000),
+  durationMode:z.enum(['FIXED','ROLLING_24H','ROLLING_48H']).default('ROLLING_24H'),
+  fixedHours:z.number().int().min(1).max(168).optional(),
+});
+const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(MARKET_ABSOLUTE_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB','WTA']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional(),auction:auctionSchema.optional()});
 
 function labelStyleFromSubgrades(value:string|Record<string,unknown>|null|undefined):'clear'|'standard'{
   try{
@@ -176,9 +183,24 @@ export async function POST(request:Request){
       )
     `).bind(id,profile.id,primary.printing_id,value.instanceId,value.title,value.amount,value.quantity,primary.condition,value.type,value.city,expiresAt,itemsJson,value.negotiable?1:0,primaryQuantity,primary.quantity,value.instanceId,value.instanceId,itemsJson,profile.id).run();
     if(!result.meta.changes)throw new HttpError(409,'That quantity is already listed.');
+    let createdAuction=null;
+    let finalExpiresAt=expiresAt;
+    if(value.type==='WTA'){
+      const auctionInput=value.auction??{startingBid:value.amount,minIncrement:10000,durationMode:'ROLLING_24H' as const};
+      createdAuction=await createAuctionForListing(database,{
+        listingId:id,
+        sellerId:profile.id,
+        startingBid:auctionInput.startingBid||value.amount,
+        minIncrement:auctionInput.minIncrement??10000,
+        durationMode:auctionInput.durationMode??'ROLLING_24H',
+        fixedHours:auctionInput.fixedHours,
+      });
+      finalExpiresAt=createdAuction.endsAt;
+      await database.prepare('UPDATE listings SET expires_at=?,negotiable=0 WHERE id=?').bind(finalExpiresAt,id).run();
+    }
     await recordMarketActivity(database,profile.id,'listing_published',id);
     after(()=>notifyListingWatchers(id));
-    return Response.json({id,expiresAt,durationDays:policy.durationDays},{status:201});
+    return Response.json({id,expiresAt:finalExpiresAt,durationDays:policy.durationDays,auction:createdAuction},{status:201});
   }catch(error){
     if(error instanceof Error&&/foreign key|constraint/i.test(error.message))return Response.json({error:'This Vault card is no longer available. Refresh your Vault and try again.'},{status:409});
     return errorResponse(error);

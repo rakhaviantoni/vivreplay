@@ -7,7 +7,7 @@ import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
 import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent,type ReactNode} from 'react';
-import {ArrowClockwiseIcon as Renew, ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, ClockIcon, DotsSixVerticalIcon, CheckIcon as Check, FacebookLogoIcon as FacebookLogo, FlagIcon as Flag, GlobeIcon as Globe, InfoIcon as Info, InstagramLogoIcon as InstagramLogo, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, SealCheckIcon as SealCheck, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, ThreadsLogoIcon as ThreadsLogo, TrashIcon as Trash, TruckIcon as Truck, WarningCircleIcon, XCircleIcon, XIcon as X} from '@phosphor-icons/react';
+import {ArrowClockwiseIcon as Renew, ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, ClockIcon, DotsSixVerticalIcon, CheckIcon as Check, FacebookLogoIcon as FacebookLogo, FlagIcon as Flag, GlobeIcon as Globe, InfoIcon as Info, InstagramLogoIcon as InstagramLogo, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, SealCheckIcon as SealCheck, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, ThreadsLogoIcon as ThreadsLogo, TrashIcon as Trash, TruckIcon as Truck, UploadSimpleIcon as UploadSimple, WarningCircleIcon, XCircleIcon, XIcon as X} from '@phosphor-icons/react';
 import {socialDisplayHandle, socialProfileUrl, type PublicSocialConnection} from '@/lib/social-links';
 import type {Card} from '@/packages/card-data/catalog';
 import {formatMoney,Listing} from '@/packages/domain';
@@ -17,7 +17,9 @@ import {displayCardName} from './card-name';
 import {CardPreviewModal} from './card-preview-modal';
 import {ShareButton,type ShareCardItem} from './share';
 import {MarketListingSocialStatus} from './market-listing-social-status';
+import {MarketAuctionPanel} from './market-auction-panel';
 import {MarketTimestamp} from './market-timestamp';
+import type {AuctionBidRecord,AuctionSummary} from '@/lib/market/auction';
 import {authClient} from '@/lib/auth-client';
 import {toast} from 'sonner';
 import {getDaysUntilExpiration, isListingExpired} from '@/lib/market/policy';
@@ -900,8 +902,19 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         <label>{t('Width (cm)','Lebar (cm)')}<input type="number" min="1" value={sealedOfferParcel.width} onChange={event=>setSealedOfferParcel(value=>({...value,width:event.target.value}))}/></label>
         <label>{t('Height (cm)','Tinggi (cm)')}<input type="number" min="1" value={sealedOfferParcel.height} onChange={event=>setSealedOfferParcel(value=>({...value,height:event.target.value}))}/></label>
       </div>
-      <label className="market-sealed-offer-photo-input">{t('Product photos','Foto produk')}<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={sealedPhotoBusy||sealedOfferPhotos.length>=6} onChange={event=>{void uploadSealedOfferPhotos(event.target.files);event.target.value='';}}/><small>{t('Show the seal and any wear on the packaging.','Tampilkan segel dan kondisi kemasan.')}</small></label>
-      {sealedOfferPhotos.length>0&&<div className="market-sealed-offer-photo-list">{sealedOfferPhotos.map((photo,index)=><figure key={photo}><img src={`/api/market/product-photos/${photo}`} alt={t(`Product photo ${index+1}`,`Foto produk ${index+1}`)}/><button type="button" onClick={()=>setSealedOfferPhotos(current=>current.filter(id=>id!==photo))} aria-label={t('Remove photo','Hapus foto')}>{t('Remove','Hapus')}</button></figure>)}</div>}
+      <div className="market-product-photo-section">
+        <div className="market-product-photo-header">
+          <strong>{t('Product photos','Foto produk')}</strong>
+          <span>{sealedOfferPhotos.length} / 6</span>
+        </div>
+        <label className={`market-product-photo-upload${sealedOfferPhotos.length>=6?' is-full':''}`}>
+          <UploadSimple size={20} weight="bold"/>
+          <span>{sealedPhotoBusy?t('Uploading photos...','Mengunggah foto...'):t('Select product photos (multi-select supported)','Pilih foto produk (bisa multi-pilih)')}</span>
+          <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={sealedPhotoBusy||sealedOfferPhotos.length>=6} onChange={event=>{void uploadSealedOfferPhotos(event.target.files);event.target.value='';}}/>
+          <small>{t('Show the seal and any wear on the packaging (up to 6 photos).','Tampilkan segel dan kondisi kemasan (maks. 6 foto).')}</small>
+        </label>
+        {sealedOfferPhotos.length>0&&<div className="market-sealed-photos">{sealedOfferPhotos.map((photo,index)=><div key={photo} className="market-product-photo-card"><img src={`/api/market/product-photos/${photo}`} alt={t(`Product photo ${index+1}`,`Foto produk ${index+1}`)}/><button type="button" className="market-product-photo-remove" onClick={()=>setSealedOfferPhotos(current=>current.filter(id=>id!==photo))} aria-label={t('Remove photo','Hapus foto')}><X size={13} weight="bold"/></button></div>)}</div>}
+      </div>
       {!sealedOfferReady&&<small className="market-sealed-offer-requirement" role="status">{sealedPhotoBusy?t('Uploading photos…','Mengunggah foto…'):t('Add at least one photo and enter all four packed measurements.','Tambahkan minimal satu foto dan isi keempat ukuran paket.')}</small>}
       <label>{t('Condition notes','Catatan kondisi')}<textarea maxLength={1000} value={sealedOfferNotes} onChange={event=>setSealedOfferNotes(event.target.value)} placeholder={t('Mention wear, damage, or missing pieces','Sebutkan tanda pemakaian, kerusakan, atau bagian yang tidak lengkap')}/></label>
     </section>}
@@ -966,6 +979,8 @@ export function MarketListingDetailView({
   initialStatus = 'ACTIVE',
   reservedCount = 0,
   renewDurationDays = 7,
+  auctionDetail = null,
+  currentUserId = null,
 }: {
   listing: Listing;
   stored?: (Listing & { username: string }) | null;
@@ -980,6 +995,8 @@ export function MarketListingDetailView({
   initialStatus?: string;
   reservedCount?: number;
   renewDurationDays?: number;
+  auctionDetail?: { auction: AuctionSummary; bids: AuctionBidRecord[] } | null;
+  currentUserId?: string | null;
 }) {
   const router=useRouter();
   const [language, setLanguage] = useState<'EN' | 'ID'>(useRouteLocale());
@@ -1170,7 +1187,7 @@ export function MarketListingDetailView({
               </div>
               {canEditListing?<MarketListingTitleEdit listingId={listing.id} title={listingTitle} language={language} onSaved={updated=>{setListingTitle(updated);router.replace(marketListingPath(updated,listing.id),{scroll:false})}}><h1><span>{listingTitle}</span></h1></MarketListingTitleEdit>:<div className="market-listing-title-edit-row"><h1><span>{listingTitle}</span></h1></div>}
             </div>
-            <span className={`market-listing-status ${isBuying ? 'is-buying' : 'is-selling'}`}>{typeLabel}</span>
+            <span className={`market-listing-status ${isBuying ? 'is-buying' : listing.type === 'WTA' ? 'is-wta' : 'is-selling'}`}>{listing.type === 'WTA' ? t('Auction', 'Lelang') : typeLabel}</span>
           </header>
 
           <dl className="market-listing-facts">
@@ -1279,6 +1296,23 @@ export function MarketListingDetailView({
             <MarketListingSocialStatus listingId={listing.id} language={language} />
           )}
 
+          {listing.type === 'WTA' && auctionDetail?.auction && (
+            <MarketAuctionPanel
+              listingId={listing.id}
+              initialAuction={auctionDetail.auction}
+              initialBids={auctionDetail.bids}
+              currency={listing.currency}
+              isOwner={ownerView}
+              currentUserId={currentUserId}
+              locale={language}
+              onCheckoutWinner={() => {
+                const orderItems = editableCards.map(item => ({ printingId: item.id, quantity: item.quantity }));
+                const query = new URLSearchParams({ listing: listing.id, items: JSON.stringify(orderItems) });
+                router.push(`/checkout/market?${query.toString()}`);
+              }}
+            />
+          )}
+
           <MarketListingItems
               items={editableCards}
               currency={listing.currency}
@@ -1288,7 +1322,7 @@ export function MarketListingDetailView({
               listingTitle={listingTitle}
               listingAmount={formatMoney(listingAmount, listing.currency)}
               negotiable={listingNegotiable}
-              readOnly={ownerView||isExpired}
+              readOnly={ownerView||isExpired||listing.type==='WTA'}
               previewOnly={counterpartyPreview}
               canManageListing={canEditListing}
               reordering={reorderingCards}
