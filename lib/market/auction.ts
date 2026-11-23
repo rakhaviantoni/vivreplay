@@ -31,6 +31,14 @@ export interface AuctionBidRecord {
   createdAt: string;
 }
 
+export interface AuctionWatcher {
+  userId: string;
+  name: string;
+  username?: string | null;
+  verified?: boolean;
+  createdAt: string;
+}
+
 export const AUCTION_DURATION_MODES: readonly AuctionDurationMode[] = [
   'ROLLING_24H',
   'ROLLING_48H',

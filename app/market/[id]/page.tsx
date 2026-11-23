@@ -16,7 +16,7 @@ import {listingIdFromMarketPath,marketListingPath,marketListingSelectorFromPath}
 import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 import {normalizeListingItemPrices} from '@/lib/market/normalize-listing-prices';
 import {normalizeSlabLabelStyle,slabLabelStyleFromSubgrades,type SlabLabelStyle} from '@/lib/market/slab-label-style';
-import {getAuctionSlotsDetail} from '@/lib/server/auctions';
+import {getAuctionSlotsDetail,getAuctionWatchers} from '@/lib/server/auctions';
 
 export const dynamic='force-dynamic';
 
@@ -273,7 +273,9 @@ async function Page({params}:{params:Promise<{id:string}>}){
   if(stored.type==='WTS'&&reservedCount>0&&!isOwner){listing.quantity=cardCount;if(cardCount>0)listing.amount=listingCards.reduce((total,item)=>total+(item.availableQuantity??item.quantity)*item.unitAmount,0);}
 
   const sellerSocials = stored?.sellerId ? await getPublicSellerSocials(stored.sellerId) : [];
-  const auctionSlots = stored?.type === 'WTA' ? await getAuctionSlotsDetail(db(), stored.id) : [];
+  const [auctionSlots, auctionWatchers] = stored?.type === 'WTA'
+    ? await Promise.all([getAuctionSlotsDetail(db(), stored.id), getAuctionWatchers(db(), stored.id)])
+    : [[], []];
   const auctionDetail = auctionSlots[0] ?? null;
 
   return (
@@ -295,6 +297,7 @@ async function Page({params}:{params:Promise<{id:string}>}){
         renewDurationDays={renewDurationDays}
         auctionDetail={auctionDetail}
         auctionSlots={auctionSlots}
+        auctionWatchers={auctionWatchers}
         currentUserId={me?.id ?? null}
       />
       <Market modalOnly listenForDeliveryEvents/>

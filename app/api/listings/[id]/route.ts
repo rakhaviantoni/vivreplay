@@ -214,9 +214,61 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
       }).parse(body);
       const listing=await d.prepare("SELECT id,currency,type,status FROM listings WHERE id=? AND seller_id=? AND type='WTA' AND status IN ('ACTIVE','PAUSED')").bind(id,p.id).first<{id:string;currency:string;type:string;status:string}>();
       if(!listing)throw new HttpError(404,'Auction listing not found or unavailable to edit.');
-      const slot=await d.prepare('SELECT bid_count AS bidCount,status FROM market_auctions WHERE listing_id=? AND item_key=?').bind(id,input.itemKey).first<{bidCount:number;status:string}>();
+      const slot=await d.prepare('SELECT starting_bid AS startingBid,current_bid AS currentBid,highest_bidder_id AS highestBidderId,highest_bidder_name AS highestBidderName,bid_count AS bidCount,min_increment AS minIncrement,duration_mode AS durationMode,starts_at AS startsAt,ends_at AS endsAt,status FROM market_auctions WHERE listing_id=? AND item_key=?').bind(id,input.itemKey).first<{startingBid:number;currentBid:number;highestBidderId:string|null;highestBidderName:string|null;bidCount:number;minIncrement:number;durationMode:string;startsAt:string|null;endsAt:string;status:string}>();
       if(!slot||slot.status!=='ACTIVE')throw new HttpError(409,'This auction has already ended.');
-      if(Number(slot.bidCount)>0)throw new HttpError(409,'Auction settings cannot be changed once bidding has started.');
+      if(Number(slot.bidCount)>0){
+        const liveFloor=Math.max(Number(slot.startingBid)||0,Number(slot.currentBid)||0);
+        const buyNowPrice=input.buyNowPrice??null;
+        if(buyNowPrice!==null&&buyNowPrice<=liveFloor){
+          throw new HttpError(400,'Buy Out price must be higher than the current bid.');
+        }
+        const updated=await d.prepare(`UPDATE market_auctions SET buy_now_price=?,updated_at=CURRENT_TIMESTAMP WHERE listing_id=? AND item_key=? AND status='ACTIVE'`).bind(buyNowPrice,id,input.itemKey).run();
+        if(!updated.meta.changes)throw new HttpError(409,'This auction has already ended.');
+        const stub=getAuctionRoomStub(id,input.itemKey);
+        if(stub){
+          await stub.fetch('https://auction.internal/init',{
+            method:'POST',
+            headers:{'content-type':'application/json'},
+            body:JSON.stringify({
+              listingId:id,
+              itemKey:input.itemKey,
+              sellerId:p.id,
+              startingBid:Number(slot.startingBid),
+              buyNowPrice,
+              minIncrement:Number(slot.minIncrement),
+              currentBid:Number(slot.currentBid),
+              highestBidderId:slot.highestBidderId,
+              highestBidderName:slot.highestBidderName,
+              bidCount:Number(slot.bidCount),
+              durationMode:slot.durationMode,
+              startsAt:slot.startsAt,
+              endsAt:slot.endsAt,
+              endsAtMs:Date.parse(slot.endsAt),
+              status:'ACTIVE',
+            }),
+          }).catch(()=>undefined);
+        }
+        return Response.json({
+          ok:true,
+          auction:{
+            listingId:id,
+            itemKey:input.itemKey,
+            sellerId:p.id,
+            startingBid:Number(slot.startingBid),
+            buyNowPrice,
+            minIncrement:Number(slot.minIncrement),
+            currentBid:Number(slot.currentBid),
+            highestBidderId:slot.highestBidderId,
+            highestBidderName:slot.highestBidderName,
+            bidCount:Number(slot.bidCount),
+            durationMode:slot.durationMode as 'ROLLING_24H'|'ROLLING_48H'|'FIXED',
+            startsAt:slot.startsAt,
+            endsAt:slot.endsAt,
+            status:'ACTIVE',
+            winnerOrderId:null,
+          },
+        });
+      }
       const minStart=listing.currency==='USD'?100:1000;
       const minStep=listing.currency==='USD'?50:1000;
       if(input.startingBid<minStart)throw new HttpError(400,listing.currency==='USD'?'Minimum starting bid is $1.00.':'Minimum starting bid is Rp 1.000.');

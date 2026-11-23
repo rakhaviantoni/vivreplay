@@ -2,7 +2,7 @@
 
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import Link from '@/components/ui/localized-link';
-import {ClockIcon as Clock,GavelIcon as Gavel,CheckCircleIcon as CheckCircle,PencilSimpleIcon as Pencil,SealCheckIcon as SealCheck} from '@phosphor-icons/react';
+import {BookmarkSimpleIcon as Bookmark,ClockIcon as Clock,GavelIcon as Gavel,CheckCircleIcon as CheckCircle,PencilSimpleIcon as Pencil,SealCheckIcon as SealCheck} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {formatMoney} from '@/packages/domain';
 import {
@@ -10,6 +10,7 @@ import {
   formatAuctionDurationLabel,
   type AuctionBidRecord,
   type AuctionSummary,
+  type AuctionWatcher,
 } from '@/lib/market/auction';
 import {IdrInput} from '@/components/ui/idr-input';
 
@@ -55,6 +56,7 @@ export function MarketAuctionPanel({
   itemTitle,
   initialAuction,
   initialBids,
+  initialWatchers = [],
   currency,
   isOwner,
   currentUserId,
@@ -67,6 +69,7 @@ export function MarketAuctionPanel({
   itemTitle?:string;
   initialAuction:AuctionSummary;
   initialBids:AuctionBidRecord[];
+  initialWatchers?:AuctionWatcher[];
   currency:string;
   isOwner:boolean;
   currentUserId?:string|null;
@@ -76,6 +79,8 @@ export function MarketAuctionPanel({
 }){
   const [auction,setAuction]=useState<AuctionSummary>(initialAuction);
   const [bids,setBids]=useState<AuctionBidRecord[]>(initialBids);
+  const [watchers,setWatchers]=useState<AuctionWatcher[]>(initialWatchers);
+  const [trackingBusy,setTrackingBusy]=useState(false);
   const prevAuctionRef=useRef<AuctionSummary>(initialAuction);
   const [nowMs,setNowMs]=useState(()=>Date.now());
   const [submitting,setSubmitting]=useState(false);
@@ -267,7 +272,7 @@ export function MarketAuctionPanel({
         </span>
         <div className="market-auction-header-meta">
           <span className="market-auction-rule">{formatAuctionDurationLabel(auction.durationMode,locale)}</span>
-          {isOwner&&!isEnded&&auction.bidCount===0&&(
+          {isOwner&&!isEnded&&(
             <button
               type="button"
               className="market-auction-edit-btn"
@@ -282,26 +287,28 @@ export function MarketAuctionPanel({
               }}
             >
               <Pencil size={13}/>
-              <span>{editingSettings?(locale==='ID'?'Tutup':'Close'):(locale==='ID'?'Ubah lelang':'Edit auction')}</span>
+              <span>{editingSettings?(locale==='ID'?'Tutup':'Close'):auction.bidCount>0?(locale==='ID'?'Ubah Buy Out / BIN':'Edit Buy Out / BIN'):(locale==='ID'?'Ubah lelang':'Edit auction')}</span>
             </button>
           )}
         </div>
       </div>
 
-      {editingSettings&&isOwner&&!isEnded&&auction.bidCount===0&&(
+      {editingSettings&&isOwner&&!isEnded&&(
         <form
           className="market-auction-settings-form"
           onSubmit={async event=>{
             event.preventDefault();
-            const startingBid=Math.round(Number(editStartingBid));
+            const hasBids=auction.bidCount>0;
+            const startingBid=hasBids?auction.startingBid:Math.round(Number(editStartingBid));
             const buyNowPrice=editBuyNow.trim()?Math.round(Number(editBuyNow)):null;
-            const minIncrement=Math.round(Number(editIncrement));
+            const minIncrement=hasBids?auction.minIncrement:Math.round(Number(editIncrement));
+            const floor=hasBids?Math.max(auction.startingBid,auction.currentBid):startingBid;
             if(!Number.isSafeInteger(startingBid)||startingBid<100){
               setEditError(locale==='ID'?'Masukkan Open Bid yang valid.':'Enter a valid starting bid.');
               return;
             }
-            if(buyNowPrice!==null&&buyNowPrice<=startingBid){
-              setEditError(locale==='ID'?'Harga Buy Out harus lebih tinggi dari Open Bid.':'Buy Out price must be higher than starting bid.');
+            if(buyNowPrice!==null&&buyNowPrice<=floor){
+              setEditError(hasBids?(locale==='ID'?'Harga Buy Out harus lebih tinggi dari bid tertinggi saat ini.':'Buy Out price must be higher than current bid.'):(locale==='ID'?'Harga Buy Out harus lebih tinggi dari Open Bid.':'Buy Out price must be higher than starting bid.'));
               return;
             }
             setSavingSettings(true);
@@ -316,8 +323,8 @@ export function MarketAuctionPanel({
                   startingBid,
                   buyNowPrice,
                   minIncrement,
-                  durationMode:editDurationMode,
-                  startsAt:editStartMode==='scheduled'&&editStartsAt?new Date(editStartsAt).toISOString():null,
+                  durationMode:hasBids?auction.durationMode:editDurationMode,
+                  startsAt:hasBids?(auction.startsAt??null):(editStartMode==='scheduled'&&editStartsAt?new Date(editStartsAt).toISOString():null),
                 }),
               });
               const payload=await response.json() as {auction?:AuctionSummary;error?:string};
@@ -332,10 +339,15 @@ export function MarketAuctionPanel({
             }
           }}
         >
+          {auction.bidCount>0&&(
+            <p className="market-auction-settings-lock-note">
+              {locale==='ID'?'Bid sudah masuk: Open Bid, kelipatan, dan jadwal terkunci. Anda masih dapat mengatur harga Buy Out / BIN di atas bid saat ini.':'Bids are live: starting bid, step, and schedule are locked. You can still set or update Buy Out / BIN above the current bid.'}
+            </p>
+          )}
           <div className="market-auction-settings-grid">
             <label>
               <span>{locale==='ID'?`Open Bid (${currency})`:`Starting Bid (${currency})`}</span>
-              <IdrInput value={editStartingBid} onValueChange={setEditStartingBid} required/>
+              <IdrInput value={editStartingBid} onValueChange={setEditStartingBid} disabled={auction.bidCount>0} required/>
             </label>
             <label>
               <span>{locale==='ID'?`Buy Out / BIN (${currency}, opsional)`:`Buy Out / BIN (${currency}, optional)`}</span>
@@ -343,28 +355,32 @@ export function MarketAuctionPanel({
             </label>
             <label>
               <span>{locale==='ID'?`Kelipatan min. (${currency})`:`Min. increment (${currency})`}</span>
-              <IdrInput value={editIncrement} onValueChange={setEditIncrement} required/>
+              <IdrInput value={editIncrement} onValueChange={setEditIncrement} disabled={auction.bidCount>0} required/>
             </label>
             <label>
               <span>{locale==='ID'?'Aturan berakhir':'End rule'}</span>
-              <select value={editDurationMode} onChange={e=>setEditDurationMode(e.target.value as typeof editDurationMode)}>
+              <select value={editDurationMode} disabled={auction.bidCount>0} onChange={e=>setEditDurationMode(e.target.value as typeof editDurationMode)}>
                 <option value="ROLLING_24H">{locale==='ID'?'24 jam setelah bid terakhir':'24h after last bid'}</option>
                 <option value="ROLLING_48H">{locale==='ID'?'48 jam setelah bid terakhir':'48h after last bid'}</option>
                 <option value="FIXED">{locale==='ID'?'Waktu akhir tetap':'Fixed end time'}</option>
               </select>
             </label>
-            <label>
-              <span>{locale==='ID'?'Waktu mulai':'Start timing'}</span>
-              <select value={editStartMode} onChange={e=>setEditStartMode(e.target.value==='scheduled'?'scheduled':'immediate')}>
-                <option value="immediate">{locale==='ID'?'Mulai sekarang':'Start immediately'}</option>
-                <option value="scheduled">{locale==='ID'?'Jadwalkan mulai':'Schedule start'}</option>
-              </select>
-            </label>
-            {editStartMode==='scheduled'&&(
-              <label>
-                <span>{locale==='ID'?'Tanggal & jam mulai':'Scheduled start'}</span>
-                <input type="datetime-local" value={editStartsAt} onChange={e=>setEditStartsAt(e.target.value)} required/>
-              </label>
+            {auction.bidCount===0&&(
+              <>
+                <label>
+                  <span>{locale==='ID'?'Waktu mulai':'Start timing'}</span>
+                  <select value={editStartMode} onChange={e=>setEditStartMode(e.target.value==='scheduled'?'scheduled':'immediate')}>
+                    <option value="immediate">{locale==='ID'?'Mulai sekarang':'Start immediately'}</option>
+                    <option value="scheduled">{locale==='ID'?'Jadwalkan mulai':'Schedule start'}</option>
+                  </select>
+                </label>
+                {editStartMode==='scheduled'&&(
+                  <label>
+                    <span>{locale==='ID'?'Tanggal & jam mulai':'Scheduled start'}</span>
+                    <input type="datetime-local" value={editStartsAt} onChange={e=>setEditStartsAt(e.target.value)} required/>
+                  </label>
+                )}
+              </>
             )}
           </div>
           {editError&&<p className="error-text" role="alert">{editError}</p>}
@@ -390,8 +406,75 @@ export function MarketAuctionPanel({
 
       {isScheduled&&(
         <div className="market-auction-scheduled-banner" role="status">
-          <strong>{locale==='ID'?'Lelang belum dimulai':'Auction is scheduled'}</strong>
-          <span>{locale==='ID'?'Simpan (bookmark) listing ini untuk menandai dan mendapatkan notifikasi saat bidding dibuka.':'Save (bookmark) this listing to track it and get notified when bidding opens.'}</span>
+          <div className="market-auction-scheduled-head">
+            <div>
+              <strong>{locale==='ID'?'Lelang belum dimulai':'Auction is scheduled'}</strong>
+              <span>{locale==='ID'?'Tandai (Jejak / Save) listing ini untuk ikut antre dan mendapatkan notifikasi saat bidding dibuka.':'Track (Save / Jejak) this listing to show interest and get notified when bidding opens.'}</span>
+            </div>
+            {!isOwner&&(()=>{
+              const isTracking=Boolean(currentUserId&&watchers.some(w=>w.userId===currentUserId));
+              return (
+                <button
+                  type="button"
+                  className={`button ${isTracking?'secondary':'primary'}`}
+                  disabled={trackingBusy}
+                  onClick={async()=>{
+                    if(!currentUserId){
+                      window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));
+                      return;
+                    }
+                    setTrackingBusy(true);
+                    try{
+                      const nextSaved=!isTracking;
+                      const res=await fetch('/api/market/saved',{
+                        method:'POST',
+                        headers:{'content-type':'application/json'},
+                        body:JSON.stringify({listingId,saved:nextSaved,alerts:true}),
+                      });
+                      if(!res.ok)throw new Error(locale==='ID'?'Gagal menyimpan status Jejak.':'Could not update tracking status.');
+                      if(nextSaved){
+                        setWatchers(prev=>prev.some(w=>w.userId===currentUserId)?prev:[{userId:currentUserId,name:locale==='ID'?'Anda':'You',username:null,verified:false,createdAt:new Date().toISOString()},...prev]);
+                        toast.success(locale==='ID'?'Berhasil ditandai! Anda akan diberi tahu saat lelang dimulai.':'Tracked! You will be notified when the auction starts.');
+                      }else{
+                        setWatchers(prev=>prev.filter(w=>w.userId!==currentUserId));
+                        toast.success(locale==='ID'?'Tanda Jejak dihapus.':'Removed from tracked auctions.');
+                      }
+                    }catch(cause){
+                      toast.error((cause as Error).message);
+                    }finally{
+                      setTrackingBusy(false);
+                    }
+                  }}
+                >
+                  <Bookmark size={14} weight={isTracking?'fill':'regular'}/>
+                  <span>{isTracking?(locale==='ID'?'Ditandai (Jejak)':'Tracking'):(locale==='ID'?'Jejak / Ingatkan':'Track / Jejak')}</span>
+                </button>
+              );
+            })()}
+          </div>
+          {watchers.length>0&&(
+            <div className="market-auction-watchers">
+              <small>{locale==='ID'?`Kolektor yang menandai (${watchers.length})`:`Collectors tracking (${watchers.length})`}</small>
+              <ul>
+                {watchers.map(watcher=>{
+                  const ts=formatBidTimestamp(watcher.createdAt,locale,nowMs);
+                  return (
+                    <li key={watcher.userId}>
+                      <span className="market-auction-history-bidder">
+                        {watcher.username?(
+                          <Link href={`/players/${encodeURIComponent(watcher.username)}`}>{watcher.name}</Link>
+                        ):(
+                          <span>{watcher.name}</span>
+                        )}
+                        {watcher.verified&&<SealCheck size={13} weight="fill" className="market-bidder-verified" aria-label={locale==='ID'?'Akun terhubung ke media sosial':'Social-connected account'}/>}
+                      </span>
+                      <small><time dateTime={ts.iso} title={ts.title}>{ts.label}</time></small>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

@@ -8,6 +8,7 @@ import {
   type AuctionDurationMode,
   type AuctionStatus,
   type AuctionSummary,
+  type AuctionWatcher,
 } from '@/lib/market/auction';
 import {HttpError,db as database} from './store';
 import {sendMarketEmail,sendMarketEmailOnce} from './market-notifications';
@@ -271,6 +272,20 @@ export async function getAuctionSlotsDetail(
     if(detail)out.push(detail);
   }
   return out;
+}
+
+export async function getAuctionWatchers(db:DB,listingId:string):Promise<AuctionWatcher[]>{
+  const res=await db.prepare(`SELECT s.owner_id AS userId,
+      COALESCE(NULLIF(TRIM(p.display_name),''),p.username,'Collector') AS name,
+      p.username,
+      EXISTS(SELECT 1 FROM seller_social_connections sc WHERE sc.seller_id=s.owner_id) AS verified,
+      s.created_at AS createdAt
+    FROM market_saved_listings s
+    JOIN profiles p ON p.id=s.owner_id
+    WHERE s.listing_id=?
+    ORDER BY s.created_at DESC
+    LIMIT 30`).bind(listingId).all<AuctionWatcher&{verified?:number|boolean}>().catch(()=>({results:[]}));
+  return (res.results??[]).map(row=>({...row,verified:Boolean(row.verified)}));
 }
 
 async function syncListingSummaryAfterAuctionChange(db:DB,listingId:string){

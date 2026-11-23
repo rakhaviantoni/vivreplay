@@ -19,7 +19,7 @@ import {ShareButton,type ShareCardItem} from './share';
 import {MarketListingSocialStatus} from './market-listing-social-status';
 import {MarketAuctionPanel} from './market-auction-panel';
 import {MarketTimestamp} from './market-timestamp';
-import type {AuctionBidRecord,AuctionSummary} from '@/lib/market/auction';
+import type {AuctionBidRecord,AuctionSummary,AuctionWatcher} from '@/lib/market/auction';
 import {authClient} from '@/lib/auth-client';
 import {toast} from 'sonner';
 import {getDaysUntilExpiration, isListingExpired} from '@/lib/market/policy';
@@ -1003,6 +1003,7 @@ export function MarketListingDetailView({
   renewDurationDays = 7,
   auctionDetail = null,
   auctionSlots = [],
+  auctionWatchers = [],
   currentUserId = null,
 }: {
   listing: Listing;
@@ -1020,6 +1021,7 @@ export function MarketListingDetailView({
   renewDurationDays?: number;
   auctionDetail?: { auction: AuctionSummary; bids: AuctionBidRecord[] } | null;
   auctionSlots?: Array<{ auction: AuctionSummary; bids: AuctionBidRecord[] }>;
+  auctionWatchers?: AuctionWatcher[];
   currentUserId?: string | null;
 }) {
   const router=useRouter();
@@ -1338,6 +1340,7 @@ export function MarketListingDetailView({
                 itemTitle={isMultiSlot ? matchedCard?.card.name : undefined}
                 initialAuction={slot.auction}
                 initialBids={slot.bids}
+                initialWatchers={index === 0 ? auctionWatchers : []}
                 currency={listing.currency}
                 isOwner={ownerView}
                 currentUserId={currentUserId}
