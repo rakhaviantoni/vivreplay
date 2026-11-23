@@ -5,6 +5,8 @@ import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/pol
 import {z} from 'zod';
 import {MARKET_MAX_COPIES_PER_CARD,MARKET_ABSOLUTE_MAX_LISTING_COPIES} from '@/lib/market/listing-limits';
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
+import {computeInitialAuctionEndsAtMs,validateFixedAuctionEndsAt,validateScheduledStartAt} from '@/lib/market/auction';
+import {DEFAULT_AUCTION_ITEM_KEY,getAuctionRoomStub} from '@/lib/server/auctions';
 
 const addItemsSchema=z.object({action:z.literal('add-items'),items:z.array(z.object({instanceId:z.string().uuid(),printingId:z.string().min(1),quantity:z.number().int().min(1).max(MARKET_MAX_COPIES_PER_CARD),unitAmount:z.number().int().min(1).max(100000000000)})).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES)});
 const removeItemSchema=z.object({action:z.literal('remove-item'),itemIndex:z.number().int().min(0).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES-1)});
@@ -196,6 +198,104 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
       if(!Number.isSafeInteger(amount)||amount>100000000000)throw new HttpError(400,'The listing price is too large.');
       const changed=await d.prepare("UPDATE listings SET amount=?,items=? WHERE id=? AND seller_id=? AND amount=? AND type='WTS' AND status IN ('ACTIVE','PAUSED') AND NOT EXISTS(SELECT 1 FROM checkout_orders o,json_each(o.items) j WHERE (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?)) AND o.status IN ('PENDING_PAYMENT','PROCESSING') AND (o.expires_at IS NULL OR o.expires_at>CURRENT_TIMESTAMP))").bind(amount,items,id,p.id,listing.amount,id,id).run();if(!changed.meta.changes)throw new HttpError(409,'The listing changed or an active checkout reserves its price. Refresh and try again.');
       after(()=>notifyListingWatchers(id,amount<listing.amount));return Response.json({ok:true,amount});
+    }
+    if(body.action==='auction-settings'){
+      const d=db();
+      const input=z.object({
+        action:z.literal('auction-settings'),
+        itemKey:z.string().trim().min(1).max(160).default(DEFAULT_AUCTION_ITEM_KEY),
+        startingBid:z.number().int().min(100).max(100000000000),
+        buyNowPrice:z.number().int().min(100).max(100000000000).nullable().optional(),
+        minIncrement:z.number().int().min(50).max(100000000),
+        durationMode:z.enum(['ROLLING_24H','ROLLING_48H','FIXED']),
+        startsAt:z.string().trim().max(64).nullable().optional(),
+        fixedHours:z.number().int().min(1).max(168).optional(),
+        fixedEndsAt:z.string().trim().max(64).optional(),
+      }).parse(body);
+      const listing=await d.prepare("SELECT id,currency,type,status FROM listings WHERE id=? AND seller_id=? AND type='WTA' AND status IN ('ACTIVE','PAUSED')").bind(id,p.id).first<{id:string;currency:string;type:string;status:string}>();
+      if(!listing)throw new HttpError(404,'Auction listing not found or unavailable to edit.');
+      const slot=await d.prepare('SELECT bid_count AS bidCount,status FROM market_auctions WHERE listing_id=? AND item_key=?').bind(id,input.itemKey).first<{bidCount:number;status:string}>();
+      if(!slot||slot.status!=='ACTIVE')throw new HttpError(409,'This auction has already ended.');
+      if(Number(slot.bidCount)>0)throw new HttpError(409,'Auction settings cannot be changed once bidding has started.');
+      const minStart=listing.currency==='USD'?100:1000;
+      const minStep=listing.currency==='USD'?50:1000;
+      if(input.startingBid<minStart)throw new HttpError(400,listing.currency==='USD'?'Minimum starting bid is $1.00.':'Minimum starting bid is Rp 1.000.');
+      if(input.minIncrement<minStep)throw new HttpError(400,listing.currency==='USD'?'Minimum bid increment is $0.50.':'Minimum bid increment is Rp 1.000.');
+      if(input.buyNowPrice&&input.buyNowPrice<=input.startingBid)throw new HttpError(400,'Buy Out price must be higher than the starting bid.');
+      let startsAt:string|null=null;
+      let anchorMs=Date.now();
+      if(input.startsAt){
+        const check=validateScheduledStartAt(input.startsAt);
+        if(!check.ok)throw new HttpError(400,check.error);
+        startsAt=new Date(check.startsAtMs).toISOString();
+        anchorMs=check.startsAtMs;
+      }
+      if(input.durationMode==='FIXED'&&input.fixedEndsAt){
+        const endCheck=validateFixedAuctionEndsAt(input.fixedEndsAt);
+        if(!endCheck.ok)throw new HttpError(400,endCheck.error);
+      }
+      const endsAtMs=computeInitialAuctionEndsAtMs(input.durationMode,anchorMs,input.fixedHours,input.fixedEndsAt);
+      const endsAt=new Date(endsAtMs).toISOString();
+      const buyNowPrice=input.buyNowPrice&&input.buyNowPrice>input.startingBid?input.buyNowPrice:null;
+      const changed=await d.prepare(`UPDATE market_auctions
+        SET starting_bid=?,buy_now_price=?,min_increment=?,duration_mode=?,starts_at=?,ends_at=?,updated_at=CURRENT_TIMESTAMP
+        WHERE listing_id=? AND item_key=? AND status='ACTIVE' AND bid_count=0`).bind(
+        input.startingBid,
+        buyNowPrice,
+        input.minIncrement,
+        input.durationMode,
+        startsAt,
+        endsAt,
+        id,
+        input.itemKey,
+      ).run();
+      if(!changed.meta.changes)throw new HttpError(409,'Bidding has already started on this auction.');
+      const minBidRow=await d.prepare("SELECT MIN(CASE WHEN bid_count>0 THEN current_bid ELSE starting_bid END) AS minBid,MAX(ends_at) AS maxEnds FROM market_auctions WHERE listing_id=? AND status='ACTIVE'").bind(id).first<{minBid:number|null;maxEnds:string|null}>();
+      await d.prepare('UPDATE listings SET amount=COALESCE(?,amount),expires_at=COALESCE(?,expires_at) WHERE id=?').bind(minBidRow?.minBid??input.startingBid,minBidRow?.maxEnds??endsAt,id).run();
+      const stub=getAuctionRoomStub(id,input.itemKey);
+      if(stub){
+        await stub.fetch('https://auction.internal/init',{
+          method:'POST',
+          headers:{'content-type':'application/json'},
+          body:JSON.stringify({
+            listingId:id,
+            itemKey:input.itemKey,
+            sellerId:p.id,
+            startingBid:input.startingBid,
+            buyNowPrice,
+            minIncrement:input.minIncrement,
+            currentBid:0,
+            highestBidderId:null,
+            highestBidderName:null,
+            bidCount:0,
+            durationMode:input.durationMode,
+            startsAt,
+            endsAt,
+            endsAtMs,
+            status:'ACTIVE',
+          }),
+        }).catch(()=>undefined);
+      }
+      return Response.json({
+        ok:true,
+        auction:{
+          listingId:id,
+          itemKey:input.itemKey,
+          sellerId:p.id,
+          startingBid:input.startingBid,
+          buyNowPrice,
+          minIncrement:input.minIncrement,
+          currentBid:0,
+          highestBidderId:null,
+          highestBidderName:null,
+          bidCount:0,
+          durationMode:input.durationMode,
+          startsAt,
+          endsAt,
+          status:'ACTIVE',
+          winnerOrderId:null,
+        },
+      });
     }
     if(body.action!=='pause'&&body.action!=='resume')throw new HttpError(400,'Choose pause or resume.');
     const d=db();

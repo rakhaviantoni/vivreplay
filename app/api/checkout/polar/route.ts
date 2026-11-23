@@ -47,7 +47,7 @@ export async function POST(request:Request){
     if(input.kind==='CREDITS'){
       const amountCents=input.amountCents??1_000;
       if(!hasPolarConfig('CREDITS')){
-        throw new HttpError(503,'Polar.sh USD checkout is not configured yet.');
+        throw new HttpError(503,'USD checkout is temporarily unavailable. Please try again later.');
       }
       const orderId=crypto.randomUUID();
       const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
@@ -125,7 +125,7 @@ export async function POST(request:Request){
       }
 
       if(!hasPolarConfig('PRO',cycle)){
-        throw new HttpError(503,'Polar.sh USD checkout for Market Pro is not configured yet.');
+        throw new HttpError(503,'USD checkout for Market Pro is temporarily unavailable. Please try again later.');
       }
       const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
       await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at)
@@ -204,7 +204,7 @@ export async function POST(request:Request){
     }
 
     if(!hasPolarConfig('BOOST')){
-      throw new HttpError(503,'Polar.sh USD checkout for Spotlight Boost is not configured yet.');
+      throw new HttpError(503,'USD checkout for Spotlight Boost is temporarily unavailable. Please try again later.');
     }
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
     await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at)

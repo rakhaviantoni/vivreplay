@@ -219,7 +219,7 @@ export async function POST(request:Request){
         referenceId:id,
         description:`International order ${listing.title} ($${(totalUsd/100).toFixed(2)})`,
       });
-      if(!spend.ok)throw new HttpError(402,'Insufficient USD Credits balance. Top up USD Credits via Polar.sh first.');
+      if(!spend.ok)throw new HttpError(402,'Insufficient USD Credits balance. Top up USD Credits first.');
       const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
       const paymentId=`credits-usd:${id}`;
       await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,seller_net_amount,shipping_fee,amount,currency,payment_id,status,expires_at)

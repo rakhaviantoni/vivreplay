@@ -43,11 +43,11 @@ export async function createPolarCheckout(params: {
 }): Promise<{ id: string; url: string }> {
   const token = readPolarEnv('POLAR_ACCESS_TOKEN');
   if (!token) {
-    throw new Error('Polar.sh USD checkout is not configured yet.');
+    throw new Error('USD checkout is temporarily unavailable.');
   }
   const productId = polarProductIdFor(params.kind, params.proBillingCycle);
   if (!productId) {
-    throw new Error(`Polar.sh product is not configured for ${params.kind}.`);
+    throw new Error(`USD checkout is temporarily unavailable for ${params.kind}.`);
   }
   const baseUrl = polarMode() === 'sandbox' ? 'https://sandbox-api.polar.sh' : 'https://api.polar.sh';
   const body: Record<string, unknown> = {
@@ -81,7 +81,7 @@ export async function createPolarCheckout(params: {
   });
   const payload = await response.json().catch(() => ({})) as { id?: string; url?: string; detail?: string; error?: string };
   if (!response.ok || !payload.id || !payload.url) {
-    throw new Error(payload.detail || payload.error || 'Could not create Polar.sh checkout session.');
+    throw new Error(payload.detail || payload.error || 'Could not start USD checkout session.');
   }
   return { id: payload.id, url: payload.url };
 }

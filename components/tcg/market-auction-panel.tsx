@@ -2,7 +2,7 @@
 
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import Link from '@/components/ui/localized-link';
-import {ClockIcon as Clock,GavelIcon as Gavel,CheckCircleIcon as CheckCircle,SealCheckIcon as SealCheck} from '@phosphor-icons/react';
+import {ClockIcon as Clock,GavelIcon as Gavel,CheckCircleIcon as CheckCircle,PencilSimpleIcon as Pencil,SealCheckIcon as SealCheck} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {formatMoney} from '@/packages/domain';
 import {
@@ -82,6 +82,19 @@ export function MarketAuctionPanel({
   const [buyingOut,setBuyingOut]=useState(false);
   const [error,setError]=useState('');
   const [panelVisible,setPanelVisible]=useState(true);
+  const [editingSettings,setEditingSettings]=useState(false);
+  const [savingSettings,setSavingSettings]=useState(false);
+  const [editStartingBid,setEditStartingBid]=useState(()=>String(initialAuction.startingBid));
+  const [editBuyNow,setEditBuyNow]=useState(()=>initialAuction.buyNowPrice?String(initialAuction.buyNowPrice):'');
+  const [editIncrement,setEditIncrement]=useState(()=>String(initialAuction.minIncrement));
+  const [editDurationMode,setEditDurationMode]=useState(initialAuction.durationMode);
+  const [editStartMode,setEditStartMode]=useState<'immediate'|'scheduled'>(()=>initialAuction.startsAt&&Date.parse(initialAuction.startsAt)>Date.now()?'scheduled':'immediate');
+  const [editStartsAt,setEditStartsAt]=useState(()=>{
+    const target=initialAuction.startsAt?new Date(initialAuction.startsAt):new Date(Date.now()+60*60*1000);
+    const pad=(n:number)=>String(n).padStart(2,'0');
+    return `${target.getFullYear()}-${pad(target.getMonth()+1)}-${pad(target.getDate())}T${pad(target.getHours())}:${pad(target.getMinutes())}`;
+  });
+  const [editError,setEditError]=useState('');
   const panelRef=useRef<HTMLElement>(null);
 
   const minNextBid=useMemo(()=>computeMinimumNextBid({
@@ -252,8 +265,115 @@ export function MarketAuctionPanel({
           <Gavel size={14} weight="bold"/>
           <span>{itemTitle?`${itemTitle} - ${isEnded?(locale==='ID'?'Berakhir':'Ended'):isScheduled?(locale==='ID'?'Akan datang':'Upcoming'):(locale==='ID'?'Aktif':'Live')}`:(isEnded?(locale==='ID'?'Lelang berakhir':'Auction ended'):isScheduled?(locale==='ID'?'Lelang terjadwal':'Upcoming auction'):(locale==='ID'?'Lelang aktif':'Live auction'))}</span>
         </span>
-        <span className="market-auction-rule">{formatAuctionDurationLabel(auction.durationMode,locale)}</span>
+        <div className="market-auction-header-meta">
+          <span className="market-auction-rule">{formatAuctionDurationLabel(auction.durationMode,locale)}</span>
+          {isOwner&&!isEnded&&auction.bidCount===0&&(
+            <button
+              type="button"
+              className="market-auction-edit-btn"
+              onClick={()=>{
+                setEditStartingBid(String(auction.startingBid));
+                setEditBuyNow(auction.buyNowPrice?String(auction.buyNowPrice):'');
+                setEditIncrement(String(auction.minIncrement));
+                setEditDurationMode(auction.durationMode);
+                setEditStartMode(auction.startsAt&&Date.parse(auction.startsAt)>Date.now()?'scheduled':'immediate');
+                setEditError('');
+                setEditingSettings(v=>!v);
+              }}
+            >
+              <Pencil size={13}/>
+              <span>{editingSettings?(locale==='ID'?'Tutup':'Close'):(locale==='ID'?'Ubah lelang':'Edit auction')}</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      {editingSettings&&isOwner&&!isEnded&&auction.bidCount===0&&(
+        <form
+          className="market-auction-settings-form"
+          onSubmit={async event=>{
+            event.preventDefault();
+            const startingBid=Math.round(Number(editStartingBid));
+            const buyNowPrice=editBuyNow.trim()?Math.round(Number(editBuyNow)):null;
+            const minIncrement=Math.round(Number(editIncrement));
+            if(!Number.isSafeInteger(startingBid)||startingBid<100){
+              setEditError(locale==='ID'?'Masukkan Open Bid yang valid.':'Enter a valid starting bid.');
+              return;
+            }
+            if(buyNowPrice!==null&&buyNowPrice<=startingBid){
+              setEditError(locale==='ID'?'Harga Buy Out harus lebih tinggi dari Open Bid.':'Buy Out price must be higher than starting bid.');
+              return;
+            }
+            setSavingSettings(true);
+            setEditError('');
+            try{
+              const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}`,{
+                method:'PATCH',
+                headers:{'content-type':'application/json'},
+                body:JSON.stringify({
+                  action:'auction-settings',
+                  itemKey,
+                  startingBid,
+                  buyNowPrice,
+                  minIncrement,
+                  durationMode:editDurationMode,
+                  startsAt:editStartMode==='scheduled'&&editStartsAt?new Date(editStartsAt).toISOString():null,
+                }),
+              });
+              const payload=await response.json() as {auction?:AuctionSummary;error?:string};
+              if(!response.ok||!payload.auction)throw new Error(payload.error||(locale==='ID'?'Gagal memperbarui lelang.':'Could not update auction settings.'));
+              setAuction(payload.auction);
+              setEditingSettings(false);
+              toast.success(locale==='ID'?'Pengaturan lelang diperbarui':'Auction settings updated');
+            }catch(cause){
+              setEditError((cause as Error).message);
+            }finally{
+              setSavingSettings(false);
+            }
+          }}
+        >
+          <div className="market-auction-settings-grid">
+            <label>
+              <span>{locale==='ID'?`Open Bid (${currency})`:`Starting Bid (${currency})`}</span>
+              <IdrInput value={editStartingBid} onValueChange={setEditStartingBid} required/>
+            </label>
+            <label>
+              <span>{locale==='ID'?`Buy Out / BIN (${currency}, opsional)`:`Buy Out / BIN (${currency}, optional)`}</span>
+              <IdrInput value={editBuyNow} onValueChange={setEditBuyNow} placeholder={locale==='ID'?'Kosongkan untuk nonaktif':'Leave blank to disable'}/>
+            </label>
+            <label>
+              <span>{locale==='ID'?`Kelipatan min. (${currency})`:`Min. increment (${currency})`}</span>
+              <IdrInput value={editIncrement} onValueChange={setEditIncrement} required/>
+            </label>
+            <label>
+              <span>{locale==='ID'?'Aturan berakhir':'End rule'}</span>
+              <select value={editDurationMode} onChange={e=>setEditDurationMode(e.target.value as typeof editDurationMode)}>
+                <option value="ROLLING_24H">{locale==='ID'?'24 jam setelah bid terakhir':'24h after last bid'}</option>
+                <option value="ROLLING_48H">{locale==='ID'?'48 jam setelah bid terakhir':'48h after last bid'}</option>
+                <option value="FIXED">{locale==='ID'?'Waktu akhir tetap':'Fixed end time'}</option>
+              </select>
+            </label>
+            <label>
+              <span>{locale==='ID'?'Waktu mulai':'Start timing'}</span>
+              <select value={editStartMode} onChange={e=>setEditStartMode(e.target.value==='scheduled'?'scheduled':'immediate')}>
+                <option value="immediate">{locale==='ID'?'Mulai sekarang':'Start immediately'}</option>
+                <option value="scheduled">{locale==='ID'?'Jadwalkan mulai':'Schedule start'}</option>
+              </select>
+            </label>
+            {editStartMode==='scheduled'&&(
+              <label>
+                <span>{locale==='ID'?'Tanggal & jam mulai':'Scheduled start'}</span>
+                <input type="datetime-local" value={editStartsAt} onChange={e=>setEditStartsAt(e.target.value)} required/>
+              </label>
+            )}
+          </div>
+          {editError&&<p className="error-text" role="alert">{editError}</p>}
+          <div className="market-auction-settings-actions">
+            <button type="button" className="button secondary" onClick={()=>setEditingSettings(false)} disabled={savingSettings}>{locale==='ID'?'Batal':'Cancel'}</button>
+            <button type="submit" className="button" disabled={savingSettings}>{savingSettings?(locale==='ID'?'Menyimpan…':'Saving…'):(locale==='ID'?'Simpan pengaturan':'Save settings')}</button>
+          </div>
+        </form>
+      )}
 
       <div className="market-auction-stats">
         <div>
