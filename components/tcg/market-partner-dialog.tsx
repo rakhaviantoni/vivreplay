@@ -1,8 +1,9 @@
 'use client';
 
 import {useState,type FormEvent} from 'react';
-import {CheckCircleIcon as CheckCircle,HandshakeIcon as Handshake} from '@phosphor-icons/react';
+import {CheckCircleIcon as CheckCircle,HandshakeIcon as Handshake,MegaphoneIcon as Megaphone,ShieldCheckIcon as ShieldCheck,SparkleIcon as Sparkle,TruckIcon as Truck} from '@phosphor-icons/react';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
+import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {toast} from 'sonner';
 
 export function MarketPartnerDialog({
@@ -69,6 +70,39 @@ export function MarketPartnerDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {!submitted&&(
+          <div className="market-partner-benefits" aria-label={id?'Keuntungan partner':'Partner benefits'}>
+            <div>
+              <Sparkle size={16} weight="fill"/>
+              <div>
+                <strong>{id?'Etalase Partner Unggulan':'Featured Partner Storefront'}</strong>
+                <span>{id?'Lencana partner terverifikasi dan eksposur prioritas di katalog Market.':'Verified partner badge and priority visibility across Market.'}</span>
+              </div>
+            </div>
+            <div>
+              <ShieldCheck size={16} weight="fill"/>
+              <div>
+                <strong>{id?'Rekber & Kurir Otomatis':'Escrow & Instant Shipping'}</strong>
+                <span>{id?'Pembayaran QRIS/VA resmi dengan tarif dan resi kurir otomatis.':'Official QRIS/VA escrow with automated courier rates and waybills.'}</span>
+              </div>
+            </div>
+            <div>
+              <Megaphone size={16} weight="fill"/>
+              <div>
+                <strong>{id?'Auto-Post Sosial Media':'Social Auto-Post Access'}</strong>
+                <span>{id?'Publikasikan listing langsung ke Instagram, Facebook, dan Threads.':'Cross-post listings directly to Instagram, Facebook, and Threads.'}</span>
+              </div>
+            </div>
+            <div>
+              <Truck size={16} weight="fill"/>
+              <div>
+                <strong>{id?'Skema Komisi Fleksibel':'Flexible Consignment Tiers'}</strong>
+                <span>{id?'Tarif khusus volume tinggi dan kuota listing tanpa batas untuk partner.':'Tailored commission rates and higher listing limits for active partners.'}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {submitted?(
           <div className="market-partner-success">
             <CheckCircle size={32} weight="fill"/>
@@ -78,14 +112,17 @@ export function MarketPartnerDialog({
           </div>
         ):(
           <form className="market-partner-form" onSubmit={handleSubmit}>
-            <label>
+            <div className="market-partner-field">
               <span>{id?'Program yang diminati':'Program interest'}</span>
-              <select value={requestType} onChange={e=>setRequestType(e.target.value as typeof requestType)}>
-                <option value="BOTH">{id?'Partner & Konsinyasi + Akses Awal Auto-Post Sosial':'Partner & Consignment + Social Auto-Post Early Access'}</option>
-                <option value="PARTNER_CONSIGN">{id?'Partner & Konsinyasi saja':'Partner & Consignment only'}</option>
-                <option value="SOCIAL_TESTER">{id?'Akses Awal Auto-Post Sosial saja':'Social Auto-Post Early Access only'}</option>
-              </select>
-            </label>
+              <Select value={requestType} onValueChange={v=>setRequestType(v as typeof requestType)}>
+                <SelectTrigger className="market-product-select-trigger"><SelectValue/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BOTH">{id?'Partner & Konsinyasi + Akses Awal Auto-Post Sosial':'Partner & Consignment + Social Auto-Post Early Access'}</SelectItem>
+                  <SelectItem value="PARTNER_CONSIGN">{id?'Partner & Konsinyasi saja':'Partner & Consignment only'}</SelectItem>
+                  <SelectItem value="SOCIAL_TESTER">{id?'Akses Awal Auto-Post Sosial saja':'Social Auto-Post Early Access only'}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="form-row">
               <label>
                 <span>{id?'Nama toko atau akun':'Store or account name'}</span>
@@ -97,24 +134,30 @@ export function MarketPartnerDialog({
               </label>
             </div>
             <div className="form-row">
-              <label>
+              <div className="market-partner-field">
                 <span>{id?'Kategori utama':'Primary category'}</span>
-                <select value={category} onChange={e=>setCategory(e.target.value as typeof category)}>
-                  <option value="FIGURES_COLLECTIBLES">{id?'Figur & Koleksi':'Figures & Collectibles'}</option>
-                  <option value="TCG_SINGLES_SLABS">{id?'Kartu TCG & Slab':'TCG Singles & Slabs'}</option>
-                  <option value="SEALED_PRODUCTS">{id?'Produk Sealed':'Sealed Products'}</option>
-                  <option value="GAMING_TECH">{id?'Konsol & PC':'Gaming & Tech'}</option>
-                  <option value="MULTI_CATEGORY">{id?'Multi-kategori':'Multi-category'}</option>
-                </select>
-              </label>
-              <label>
+                <Select value={category} onValueChange={v=>setCategory(v as typeof category)}>
+                  <SelectTrigger className="market-product-select-trigger"><SelectValue/></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FIGURES_COLLECTIBLES">{id?'Figur & Koleksi':'Figures & Collectibles'}</SelectItem>
+                    <SelectItem value="TCG_SINGLES_SLABS">{id?'Kartu TCG & Slab':'TCG Singles & Slabs'}</SelectItem>
+                    <SelectItem value="SEALED_PRODUCTS">{id?'Produk Sealed':'Sealed Products'}</SelectItem>
+                    <SelectItem value="GAMING_TECH">{id?'Konsol & PC':'Gaming & Tech'}</SelectItem>
+                    <SelectItem value="MULTI_CATEGORY">{id?'Multi-kategori':'Multi-category'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="market-partner-field">
                 <span>{id?'Perkiraan item per bulan':'Estimated monthly items'}</span>
-                <select value={monthlyVolume} onChange={e=>setMonthlyVolume(e.target.value)}>
-                  <option value="10-30">{id?'10–30 item / bulan':'10–30 items / month'}</option>
-                  <option value="30-100">{id?'30–100 item / bulan':'30–100 items / month'}</option>
-                  <option value="100+">{id?'100+ item / bulan':'100+ items / month'}</option>
-                </select>
-              </label>
+                <Select value={monthlyVolume} onValueChange={setMonthlyVolume}>
+                  <SelectTrigger className="market-product-select-trigger"><SelectValue/></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10-30">{id?'10–30 item / bulan':'10–30 items / month'}</SelectItem>
+                    <SelectItem value="30-100">{id?'30–100 item / bulan':'30–100 items / month'}</SelectItem>
+                    <SelectItem value="100+">{id?'100+ item / bulan':'100+ items / month'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="form-row">
               <label>

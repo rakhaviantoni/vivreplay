@@ -63,6 +63,7 @@ import {MarketTimestamp} from './market-timestamp';
 import {calculateSellerServiceFee,LISTING_POLICIES} from '@/lib/market/policy';
 import {ShippingCouriers} from './market-listing-items';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
+import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
 import {MarketPriceMode} from './market-price-mode';
 import {ShareButton} from './share';
@@ -1959,7 +1960,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                     </fieldset>
                   )}
                   {listingType==='WTB'&&<fieldset className="market-condition-field market-product-type-field"><legend>{locale==='ID'?'Jenis kartu':'Card type'}</legend><div className="market-product-type-options" role="radiogroup" aria-label={locale==='ID'?'Jenis kartu':'Card type'}><button type="button" role="radio" aria-checked={itemProductType==='RAW'} className={itemProductType==='RAW'?'selected':''} onClick={()=>{setItemProductType('RAW');setItemQuantity(1)}}>{locale==='ID'?'Kartu mentah':'Raw card'}</button><button type="button" role="radio" aria-checked={itemProductType==='GRADED'} className={itemProductType==='GRADED'?'selected':''} onClick={()=>{setItemProductType('GRADED');setItemQuantity(1)}}>{locale==='ID'?'Slab':'Graded slab'}</button></div></fieldset>}
-                  {configuredProductType==='GRADED'?(listingType==='WTB'?<div className="market-slab-wanted-fields"><label>{locale==='ID'?'Perusahaan grading':'Grading company'}<select value={wantedGradingCompany} onChange={event=>setWantedGradingCompany(event.target.value)}>{GRADING_PROVIDERS.map(provider=><option key={provider.id} value={provider.shortName}>{provider.shortName}</option>)}</select></label><label>{locale==='ID'?'Nilai':'Grade'}<input value={wantedGrade} onChange={event=>setWantedGrade(event.target.value)} maxLength={20} placeholder="10"/></label></div>:<p className="market-slab-selected-note">{selectedVaultCopy?.provider} {selectedVaultCopy?.grade}{selectedVaultCopy?.certification&&<> <span>Certificate #{selectedVaultCopy.certification}</span></>}</p>):(
+                  {configuredProductType==='GRADED'?(listingType==='WTB'?<div className="market-slab-wanted-fields"><div className="market-partner-field"><span>{locale==='ID'?'Perusahaan grading':'Grading company'}</span><Select value={wantedGradingCompany} onValueChange={setWantedGradingCompany}><SelectTrigger className="market-product-select-trigger"><SelectValue/></SelectTrigger><SelectContent>{GRADING_PROVIDERS.map(provider=><SelectItem key={provider.id} value={provider.shortName}>{provider.shortName}</SelectItem>)}</SelectContent></Select></div><label>{locale==='ID'?'Nilai':'Grade'}<input value={wantedGrade} onChange={event=>setWantedGrade(event.target.value)} maxLength={20} placeholder="10"/></label></div>:<p className="market-slab-selected-note">{selectedVaultCopy?.provider} {selectedVaultCopy?.grade}{selectedVaultCopy?.certification&&<> <span>Certificate #{selectedVaultCopy.certification}</span></>}</p>):(
                     <div className="form-row">
                       <fieldset className="market-condition-field">
                         <legend>{listingType==='WTB'?(locale==='ID'?'Kondisi yang dicari':'Condition wanted'):(locale==='ID'?'Kondisi kartu':'Card condition')}</legend>
@@ -2194,14 +2195,17 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                           required
                         />
                       </label>
-                      <label>
+                      <div className="market-partner-field">
                         <span>{locale==='ID'?'Aturan berakhir lelang':'Auction end rule'}</span>
-                        <select value={auctionDurationMode} onChange={event=>setAuctionDurationMode(event.target.value as 'ROLLING_24H'|'ROLLING_48H'|'FIXED')}>
-                          <option value="ROLLING_24H">{locale==='ID'?'24 jam setelah bid terakhir':'24h after last bid'}</option>
-                          <option value="ROLLING_48H">{locale==='ID'?'48 jam setelah bid terakhir':'48h after last bid'}</option>
-                          <option value="FIXED">{locale==='ID'?'Waktu akhir tetap':'Fixed end time'}</option>
-                        </select>
-                      </label>
+                        <Select value={auctionDurationMode} onValueChange={v=>setAuctionDurationMode(v as 'ROLLING_24H'|'ROLLING_48H'|'FIXED')}>
+                          <SelectTrigger className="market-product-select-trigger"><SelectValue/></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ROLLING_24H">{locale==='ID'?'24 jam setelah bid terakhir':'24h after last bid'}</SelectItem>
+                            <SelectItem value="ROLLING_48H">{locale==='ID'?'48 jam setelah bid terakhir':'48h after last bid'}</SelectItem>
+                            <SelectItem value="FIXED">{locale==='ID'?'Waktu akhir tetap':'Fixed end time'}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     {auctionDurationMode==='FIXED'&&(
                       <div className="market-auction-fixed-box">
@@ -2210,15 +2214,18 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                           <button type="button" className={auctionFixedMode==='custom'?'is-active':''} aria-pressed={auctionFixedMode==='custom'} onClick={()=>setAuctionFixedMode('custom')}>{locale==='ID'?'Tanggal & jam':'Date & time'}</button>
                         </div>
                         {auctionFixedMode==='preset'?(
-                          <label>
+                          <div className="market-partner-field">
                             <span>{locale==='ID'?'Durasi lelang (jam)':'Auction duration (hours)'}</span>
-                            <select value={auctionFixedHours} onChange={event=>setAuctionFixedHours(event.target.value)}>
-                              <option value="24">{locale==='ID'?'24 jam':'24 hours'}</option>
-                              <option value="48">{locale==='ID'?'48 jam (2 hari)':'48 hours (2 days)'}</option>
-                              <option value="72">{locale==='ID'?'72 jam (3 hari)':'72 hours (3 days)'}</option>
-                              <option value="168">{locale==='ID'?'168 jam (7 hari)':'168 hours (7 days)'}</option>
-                            </select>
-                          </label>
+                            <Select value={auctionFixedHours} onValueChange={setAuctionFixedHours}>
+                              <SelectTrigger className="market-product-select-trigger"><SelectValue/></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="24">{locale==='ID'?'24 jam':'24 hours'}</SelectItem>
+                                <SelectItem value="48">{locale==='ID'?'48 jam (2 hari)':'48 hours (2 days)'}</SelectItem>
+                                <SelectItem value="72">{locale==='ID'?'72 jam (3 hari)':'72 hours (3 days)'}</SelectItem>
+                                <SelectItem value="168">{locale==='ID'?'168 jam (7 hari)':'168 hours (7 days)'}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         ):(
                           <label>
                             <span>{locale==='ID'?'Tanggal & jam berakhir':'End date & time'}</span>

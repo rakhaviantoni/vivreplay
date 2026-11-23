@@ -659,8 +659,11 @@ html[data-theme='dark'] .market-product-details-art{background:#0e2029}
   display: flex!important;
   align-items: center!important;
   gap: 6px!important;
-  flex-wrap: wrap!important;
+  flex-wrap: nowrap!important;
+  overflow-x: auto!important;
+  scrollbar-width: none!important;
 }
+.market-trade-chips::-webkit-scrollbar{display:none}
 .market-trade-chip{
   display: inline-flex!important;
   align-items: center!important;
@@ -4780,7 +4783,18 @@ html[data-theme='dark'] .market-listing-type-badge.is-auction{color:#b7a3ff}
 .market-partner-banner span{color:var(--muted);font-size:12.5px;line-height:1.45}
 .market-partner-banner .button{flex:none}
 .market-partner-form{display:grid;gap:13px}
+.market-partner-benefits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-muted)}
+.market-partner-benefits>div{display:flex;align-items:flex-start;gap:9px;min-width:0}
+.market-partner-benefits>div>svg{flex:none;margin-top:2px;color:var(--accent)}
+.market-partner-benefits>div>div{display:grid;gap:2px;min-width:0}
+.market-partner-benefits strong{font-size:12.5px;font-weight:750;color:var(--ink);line-height:1.25}
+.market-partner-benefits span{font-size:11.5px;color:var(--muted);line-height:1.35}
+.market-partner-field{display:grid;gap:6px;min-width:0}
+.market-partner-field>span{font-size:12.5px;font-weight:700;color:var(--ink)}
 .market-partner-form label{display:grid;gap:6px;min-width:0;font-size:12.5px;font-weight:700;color:var(--ink)}
+@media(max-width:600px){
+  .market-partner-benefits{grid-template-columns:1fr}
+}
 .market-partner-form input,.market-partner-form select,.market-partner-form textarea{width:100%;min-height:42px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-raised);color:var(--ink);font:inherit;font-size:13px;font-weight:500}
 .market-partner-form textarea{min-height:84px;resize:vertical}
 .market-partner-success{display:grid;justify-items:center;gap:10px;padding:24px 12px;text-align:center}
