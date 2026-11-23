@@ -1,7 +1,8 @@
 'use client';
 
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
-import {ClockIcon as Clock,GavelIcon as Gavel,CheckCircleIcon as CheckCircle} from '@phosphor-icons/react';
+import Link from '@/components/ui/localized-link';
+import {ClockIcon as Clock,GavelIcon as Gavel,CheckCircleIcon as CheckCircle,SealCheckIcon as SealCheck} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {formatMoney} from '@/packages/domain';
 import {
@@ -35,6 +36,7 @@ export function MarketAuctionPanel({
   isOwner,
   currentUserId,
   locale,
+  enableStickyFooter = true,
   onCheckoutWinner,
 }:{
   listingId:string;
@@ -46,10 +48,12 @@ export function MarketAuctionPanel({
   isOwner:boolean;
   currentUserId?:string|null;
   locale:'EN'|'ID';
+  enableStickyFooter?:boolean;
   onCheckoutWinner?:(winningAmount:number)=>void;
 }){
   const [auction,setAuction]=useState<AuctionSummary>(initialAuction);
   const [bids,setBids]=useState<AuctionBidRecord[]>(initialBids);
+  const prevAuctionRef=useRef<AuctionSummary>(initialAuction);
   const [nowMs,setNowMs]=useState(()=>Date.now());
   const [submitting,setSubmitting]=useState(false);
   const [buyingOut,setBuyingOut]=useState(false);
@@ -78,6 +82,25 @@ export function MarketAuctionPanel({
     const interval=window.setInterval(()=>setNowMs(Date.now()),1000);
     return()=>window.clearInterval(interval);
   },[]);
+
+  useEffect(()=>{
+    const prev=prevAuctionRef.current;
+    if(auction.currentBid>prev.currentBid&&auction.highestBidderId&&auction.highestBidderId!==currentUserId){
+      if(currentUserId&&prev.highestBidderId===currentUserId){
+        toast.warning(locale==='ID'?`Bid Anda terlampaui! Bid saat ini ${formatMoney(auction.currentBid,currency)}`:`You were outbid! Current bid is ${formatMoney(auction.currentBid,currency)}`);
+      }else{
+        toast.info(locale==='ID'?`Bid baru ${formatMoney(auction.currentBid,currency)} oleh ${auction.highestBidderName||'Kolektor'}`:`New bid ${formatMoney(auction.currentBid,currency)} by ${auction.highestBidderName||'Collector'}`);
+      }
+    }
+    if(prev.status==='ACTIVE'&&auction.status==='ENDED'){
+      if(currentUserId&&auction.highestBidderId===currentUserId){
+        toast.success(locale==='ID'?'Selamat! Anda memenangkan lelang ini!':'Congratulations! You won this auction!');
+      }else if(isOwner){
+        toast.info(locale==='ID'?'Lelang Anda telah berakhir.':'Your auction has ended.');
+      }
+    }
+    prevAuctionRef.current=auction;
+  },[auction,currentUserId,currency,isOwner,locale]);
 
   useEffect(()=>{
     const node=panelRef.current;
@@ -325,9 +348,16 @@ export function MarketAuctionPanel({
         <div className="market-auction-history">
           <h4>{locale==='ID'?'Riwayat bid terbaru':'Recent bids'}</h4>
           <ul>
-            {bids.slice(0,10).map((bid,idx)=>(
+            {bids.map((bid,idx)=>(
               <li key={bid.id} className={idx===0?'is-top':''}>
-                <span>{bid.bidderName}</span>
+                <span className="market-auction-history-bidder">
+                  {bid.bidderUsername?(
+                    <Link href={`/players/${encodeURIComponent(bid.bidderUsername)}`}>{bid.bidderName}</Link>
+                  ):(
+                    <span>{bid.bidderName}</span>
+                  )}
+                  {bid.bidderVerified&&<SealCheck size={13} weight="fill" className="market-bidder-verified" aria-label={locale==='ID'?'Akun terhubung ke media sosial':'Social-connected account'}/>}
+                </span>
                 <small><MarketTimestamp value={bid.createdAt}/></small>
                 <strong>{formatMoney(bid.amount,currency)}</strong>
               </li>
@@ -336,7 +366,7 @@ export function MarketAuctionPanel({
         </div>
       )}
     </section>
-    {!panelVisible&&(
+    {enableStickyFooter&&!panelVisible&&(
       <footer className="market-listing-selection market-auction-sticky-footer" aria-live="polite">
         <div className="market-listing-selection-info">
           <span>

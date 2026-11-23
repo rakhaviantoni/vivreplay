@@ -237,9 +237,15 @@ export async function getAuctionDetail(
   if(auction.status==='ACTIVE'&&Number.isFinite(endsAtMs)&&Date.now()>=endsAtMs){
     auction=await finalizeAuction(db,listingId,itemKey)??auction;
   }
-  const bidsResult=await db.prepare(`SELECT id,listing_id AS listingId,item_key AS itemKey,bidder_id AS bidderId,bidder_name AS bidderName,amount,created_at AS createdAt
-    FROM market_auction_bids WHERE listing_id=? AND item_key=? ORDER BY amount DESC,created_at DESC LIMIT 30`).bind(listingId,itemKey).all<AuctionBidRecord>();
-  return {auction,bids:bidsResult.results??[]};
+  const bidsResult=await db.prepare(`SELECT b.id,b.listing_id AS listingId,b.item_key AS itemKey,b.bidder_id AS bidderId,b.bidder_name AS bidderName,p.username AS bidderUsername,
+      EXISTS(SELECT 1 FROM seller_social_connections sc WHERE sc.seller_id=b.bidder_id) AS bidderVerified,
+      b.amount,b.created_at AS createdAt
+    FROM market_auction_bids b
+    LEFT JOIN profiles p ON p.id=b.bidder_id
+    WHERE b.listing_id=? AND b.item_key=?
+    ORDER BY b.amount DESC,b.created_at DESC
+    LIMIT 30`).bind(listingId,itemKey).all<AuctionBidRecord&{bidderVerified?:number|boolean}>();
+  return {auction,bids:(bidsResult.results??[]).map(row=>({...row,bidderVerified:Boolean(row.bidderVerified)}))};
 }
 
 export async function getAuctionSlotsDetail(
@@ -479,6 +485,17 @@ export async function buyOutAuction(
   ]);
 
   return {auction:endedAuction};
+}
+
+export async function settleExpiredAuctions(db:DB):Promise<number>{
+  await ensureAuctionSchema(db);
+  const expired=(await db.prepare(`SELECT listing_id AS listingId,item_key AS itemKey FROM market_auctions WHERE status='ACTIVE' AND ends_at<=CURRENT_TIMESTAMP LIMIT 100`).all<{listingId:string;itemKey:string}>()).results??[];
+  let settled=0;
+  for(const row of expired){
+    const res=await finalizeAuction(db,row.listingId,row.itemKey).catch(()=>null);
+    if(res)settled++;
+  }
+  return settled;
 }
 
 export {computeMinimumNextBid};

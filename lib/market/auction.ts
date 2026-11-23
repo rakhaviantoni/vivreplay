@@ -24,6 +24,8 @@ export interface AuctionBidRecord {
   itemKey?: string;
   bidderId: string;
   bidderName: string;
+  bidderUsername?: string | null;
+  bidderVerified?: boolean;
   amount: number;
   createdAt: string;
 }

@@ -5,6 +5,7 @@ import {sendMarketEmailOnce} from '@/lib/server/market-notifications';
 import {paymentReminderDue,shippingReminderStage} from '@/lib/market/reminder-windows';
 import {marketShippingDeadline} from '@/lib/market/shipping-deadline';
 import {completeDeliveredMarketOrder} from '@/lib/server/market-order-fulfillment';
+import {settleExpiredAuctions} from '@/lib/server/auctions';
 
 type PendingOrder={id:string;buyerId:string;expiresAt:string|null};
 type ExpiringOrder={id:string;buyerId:string;sellerId:string|null;title:string|null;details:string;expiresAt:string|null;updatedAt:string|null};
@@ -18,6 +19,7 @@ export async function POST(request:Request){
   const secret=(env as unknown as {PRO_MEMBERSHIP_CRON_SECRET?:string}).PRO_MEMBERSHIP_CRON_SECRET;
   if(!secret||request.headers.get('authorization')!==`Bearer ${secret}`)return Response.json({error:'Unauthorized.'},{status:401,headers:{'Cache-Control':'no-store'}});
   const database=db();const now=Date.now();const jobs:Array<()=>Promise<unknown>>=[];
+  await settleExpiredAuctions(database).catch(()=>0);
   const expiring=(await database.prepare(`SELECT o.id,o.buyer_id AS buyerId,o.seller_id AS sellerId,l.title,o.details,
       o.expires_at AS expiresAt,o.updated_at AS updatedAt
     FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id

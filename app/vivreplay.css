@@ -4767,10 +4767,13 @@ html[data-theme='dark'] .market-listing-status.is-wta{color:#e87a4d}
 [data-theme="dark"] .market-feed-auction-tag.is-hot{color:#fbbf24}
 .market-auction-history{display:grid;gap:8px;padding-top:6px;border-top:1px solid var(--line)}
 .market-auction-history h4{margin:0;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
-.market-auction-history ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.market-auction-history ul{display:grid;gap:6px;max-height:210px;overflow-y:auto;padding-right:2px;margin:0;padding-left:0;list-style:none}
 .market-auction-history li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:7px 10px;border-radius:8px;background:var(--surface-raised);font-size:12.5px}
 .market-auction-history li.is-top{border:1px solid color-mix(in srgb,#b84a1e 32%,var(--line))}
-.market-auction-history li span{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.market-auction-history-bidder{display:inline-flex;align-items:center;gap:5px;min-width:0;font-weight:650}
+.market-auction-history-bidder a,.market-auction-history-bidder>span{color:inherit;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.market-auction-history-bidder a:hover{color:var(--accent);text-decoration:underline}
+.market-bidder-verified{flex:none;color:#1d9bf0}
 .market-auction-history li small{color:var(--muted);font-size:11px}
 @media(max-width:600px){
   .market-auction-stats{grid-template-columns:1fr}
@@ -4791,7 +4794,7 @@ html[data-theme='dark'] .market-listing-type-badge.is-auction{color:#e87a4d}
 .market-boost-wallet-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface-raised);font-size:13px}
 .market-boost-wallet-summary span{color:var(--muted);font-weight:650}
 .market-boost-wallet-summary strong{color:var(--ink);font-size:15px}
-.market-auction-sticky-footer{position:sticky;bottom:14px;z-index:25;border-color:color-mix(in srgb,#b84a1e 38%,var(--line));box-shadow:0 14px 36px rgb(16 28 35 / .18)}
+.market-auction-sticky-footer{border-color:color-mix(in srgb,#b84a1e 38%,var(--line))!important;box-shadow:0 14px 36px rgb(16 28 35 / .18)}
 .market-boost-plans{display:grid;gap:10px}
 .market-boost-plan-card{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface-raised);color:var(--ink);text-align:left;cursor:pointer;transition:border-color .15s ease,background-color .15s ease}
 .market-boost-plan-card>div{display:grid;gap:3px}

@@ -1342,6 +1342,7 @@ export function MarketListingDetailView({
                 isOwner={ownerView}
                 currentUserId={currentUserId}
                 locale={language}
+                enableStickyFooter={!isMultiSlot || index === 0}
                 onCheckoutWinner={() => {
                   const orderItems = isMultiSlot && matchedCard
                     ? [{ printingId: matchedCard.id, quantity: matchedCard.quantity }]
