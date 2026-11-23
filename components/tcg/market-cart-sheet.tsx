@@ -110,14 +110,14 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
               const item=listing?.items.find(candidate=>candidate.printingId===selected.printingId);
               return item?{...item,availableQuantity:item.quantity,quantity:selected.quantity,unavailable:false}:{printingId:selected.printingId,name:selected.printingId,code:selected.printingId,quantity:selected.quantity,availableQuantity:0,unitAmount:0,condition:'',unavailable:true};
             });
-            const listingItems=listing?.items??[];
-            const listingCardCount=listingItems.reduce((total,item)=>total+item.quantity,0);
-            const visibleStack=listingItems.flatMap(item=>Array.from({length:Math.max(1,Math.min(3,item.quantity))},(_,copyIndex)=>({item,copyIndex}))).slice(0,3);
+            const selectedInCart=selectedItems.filter(item=>item.quantity>0);
+            const cartLineCardCount=selectedInCart.reduce((total,item)=>total+item.quantity,0);
+            const visibleStack=selectedInCart.flatMap(item=>Array.from({length:Math.max(1,Math.min(3,item.quantity))},(_,copyIndex)=>({item,copyIndex}))).slice(0,3);
             return <article className={`market-cart-sheet-listing${!listing?' is-unavailable':''}`} key={line.listingId}>
               <div className="market-cart-sheet-listing-top">
-                {listing&&<div className={`market-feed-stack market-cart-sheet-preview-stack${listingCardCount===1?' is-single':''}`} style={{'--stack-last-index':Math.max(0,visibleStack.length-1)} as React.CSSProperties}>
+                {listing&&visibleStack.length>0&&<div className={`market-feed-stack market-cart-sheet-preview-stack${cartLineCardCount===1?' is-single':''}`} style={{'--stack-last-index':Math.max(0,visibleStack.length-1)} as React.CSSProperties}>
                   {visibleStack.map(({item,copyIndex},index)=>{const card:Card={id:item.printingId,code:item.code,name:item.name,color:'Red',type:'Character',cost:0,power:0,rarity:'',art:index,effect:'',imageUrl:item.imageUrl??undefined,imageSource:'external',setCode:item.setCode??undefined,language:item.language??'EN',printingCode:item.printingCode??item.code,assetPath:item.assetPath??undefined};return <div key={`${item.printingId}-${copyIndex}`} className="market-feed-art" style={{'--stack-index':index} as React.CSSProperties}>{item.photoUrls?.[0]?<img className="market-sealed-listing-photo" src={item.photoUrls[0]} alt={item.name} loading="lazy"/>:<CardArt card={card}/>}</div>})}
-                  {listingCardCount>1&&<span className="market-feed-quantity" aria-label={`${listingCardCount} ${isId?'kartu':'cards'}`}>{listingCardCount}</span>}
+                  {cartLineCardCount>1&&<span className="market-feed-quantity" aria-label={`${cartLineCardCount} ${isId?'kartu':'cards'}`}>{cartLineCardCount}</span>}
                 </div>}
                 <header className="market-cart-sheet-listing-header"><div><strong>{listing?.title??line.listingTitle??(isId?'Listing tidak tersedia':'Listing unavailable')}</strong></div><button type="button" className="market-cart-sheet-remove" onClick={()=>removeListing(line.listingId)} aria-label={isId?'Hapus listing dari keranjang':'Remove listing from cart'}><Trash size={16}/></button></header>
               </div>

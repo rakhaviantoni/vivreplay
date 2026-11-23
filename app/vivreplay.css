@@ -4079,8 +4079,9 @@ html[data-theme='dark'] .market-listing-game-chip :is(.game-mode-one-piece,.mark
 .market-cart-sheet-item-copy>strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .market-cart-sheet-item-price{align-self:start;padding-top:2px;text-align:right;white-space:nowrap}
 .market-cart-sheet-preview-stack{position:relative;isolation:isolate;flex:none;width:68px!important;height:70px!important;min-width:68px!important}
-.market-cart-sheet-preview-stack .market-feed-art{position:absolute;top:3px!important;left:calc(var(--stack-index) * 12px)!important;z-index:calc(10 - var(--stack-index));width:44px!important;aspect-ratio:63/88;overflow:visible!important;border-radius:4px!important;background:transparent!important;box-shadow:0 3px 8px rgb(19 25 27 / .22)!important;transform:rotate(calc(var(--stack-index) * 3deg - 3deg));transform-origin:50% 100%}
-.market-cart-sheet-preview-stack .market-feed-art .tcg-card{width:100%;height:100%;border-radius:4px}
+.market-cart-sheet-preview-stack .market-feed-art{position:absolute;top:3px!important;left:calc(var(--stack-index) * 12px)!important;z-index:calc(10 - var(--stack-index));width:44px!important;aspect-ratio:63/88;overflow:visible!important;border:0!important;border-radius:2px!important;background:transparent!important;box-shadow:0 3px 8px rgb(19 25 27 / .22)!important;transform:rotate(calc(var(--stack-index) * 3deg - 3deg));transform-origin:50% 100%}
+.market-cart-sheet-preview-stack .market-feed-art .tcg-card{width:100%!important;height:100%!important;border:0!important;border-radius:2px!important;box-shadow:none!important}
+.market-cart-sheet-preview-stack .market-feed-art img,.market-cart-sheet-preview-stack .market-feed-art .tcg-card img{border-radius:2px!important}
 .market-cart-sheet-preview-stack.is-single .market-feed-art{left:11px!important;transform:none}
 .market-cart-sheet-preview-stack>.market-feed-quantity{right:-2px!important;bottom:0!important}
 .market-cart-sheet-listing .market-feed-art{transition:transform .68s cubic-bezier(.16,1,.3,1),filter .54s ease,box-shadow .54s ease}
