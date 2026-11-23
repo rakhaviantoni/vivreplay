@@ -79,11 +79,11 @@ export function MarketPartnerDialog({
             <div className="form-row">
               <label>
                 <span>{id?'Nama toko atau akun':'Store or account name'}</span>
-                <input value={shopName} onChange={e=>setShopName(e.target.value)} placeholder="e.g. Figure Consign" minLength={2} maxLength={100} required/>
+                <input value={shopName} onChange={e=>setShopName(e.target.value)} placeholder={id?'Contoh: Toko Hobi Nusantara':'e.g. Nusantara Hobby Shop'} minLength={2} maxLength={100} required/>
               </label>
               <label>
                 <span>{id?'Akun Instagram / Sosial':'Instagram / Social handle'}</span>
-                <input value={socialHandle} onChange={e=>setSocialHandle(e.target.value)} placeholder="@figureconsign" minLength={2} maxLength={100} required/>
+                <input value={socialHandle} onChange={e=>setSocialHandle(e.target.value)} placeholder="@yourshop" minLength={2} maxLength={100} required/>
               </label>
             </div>
             <div className="form-row">

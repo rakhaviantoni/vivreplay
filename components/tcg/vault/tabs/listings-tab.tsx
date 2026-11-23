@@ -5,7 +5,7 @@ import Link from '@/components/ui/localized-link';
 import {PauseIcon as Pause,PlayIcon as Play,ArrowClockwiseIcon as Renew,ArrowSquareOutIcon as Open,XIcon as Close,ArrowCounterClockwiseIcon as Refresh,PlusIcon as Plus,RocketLaunchIcon as Boost,SpinnerGapIcon as Spinner,StorefrontIcon as Store} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
-import {LISTING_BOOST_PLANS,type ListingBoostPlanId} from '@/lib/market/boost';
+import {getBoostPlanAmount,LISTING_BOOST_PLANS,type ListingBoostPlanId} from '@/lib/market/boost';
 import {useLocalizedRouter} from '@/lib/use-localized-router';
 import {MarketActivityLoading,MarketCardStack,type MarketActivityCard} from '@/components/tcg/vault/tabs/market-activity-state';
 import {VaultPanelEmpty} from '@/components/tcg/vault/vault-panel-empty';
@@ -31,6 +31,8 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
   const [boostTarget,setBoostTarget]=useState<SellerListing|null>(null);
   const [boostPlan,setBoostPlan]=useState<ListingBoostPlanId>('3d');
   const [boostBusy,setBoostBusy]=useState(false);
+  const [isPro,setIsPro]=useState(false);
+  const [proBoostCredits,setProBoostCredits]=useState(0);
   const operationLock=useRef(false);
   const refreshSequence=useRef(0);
   const refresh=useCallback(async(silent=false)=>{
@@ -38,10 +40,12 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
     if(!silent){setLoading(true);setLoadError('')}
     try{
       const response=await fetch(`/api/listings/mine?game=${gameSlug}`,{cache:'no-store'});
-      const data=await response.json() as {listings?:SellerListing[];error?:string};
+      const data=await response.json() as {listings?:SellerListing[];isPro?:boolean;proBoostCreditsRemaining?:number;error?:string};
       if(!response.ok)throw new Error(data.error||'Your listings could not be loaded.');
       if(sequence!==refreshSequence.current)return;
       setListings(data.listings??[]);
+      setIsPro(Boolean(data.isPro));
+      setProBoostCredits(Number(data.proBoostCreditsRemaining)||0);
       setNow(Date.now());
     }catch(error){if(!silent&&sequence===refreshSequence.current)setLoadError(error instanceof Error?error.message:'Your listings could not be loaded.');}
     finally{if(sequence===refreshSequence.current)setLoading(false)}
@@ -106,8 +110,43 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
           <DialogDescription>{boostTarget?boostTarget.title:''}</DialogDescription>
         </DialogHeader>
         <div className="market-boost-plans">
-          {(['3d','7d'] as const).map(planId=>{
+          {isPro&&proBoostCredits>0&&boostTarget&&(
+            <button
+              type="button"
+              className="market-boost-plan-card is-pro-credit"
+              disabled={boostBusy}
+              onClick={async()=>{
+                setBoostBusy(true);
+                try{
+                  const response=await fetch('/api/checkout/boost',{
+                    method:'POST',
+                    headers:{'content-type':'application/json'},
+                    body:JSON.stringify({listingId:boostTarget.id,planId:'3d',useProCredit:true}),
+                  });
+                  const payload=await response.json() as {boostedUntil?:string;error?:string};
+                  if(!response.ok||!payload.boostedUntil)throw new Error(payload.error||(id?'Kredit sorotan tidak dapat digunakan.':'Could not apply Pro credit.'));
+                  setListings(current=>current.map(item=>item.id===boostTarget.id?{...item,boostedUntil:payload.boostedUntil}:item));
+                  setProBoostCredits(count=>Math.max(0,count-1));
+                  setBoostTarget(null);
+                  void Promise.resolve(onListingChanged?.()).catch(()=>undefined);
+                  toast.success(id?'Sorotan 3 hari aktif gratis dengan Market Pro!':'3-Day Spotlight activated free with Market Pro!');
+                }catch(error){
+                  toast.error(error instanceof Error?error.message:(id?'Gagal mengaktifkan sorotan.':'Could not activate boost.'));
+                }finally{
+                  setBoostBusy(false);
+                }
+              }}
+            >
+              <div>
+                <strong>{id?'Gunakan Kredit Market Pro (3 Hari)':'Use Market Pro Credit (3 Days)'}</strong>
+                <small>{id?`Tersisa ${proBoostCredits} kredit gratis bulan ini`:`${proBoostCredits} free credit${proBoostCredits===1?'':'s'} remaining this month`}</small>
+              </div>
+              <b>{id?'Gratis':'Free'}</b>
+            </button>
+          )}
+          {(['24h','3d','7d'] as const).map(planId=>{
             const plan=LISTING_BOOST_PLANS[planId];
+            const finalAmount=getBoostPlanAmount(planId,isPro);
             return (
               <button
                 key={planId}
@@ -119,7 +158,7 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
                   <strong>{id?plan.labelId:plan.labelEn}</strong>
                   <small>{id?plan.descriptionId:plan.descriptionEn}</small>
                 </div>
-                <b>{money(plan.amount,'IDR')}</b>
+                <b>{money(finalAmount,'IDR')}</b>
               </button>
             );
           })}

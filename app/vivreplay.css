@@ -4746,6 +4746,8 @@ html[data-theme='dark'] .market-listing-type-badge.is-auction{color:#b7a3ff}
 .market-boost-plan-card small{color:var(--muted);font-size:12px;line-height:1.4}
 .market-boost-plan-card b{flex:none;font-size:15px;font-weight:800;color:var(--accent-deep,var(--accent))}
 .market-boost-plan-card.is-selected{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface-raised))}
+.market-boost-plan-card.is-pro-credit{border-color:#16845f;background:color-mix(in srgb,#16845f 9%,var(--surface-raised))}
+.market-boost-plan-card.is-pro-credit b{color:#16845f}
 .market-boost-dialog-actions,.market-partner-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:4px}
 .market-partner-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:20px;padding:16px 20px;border:1px solid var(--line);border-radius:14px;background:var(--surface-raised)}
 .market-partner-banner>div{display:grid;gap:4px;min-width:0;max-width:620px}

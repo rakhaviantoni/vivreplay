@@ -1,11 +1,13 @@
 import {z} from 'zod';
 import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
-import {LISTING_BOOST_PLANS} from '@/lib/market/boost';
-import {ensureBoostSchema} from '@/lib/server/listing-boosts';
+import {getBoostPlanAmount,LISTING_BOOST_PLANS} from '@/lib/market/boost';
+import {getListingPolicy} from '@/lib/market/policy';
+import {consumeProBoostCredit,ensureBoostSchema} from '@/lib/server/listing-boosts';
 
 const schema=z.object({
   listingId:z.string().uuid(),
-  planId:z.enum(['3d','7d']).default('3d'),
+  planId:z.enum(['24h','3d','7d']).default('3d'),
+  useProCredit:z.boolean().optional(),
   paymentMethod:z.string().trim().max(40).default('qris'),
   paymentChannel:z.string().trim().max(40).default('mpm'),
 });
@@ -23,7 +25,23 @@ export async function POST(request:Request){
     if(listing.sellerId!==profile.id)throw new HttpError(403,'You can only boost your own listings.');
     if(listing.status!=='ACTIVE')throw new HttpError(400,'Only active listings can be boosted.');
 
+    const isPro=getListingPolicy(profile.tier,profile.pro_billing_period).tier==='pro';
+    if(input.useProCredit){
+      if(!isPro)throw new HttpError(403,'Monthly Spotlight credits are included with Market Pro.');
+      const boostedUntil=await consumeProBoostCredit(database,{listingId:listing.id,sellerId:profile.id});
+      if(!boostedUntil)throw new HttpError(409,'You have used all monthly Market Pro Spotlight credits for this month.');
+      return Response.json({
+        id:`pro-credit-${listing.id}`,
+        activated:true,
+        boostedUntil,
+        amount:0,
+        planId:'3d',
+        days:3,
+      },{status:200});
+    }
+
     const plan=LISTING_BOOST_PLANS[input.planId];
+    const amount=getBoostPlanAmount(input.planId,isPro);
     const orderId=crypto.randomUUID();
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
     const details=JSON.stringify({
@@ -31,6 +49,7 @@ export async function POST(request:Request){
       listingTitle:listing.title,
       planId:plan.id,
       durationDays:plan.days,
+      proDiscountApplied:isPro,
       customerName:profile.display_name||profile.username||'Seller',
       customerPhone:profile.phone||'',
       ipaymuSelectedMethod:input.paymentMethod,
@@ -44,15 +63,15 @@ export async function POST(request:Request){
       profile.id,
       listing.id,
       details,
-      plan.amount,
-      plan.amount,
+      amount,
+      amount,
       expiresAt,
     ).run();
 
     return Response.json({
       id:orderId,
       checkoutUrl:`/checkout/order/${orderId}`,
-      amount:plan.amount,
+      amount,
       planId:plan.id,
       days:plan.days,
     },{status:201});
