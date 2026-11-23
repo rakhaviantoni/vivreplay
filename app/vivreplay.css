@@ -2111,7 +2111,7 @@ html[data-theme='dark'] .market-footer{border-color:#303847;background:#101820;c
 .share-preview-theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
 .share-listing-image-loading{width:100%;aspect-ratio:16/9;min-height:150px;border:1px solid var(--line);border-radius:8px;background:linear-gradient(100deg,color-mix(in srgb,var(--line) 28%,var(--surface-raised)) 20%,color-mix(in srgb,var(--line) 70%,var(--surface-raised)) 45%,color-mix(in srgb,var(--line) 28%,var(--surface-raised)) 70%);background-size:220% 100%;animation:share-image-loading 1.2s ease-in-out infinite}
 @keyframes share-image-loading{to{background-position-x:-220%}}
-.share-preview-listing .share-listing-image-preview{display:block;width:100%;max-height:min(58vh,520px);object-fit:contain;margin:0 auto;border:1px solid var(--line);border-radius:8px;background:var(--surface);}
+.share-preview-listing .share-listing-image-preview{display:block;width:100%;max-height:min(58vh,520px);object-fit:contain;margin:0 auto;border:0;border-radius:14px;background:transparent;}
 .share-preview-error{margin:0;padding:28px 12px;border:1px solid var(--line);border-radius:8px;color:var(--muted);font-size:13px;text-align:center}
 /* The generated image already contains the title, price and card layout. */
 .share-preview-listing{gap:10px;padding:12px}
@@ -2148,6 +2148,8 @@ html[data-theme='dark'] .share-channel-btn.x-social:hover{border-color:#fff;back
 html[data-theme='dark'] .share-channel-btn.telegram{color:#29b6f6;background:#0d2839;border-color:#29b6f633}
 .share-channel-btn.telegram:hover{border-color:#229ed9;background:#d6ecfb}
 html[data-theme='dark'] .share-channel-btn.telegram:hover{background:#143d57}
+.share-channel-btn.instagram{grid-column:1 / -1;flex-direction:row;gap:8px;min-height:42px;padding:10px 14px;border:0;border-radius:10px;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;font-size:12.5px;font-weight:750;cursor:pointer}
+.share-channel-btn.instagram:hover{filter:brightness(1.06)}
 
 /* Native Share Trigger button */
 .share-native-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;width:100%!important;min-height:36px!important;margin-top:6px!important;border-radius:8px!important;border:1px solid var(--line)!important;background:color-mix(in srgb,var(--surface-raised) 92%,transparent)!important;color:var(--ink)!important;font:750 12px/1 'Plus Jakarta Sans',sans-serif!important;cursor:pointer!important;transition:all .18s cubic-bezier(.16,1,.3,1)!important}

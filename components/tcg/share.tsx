@@ -839,10 +839,10 @@ async function generateListingCompositeBlob({
       const layerY = cardY - layer * 4;
       ctx.save();
       ctx.fillStyle = palette.panel;
-      drawRoundedRect(ctx, layerX, layerY, cardWidth, cardHeight, 7);
+      drawRoundedRect(ctx, layerX, layerY, cardWidth, cardHeight, 12);
       ctx.fill();
       ctx.save();
-      drawRoundedRect(ctx, layerX, layerY, cardWidth, cardHeight, 7);
+      drawRoundedRect(ctx, layerX, layerY, cardWidth, cardHeight, 12);
       ctx.clip();
       if (img) ctx.drawImage(img, layerX, layerY, cardWidth, cardHeight);
       else {
@@ -850,10 +850,6 @@ async function generateListingCompositeBlob({
         ctx.fillRect(layerX, layerY, cardWidth, cardHeight);
       }
       ctx.restore();
-      ctx.strokeStyle = palette.line;
-      ctx.lineWidth = 1.5;
-      drawRoundedRect(ctx, layerX, layerY, cardWidth, cardHeight, 7);
-      ctx.stroke();
       ctx.restore();
     }
 
@@ -864,13 +860,13 @@ async function generateListingCompositeBlob({
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 6;
     ctx.fillStyle = palette.panel;
-    drawRoundedRect(ctx, artX, artY, artWidth, artHeight, isSlab?3:7);
+    drawRoundedRect(ctx, artX, artY, artWidth, artHeight, isSlab?4:12);
     ctx.fill();
     ctx.restore();
 
     // Clipped card art
     ctx.save();
-    drawRoundedRect(ctx, artX, artY, artWidth, artHeight, isSlab?3:7);
+    drawRoundedRect(ctx, artX, artY, artWidth, artHeight, isSlab?4:12);
     ctx.clip();
     if (img) {
       ctx.drawImage(img, artX, artY, artWidth, artHeight);
@@ -882,12 +878,6 @@ async function generateListingCompositeBlob({
       ctx.fillText(item.card.name, artX + 12, artY + artHeight / 2);
     }
     ctx.restore();
-
-    // Card border
-    ctx.strokeStyle = palette.line;
-    ctx.lineWidth = 1.5;
-    drawRoundedRect(ctx, artX, artY, artWidth, artHeight, isSlab?3:7);
-    ctx.stroke();
 
     // VivrePlay stack badge for count > 1
     if (item.quantity && item.quantity > 1) {
@@ -944,18 +934,15 @@ async function generateListingCompositeBlob({
   ctx.stroke();
 
   const footerY = canvasHeight - 24;
-  if (entityType==='vault'){
-    const poweredLabel=language==='ID'?'Didukung oleh':'Powered by';
-    ctx.font='600 10px "Manrope", sans-serif';ctx.fillStyle=palette.muted;ctx.fillText(poweredLabel,paddingX,footerY);
-    const poweredWidth=ctx.measureText(poweredLabel).width;
-    if (compassImg) ctx.drawImage(compassImg,paddingX+poweredWidth+8,footerY-13,16,16);
-    ctx.font='800 12px "Plus Jakarta Sans", sans-serif';ctx.fillStyle=palette.ink;ctx.fillText('VivrePlay',paddingX+poweredWidth+28,footerY);
-  } else {
-  if (compassImg) ctx.drawImage(compassImg, paddingX, footerY - 13, 18, 18);
-  ctx.font = '800 13px "Plus Jakarta Sans", sans-serif';
+  const poweredLabel = language === 'ID' ? 'Didukung oleh' : 'Powered by';
+  ctx.font = '600 10px "Manrope", sans-serif';
+  ctx.fillStyle = palette.muted;
+  ctx.fillText(poweredLabel, paddingX, footerY);
+  const poweredWidth = ctx.measureText(poweredLabel).width;
+  if (compassImg) ctx.drawImage(compassImg, paddingX + poweredWidth + 8, footerY - 13, 16, 16);
+  ctx.font = '800 12px "Plus Jakarta Sans", sans-serif';
   ctx.fillStyle = palette.ink;
-  ctx.fillText('VivrePlay', paddingX + 25, footerY);
-  }
+  ctx.fillText('VivrePlay', paddingX + poweredWidth + 28, footerY);
   ctx.textAlign = 'right';
   ctx.fillStyle = palette.muted;
   ctx.font = '600 11px "Manrope", sans-serif';
@@ -1232,20 +1219,6 @@ export function ShareButton({
                 <button
                   type="button"
                   className="share-channel-btn instagram"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '7px',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)',
-                    color: '#ffffff',
-                    border: '0',
-                    fontWeight: 700,
-                    fontSize: '12px',
-                  }}
                   onClick={() => {
                     setOpen(false);
                     setSocialOpen(true);
