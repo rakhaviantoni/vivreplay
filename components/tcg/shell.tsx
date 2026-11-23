@@ -211,7 +211,7 @@ function MarketFooter({language,game}:{language:Locale;game:'one-piece'|'pokemon
   const getHref=(href:string)=>id?(href==='/'?'/id':`/id${href}`):href;
   return <footer className={`market-footer${game==='pokemon'?' market-footer-pokemon':''}`}>
     <div className="market-footer-main">
-      <Link className="market-footer-brand" href={getHref(game==='pokemon'?'/pokemon':'/')}><VivreMark size={24}/><span>VivrePlay <b>Market</b></span></Link>
+      <Link className="market-footer-brand" href={getHref(game==='pokemon'?'/pokemon':'/')}><VivreMark size={24}/><span>VivrePlay</span><i className="market-footer-divider" aria-hidden="true"/><b>Market</b></Link>
       <p>{id?'Jual beli kartu, produk tersegel, dan aksesori di VivrePlay Market.':'Buy and sell cards, sealed products, and accessories on VivrePlay Market.'}</p>
       <nav aria-label={id?'Jelajahi Market':'Market'}><Link href={getHref(game==='pokemon'?'/market?game=pokemon':'/market')}>{id?'Semua listing':'All listings'}</Link><Link href={getHref(game==='pokemon'?'/market?game=pokemon&tab=selling':'/market?tab=selling')}>{id?'Jual':'Sell'}</Link><Link href={getHref(game==='pokemon'?'/market?game=pokemon&tab=buying':'/market?tab=buying')}>{id?'Permintaan beli':'Buying requests'}</Link></nav>
     </div>

@@ -1417,7 +1417,7 @@ export function MarketSocialSyndicationDialog({
                         {scheduleMode === 'now'
                           ? t('Instant Publication', 'Terbit Langsung')
                           : scheduledDate
-                          ? `${scheduledDateLabel} · ${scheduledTime} WIB`
+                          ? `${scheduledDateLabel}, ${scheduledTime} WIB`
                           : t('Schedule not selected', 'Jadwal belum ditentukan')}
                       </p>
                     </div>

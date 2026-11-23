@@ -449,7 +449,7 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account',initialEd
       </div>
     </section>}
     {tab==='socials'&&<section className="market-socials-quick">
-      <ProfileSocialsPanel language={locale} onNotice={msg=>toast.success(msg)} onError={msg=>toast.error(msg)}/>
+      <ProfileSocialsPanel language={locale} onNotice={msg=>toast.success(msg)} onError={msg=>toast.error(msg)} onOpenPro={()=>setTab('membership')}/>
     </section>}
     <Link className="market-quick-secondary" href="/profile">{t('Full profile settings','Pengaturan profil lengkap')}<ArrowRight size={15}/></Link>
   </div>;

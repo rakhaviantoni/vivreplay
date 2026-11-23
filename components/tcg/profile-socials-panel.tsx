@@ -94,10 +94,12 @@ export function ProfileSocialsPanel({
   language,
   onNotice,
   onError,
+  onOpenPro,
 }: {
   language: 'EN' | 'ID';
   onNotice: (msg: string) => void;
   onError: (msg: string) => void;
+  onOpenPro?: () => void;
 }) {
   const t = useCallback((en: string, id: string) => (language === 'ID' ? id : en), [language]);
 
@@ -523,9 +525,15 @@ export function ProfileSocialsPanel({
                       )}
                 </span>
                 {quota.tier === 'free' && (
-                  <Link href="/checkout/pro" className="market-listing-social-manage-link">
-                    {t('Upgrade to Market Pro', 'Upgrade ke Market Pro')}
-                  </Link>
+                  onOpenPro ? (
+                    <button type="button" className="market-listing-social-manage-link" onClick={onOpenPro}>
+                      {t('Upgrade to Market Pro', 'Upgrade ke Market Pro')}
+                    </button>
+                  ) : (
+                    <Link href="/checkout/pro" className="market-listing-social-manage-link">
+                      {t('Upgrade to Market Pro', 'Upgrade ke Market Pro')}
+                    </Link>
+                  )
                 )}
               </div>
             )}
