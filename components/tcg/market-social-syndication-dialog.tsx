@@ -159,9 +159,9 @@ export function MarketSocialSyndicationDialog({
   const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
   const [publishQuota, setPublishQuota] = useState<{
     tier: 'free' | 'pro';
-    usedThisMonth: number;
-    monthlyLimit: number | null;
-    remainingThisMonth: number | null;
+    usedThisWeek: number;
+    weeklyLimit: number | null;
+    remainingThisWeek: number | null;
     canSchedule: boolean;
   } | null>(null);
   const [publishLogs, setPublishLogs] = useState<
@@ -666,8 +666,10 @@ export function MarketSocialSyndicationDialog({
               <Badge variant="secondary" className="text-[10px] px-2 py-0 font-semibold uppercase tracking-wider">
                 {publishQuota
                   ? publishQuota.tier === 'pro'
-                    ? t('Pro Unlimited', 'Pro Tanpa Batas')
-                    : t(`${publishQuota.remainingThisMonth ?? 0}/${publishQuota.monthlyLimit ?? 3} Free left`, `${publishQuota.remainingThisMonth ?? 0}/${publishQuota.monthlyLimit ?? 3} Gratis tersisa`)
+                    ? publishQuota.weeklyLimit === null
+                      ? t('Pro Unlimited', 'Pro Tanpa Batas')
+                      : t(`${publishQuota.remainingThisWeek ?? 0}/${publishQuota.weeklyLimit} Pro left`, `${publishQuota.remainingThisWeek ?? 0}/${publishQuota.weeklyLimit} Pro tersisa`)
+                    : t(`${publishQuota.remainingThisWeek ?? 0}/${publishQuota.weeklyLimit ?? 5} Free left`, `${publishQuota.remainingThisWeek ?? 0}/${publishQuota.weeklyLimit ?? 5} Gratis tersisa`)
                   : t('Auto-Drop', 'Auto-Drop')}
               </Badge>
             </DialogTitle>

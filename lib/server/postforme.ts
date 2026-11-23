@@ -1,6 +1,6 @@
 import { database } from '@/lib/server/database';
 import { marketListingPath, marketListingSelectorFromPath } from '@/lib/market/listing-url';
-import { MARKET_FREE_SOCIAL_POSTS_PER_MONTH, MARKET_PRO_MONTHLY_SOCIAL_POSTS_PER_MONTH } from '@/lib/market/policy';
+import { MARKET_FREE_SOCIAL_POSTS_PER_WEEK, MARKET_PRO_MONTHLY_SOCIAL_POSTS_PER_WEEK } from '@/lib/market/policy';
 import type { PublicSocialConnection } from '@/lib/social-links';
 
 export type SupportedPlatform =
@@ -1508,9 +1508,9 @@ export async function updateSocialTesterRequestStatus(
 
 export type SocialPublishQuotaInfo = {
   tier: 'free' | 'pro';
-  usedThisMonth: number;
-  monthlyLimit: number | null;
-  remainingThisMonth: number | null;
+  usedThisWeek: number;
+  weeklyLimit: number | null;
+  remainingThisWeek: number | null;
   canSchedule: boolean;
 };
 
@@ -1540,25 +1540,25 @@ export async function getSellerSocialPublishQuota(
        FROM social_publish_logs
        WHERE seller_id = ?
          AND status IN ('PUBLISHED', 'SCHEDULED')
-         AND created_at >= datetime('now', '-30 days')`
+         AND created_at >= datetime('now', '-7 days')`
     )
     .bind(sellerId)
     .first<{ count: number }>()
     .catch(() => ({ count: 0 }));
 
-  const usedThisMonth = Number(countRow?.count ?? 0);
-  const monthlyLimit = isAnnual
+  const usedThisWeek = Number(countRow?.count ?? 0);
+  const weeklyLimit = isAnnual
     ? null
     : isPro
-      ? MARKET_PRO_MONTHLY_SOCIAL_POSTS_PER_MONTH
-      : MARKET_FREE_SOCIAL_POSTS_PER_MONTH;
-  const remainingThisMonth = monthlyLimit === null ? null : Math.max(0, monthlyLimit - usedThisMonth);
+      ? MARKET_PRO_MONTHLY_SOCIAL_POSTS_PER_WEEK
+      : MARKET_FREE_SOCIAL_POSTS_PER_WEEK;
+  const remainingThisWeek = weeklyLimit === null ? null : Math.max(0, weeklyLimit - usedThisWeek);
 
   return {
     tier: isPro ? 'pro' : 'free',
-    usedThisMonth,
-    monthlyLimit,
-    remainingThisMonth,
+    usedThisWeek,
+    weeklyLimit,
+    remainingThisWeek,
     canSchedule: isPro,
   };
 }

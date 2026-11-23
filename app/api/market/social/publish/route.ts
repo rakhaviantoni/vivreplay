@@ -88,12 +88,12 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-    if (quota.remainingThisMonth !== null && quota.remainingThisMonth <= 0) {
+    if (quota.remainingThisWeek !== null && quota.remainingThisWeek <= 0) {
       return NextResponse.json(
         {
           error: quota.tier === 'pro'
-            ? `You have reached the Pro Monthly limit of ${quota.monthlyLimit} social auto-posts per month. Upgrade to Pro Annual for unlimited auto-posts.`
-            : `You have reached the Free limit of ${quota.monthlyLimit} social auto-posts per month. Upgrade to Market Pro for more auto-posts.`,
+            ? `You have reached the Pro Monthly limit of ${quota.weeklyLimit} social auto-posts per week. Upgrade to Pro Annual for unlimited auto-posts.`
+            : `You have reached the Free limit of ${quota.weeklyLimit} social auto-posts per week. Upgrade to Market Pro for more auto-posts.`,
         },
         { status: 403 }
       );
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       includeSoldPrice: Boolean(body.includeSoldPrice),
     });
 
-    const updatedQuota = await getSellerSocialPublishQuota(profile.id, (profile as { tier?: string }).tier);
+    const updatedQuota = await getSellerSocialPublishQuota(profile.id, (profile as { tier?: string }).tier, (profile as { pro_billing_period?: string }).pro_billing_period);
     return NextResponse.json({ ...result, quota: updatedQuota });
   } catch (error) {
     return NextResponse.json(

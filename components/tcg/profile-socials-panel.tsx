@@ -115,9 +115,9 @@ export function ProfileSocialsPanel({
   const [platformFilter, setPlatformFilter] = useState<string>('ALL');
   const [quota, setQuota] = useState<{
     tier: 'free' | 'pro';
-    usedThisMonth: number;
-    monthlyLimit: number | null;
-    remainingThisMonth: number | null;
+    usedThisWeek: number;
+    weeklyLimit: number | null;
+    remainingThisWeek: number | null;
     canSchedule: boolean;
   } | null>(null);
 
@@ -518,10 +518,15 @@ export function ProfileSocialsPanel({
               <div className="profile-social-quota-row">
                 <span className={`profile-tester-status ${quota.tier === 'pro' ? 'is-approved' : 'is-pending'}`}>
                   {quota.tier === 'pro'
-                    ? t('Market Pro: Unlimited auto-posts & scheduling', 'Market Pro: Auto-post & jadwal tanpa batas')
+                    ? quota.weeklyLimit === null
+                      ? t('Market Pro Annual: Unlimited auto-posts & scheduling', 'Market Pro Tahunan: Auto-post & jadwal tanpa batas')
+                      : t(
+                          `Market Pro Monthly: ${quota.remainingThisWeek ?? 0} of ${quota.weeklyLimit} auto-posts remaining this week`,
+                          `Market Pro Bulanan: ${quota.remainingThisWeek ?? 0} dari ${quota.weeklyLimit} auto-post tersisa minggu ini`
+                        )
                     : t(
-                        `Free plan: ${quota.remainingThisMonth ?? 0} of ${quota.monthlyLimit ?? 3} auto-posts remaining this month`,
-                        `Paket Gratis: ${quota.remainingThisMonth ?? 0} dari ${quota.monthlyLimit ?? 3} auto-post tersisa bulan ini`
+                        `Free plan: ${quota.remainingThisWeek ?? 0} of ${quota.weeklyLimit ?? 5} auto-posts remaining this week`,
+                        `Paket Gratis: ${quota.remainingThisWeek ?? 0} dari ${quota.weeklyLimit ?? 5} auto-post tersisa minggu ini`
                       )}
                 </span>
                 {quota.tier === 'free' && (
