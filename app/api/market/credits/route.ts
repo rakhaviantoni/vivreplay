@@ -4,7 +4,7 @@ import {ALLOWED_CREDIT_TOPUP_AMOUNTS,CREDIT_TOPUP_PACKAGES} from '@/lib/market/c
 import {getCreditWallet,setAutoRenewPro} from '@/lib/server/credits';
 
 const topupSchema=z.object({
-  amount:z.number().int().refine(val=>ALLOWED_CREDIT_TOPUP_AMOUNTS.has(val),'Choose a valid credit package.'),
+  amount:z.number().int().min(10_000,'Minimum top-up is Rp 10,000.').max(10_000_000,'Maximum top-up is Rp 10,000,000.'),
   paymentMethod:z.string().trim().max(40).default('qris'),
   paymentChannel:z.string().trim().max(40).default('mpm'),
 });

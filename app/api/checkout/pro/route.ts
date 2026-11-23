@@ -3,7 +3,7 @@ import {getCurrentUser} from '@/lib/server/auth';
 import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannelChoices,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,parseCheckoutTimestamp} from '@/lib/server/ipaymu';
 import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,MARKET_FREE_SOCIAL_POSTS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 import {getProPricing} from '@/lib/market/pro-pricing';
-import {spendCredits} from '@/lib/server/credits';
+import {getCreditWallet,spendCredits} from '@/lib/server/credits';
 
 const PAID_INTRO_STATUSES="'PROCESSING','PAID','COMPLETED'";
 
@@ -106,7 +106,7 @@ export async function GET(){
 export async function POST(request:Request){
   try{
     guard(request);
-    const body=await request.json().catch(()=>({})) as {introOffer?:boolean;payWithCredits?:boolean;paymentMethod?:string;paymentChannel?:string;billingPeriod?:'monthly'|'yearly'};
+    const body=await request.json().catch(()=>({})) as {introOffer?:boolean;payWithCredits?:boolean;applyCredits?:boolean;paymentMethod?:string;paymentChannel?:string;billingPeriod?:'monthly'|'yearly'};
     const profile=await user();
     const account=await getCurrentUser();
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
@@ -211,6 +211,33 @@ export async function POST(request:Request){
       const details=JSON.stringify({durationDays,billingPeriod,customerName:name,customerPhone:phone,introOffer:false,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel});
       await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'PRO',?,'[]',?,?,0,?,'IDR','PENDING_PAYMENT',?)`).bind(orderId,profile.id,details,finalAmount,finalAmount,expiresAt).run();
     }
-    return Response.json({id:orderId,checkoutUrl:`/checkout/order/${orderId}`,introOffer,amount:finalAmount,billingPeriod},{status:201});
+    let payableAmount=finalAmount;
+    let creditsApplied=0;
+    if(body.applyCredits){
+      const wallet=await getCreditWallet(database,profile.id);
+      if(wallet.balance>0){
+        const toApply=Math.min(wallet.balance,finalAmount);
+        const spend=await spendCredits(database,{
+          profileId:profile.id,
+          amount:toApply,
+          kind:'PRO',
+          referenceId:orderId,
+          description:toApply>=finalAmount?`Market Pro (${billingPeriod})`:`Partial credits for Market Pro (${billingPeriod})`,
+        });
+        if(spend.ok){
+          creditsApplied=toApply;
+          payableAmount=Math.max(0,finalAmount-toApply);
+          if(payableAmount===0){
+            await database.batch([
+              database.prepare(`UPDATE checkout_orders SET status='PAID',amount=0,payment_id=?,details=json_set(details,'$.paidWithCredits',1,'$.creditsApplied',?),paid_at=CURRENT_TIMESTAMP,fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(`CREDITS:${orderId}`,creditsApplied,orderId),
+              database.prepare(`UPDATE profiles SET tier='pro',pro_billing_period=?,pro_expires_at=datetime(max(COALESCE(pro_expires_at,CURRENT_TIMESTAMP),CURRENT_TIMESTAMP), '+' || ? || ' days') WHERE id=?`).bind(billingPeriod,durationDays,profile.id),
+            ]);
+            return Response.json({id:orderId,paidWithCredits:true,creditsApplied,balance:spend.balance,amount:0,billingPeriod},{status:200});
+          }
+          await database.prepare(`UPDATE checkout_orders SET amount=?,details=json_set(details,'$.creditsApplied',?,'$.originalAmount',?),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'`).bind(payableAmount,creditsApplied,finalAmount,orderId).run();
+        }
+      }
+    }
+    return Response.json({id:orderId,checkoutUrl:`/checkout/order/${orderId}`,introOffer,amount:payableAmount,creditsApplied,billingPeriod},{status:201});
   }catch(error){return errorResponse(error)}
 }

@@ -8,11 +8,11 @@ import {marketParcel} from '@/lib/market/sealed-products';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
 import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,calculateBuyerServiceFee,calculateSellerServiceFee,getMarketBuyerFeeCap,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 import {syncSocialListingStage} from '@/lib/server/postforme';
-import {spendCredits} from '@/lib/server/credits';
+import {getCreditWallet,spendCredits} from '@/lib/server/credits';
 import {fulfillCheckoutOrder} from '@/lib/server/checkout-orders';
 
 const checkoutItem=z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),sealedProductId:z.string().optional(),parcel:z.object({weight:z.number().int().positive(),length:z.number().int().positive(),width:z.number().int().positive(),height:z.number().int().positive()}).optional()});
-const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(checkoutItem.extend({listingId:z.string().optional()})).min(1).max(600),lines:z.array(z.object({listingId:z.string().min(1),items:z.array(checkoutItem).min(1).max(60)})).max(10).optional(),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional(),shippingInsurance:z.boolean().default(false),useShippingVoucher:z.boolean().default(true),payWithCredits:z.boolean().optional(),paymentMethod:z.enum(['va','cstore','qris','cc','paylater','ewallet']).default('qris'),paymentChannel:z.string().regex(/^[a-z0-9_]{2,24}$/).default('mpm')});
+const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(checkoutItem.extend({listingId:z.string().optional()})).min(1).max(600),lines:z.array(z.object({listingId:z.string().min(1),items:z.array(checkoutItem).min(1).max(60)})).max(10).optional(),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional(),shippingInsurance:z.boolean().default(false),useShippingVoucher:z.boolean().default(true),payWithCredits:z.boolean().optional(),applyCredits:z.boolean().optional(),paymentMethod:z.enum(['va','cstore','qris','cc','paylater','ewallet']).default('qris'),paymentChannel:z.string().regex(/^[a-z0-9_]{2,24}$/).default('mpm')});
 type BundleEntry={instanceId?:string;printingId:string;sealedProductId?:string;parcel?:{weight:number;length:number;width:number;height:number};photoIds?:string[];notes?:string;quantity:number;condition?:string;unitAmount:number;listingId?:string;productType?:string;generalProduct?:{category:string;brand?:string;model?:string}};
 type AcceptedOffer={id:string;actorId:string;buyerId:string;initialActorId:string;listingOwnerId:string;listingType:string;sealedProductId:string|null;listingId:string;status:string;amount:number;items:string};
 
@@ -218,35 +218,50 @@ export async function POST(request:Request){
       AND (?=0 OR ((? IS NOT NULL AND EXISTS(SELECT 1 FROM market_pro_voucher_grants g WHERE g.id=? AND g.owner_id=? AND g.starts_at<=CURRENT_TIMESTAMP AND g.expires_at>CURRENT_TIMESTAMP) AND (SELECT COUNT(*) FROM checkout_orders prior WHERE prior.buyer_id=? AND prior.kind='MARKET' AND prior.status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(prior.details,'$.marketProShippingVoucherGrantId')=?)<${MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR}) OR (? IS NULL AND (SELECT COUNT(*) FROM checkout_orders prior WHERE prior.buyer_id=? AND prior.kind='MARKET' AND prior.status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(prior.details,'$.marketProShippingVoucherMonth')=?)<${MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH})))`)
       .bind(id,profile.id,fulfillmentSellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(orderDetails),subtotal,sellerNetAmount,shippingFee,amount,'IDR',expiresAt,listing.id,listing.amount,listing.quantity,listing.items,...listingGuardBindings,...offerBindings,...(reservationChecks==='1=1'?[]:[JSON.stringify([...requested.values()])]),voucherAvailable?1:0,annualGrant?.id??null,annualGrant?.id??null,profile.id,profile.id,annualGrant?.id??null,annualGrant?.id??null,profile.id,voucherMonth).run();
     if(!inserted.meta.changes)throw new HttpError(409,voucherAvailable?'Your monthly shipping benefit was just used. Refresh checkout to continue.':'This listing changed or the selected cards were reserved by another checkout. Refresh and try again.');
-    if(input.payWithCredits){
-      const spend=await spendCredits(database,{
-        profileId:profile.id,
-        amount,
-        kind:'MARKET_ORDER',
-        referenceId:id,
-        description:`Market order ${listing.title}`,
-      });
-      if(!spend.ok){
+    let payableAmount=amount;
+    let creditsApplied=0;
+    if(input.payWithCredits||input.applyCredits){
+      const wallet=await getCreditWallet(database,profile.id);
+      const toApply=input.payWithCredits?amount:Math.min(wallet.balance,amount);
+      if(input.payWithCredits&&wallet.balance<amount){
         await database.prepare("DELETE FROM checkout_orders WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();
         throw new HttpError(402,'Insufficient VivrePlay Credits balance.');
       }
-      const creditPaymentId=`CREDITS:${id}`;
-      await database.prepare("UPDATE checkout_orders SET payment_id=? WHERE id=? AND status='PENDING_PAYMENT'").bind(creditPaymentId,id).run();
-      await fulfillCheckoutOrder(database,{
-        id,
-        kind:'MARKET',
-        buyerId:profile.id,
-        sellerId:fulfillmentSellerId,
-        listingId:listing.id,
-        items:JSON.stringify(orderItems),
-        details:JSON.stringify(orderDetails),
-        subtotal,
-        paymentId:creditPaymentId,
-      });
-      await syncSocialListingStage({listingIds:listingRows.results.map(row=>row.id),stage:'SOLD'}).catch(()=>{});
-      return Response.json({id,paidWithCredits:true,balance:spend.balance,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee,shippingDiscount,buyerServiceFeeAmount,total:amount},{status:201});
+      if(toApply>0){
+        const spend=await spendCredits(database,{
+          profileId:profile.id,
+          amount:toApply,
+          kind:'MARKET_ORDER',
+          referenceId:id,
+          description:toApply>=amount?`Market order ${listing.title}`:`Partial credits for ${listing.title}`,
+        });
+        if(!spend.ok){
+          await database.prepare("DELETE FROM checkout_orders WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();
+          throw new HttpError(402,'Insufficient VivrePlay Credits balance.');
+        }
+        creditsApplied=toApply;
+        payableAmount=Math.max(0,amount-toApply);
+        if(payableAmount===0){
+          const creditPaymentId=`CREDITS:${id}`;
+          await database.prepare("UPDATE checkout_orders SET amount=0,payment_id=?,details=json_set(details,'$.paidWithCredits',1,'$.creditsApplied',?) WHERE id=? AND status='PENDING_PAYMENT'").bind(creditPaymentId,creditsApplied,id).run();
+          await fulfillCheckoutOrder(database,{
+            id,
+            kind:'MARKET',
+            buyerId:profile.id,
+            sellerId:fulfillmentSellerId,
+            listingId:listing.id,
+            items:JSON.stringify(orderItems),
+            details:JSON.stringify({...orderDetails,paidWithCredits:true,creditsApplied}),
+            subtotal,
+            paymentId:creditPaymentId,
+          });
+          await syncSocialListingStage({listingIds:listingRows.results.map(row=>row.id),stage:'SOLD'}).catch(()=>{});
+          return Response.json({id,paidWithCredits:true,creditsApplied,balance:spend.balance,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee,shippingDiscount,buyerServiceFeeAmount,total:0},{status:201});
+        }
+        await database.prepare("UPDATE checkout_orders SET amount=?,details=json_set(details,'$.creditsApplied',?,'$.originalAmount',?) WHERE id=? AND status='PENDING_PAYMENT'").bind(payableAmount,creditsApplied,amount,id).run();
+      }
     }
     await syncSocialListingStage({listingIds:listingRows.results.map(row=>row.id),stage:'BOOKED'}).catch(()=>{});
-    return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee,shippingDiscount,buyerServiceFeeAmount,total:amount},{status:201});
+    return Response.json({id,checkoutUrl:`/checkout/order/${id}`,creditsApplied,subtotal,shippingFee,shippingDiscount,buyerServiceFeeAmount,total:payableAmount},{status:201});
   }catch(error){return errorResponse(error)}
 }

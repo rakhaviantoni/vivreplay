@@ -4741,6 +4741,28 @@ html[data-theme='dark'] .market-listing-status.is-wta{color:#e87a4d}
 .market-credits-topup-btn small{color:var(--muted);font-size:11px;font-weight:700}
 .market-payout-history b.is-positive{color:var(--ok)}
 .market-payout-history b.is-negative{color:var(--accent)}
+.market-credits-custom-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.market-credits-custom-form .button{min-height:40px;padding-inline:14px}
+.market-credits-payment-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.market-credits-autorenew-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-raised);cursor:pointer;transition:border-color .15s,background .15s}
+.market-credits-autorenew-card:hover{border-color:var(--accent)}
+.market-credits-autorenew-card input{width:18px;height:18px;accent-color:var(--accent);margin:0;cursor:pointer}
+.market-credits-autorenew-card>div{display:grid;gap:2px}
+.market-credits-autorenew-card strong{font-size:13px;color:var(--ink)}
+.market-credits-autorenew-card small{font-size:11.5px;color:var(--muted);line-height:1.35}
+.market-credits-autorenew-pill{padding:3px 9px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.market-credits-autorenew-pill.is-on{background:color-mix(in srgb,var(--ok) 14%,transparent);border-color:color-mix(in srgb,var(--ok) 35%,transparent);color:var(--ok)}
+.market-auction-buyout-row.is-readonly{border-color:var(--line);background:var(--surface-raised)}
+.market-auction-buyout-status{font-size:12px;font-weight:700;color:var(--muted)}
+.market-feed-bin-inline{color:var(--muted);font-size:12px;font-weight:700}
+.market-feed-auction-timer{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:700;background:color-mix(in srgb,#b84a1e 11%,transparent);color:#b84a1e}
+.market-feed-auction-tag{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.market-feed-auction-tag.is-ending{background:color-mix(in srgb,#d93829 14%,transparent);color:#c62828}
+.market-feed-auction-tag.is-close-bin{background:color-mix(in srgb,#b84a1e 16%,transparent);color:#9c3a14}
+.market-feed-auction-tag.is-hot{background:color-mix(in srgb,#d97706 16%,transparent);color:#b45309}
+[data-theme="dark"] .market-feed-auction-timer,[data-theme="dark"] .market-feed-auction-tag.is-close-bin{color:#e87a4d}
+[data-theme="dark"] .market-feed-auction-tag.is-ending{color:#ff7b72}
+[data-theme="dark"] .market-feed-auction-tag.is-hot{color:#fbbf24}
 .market-auction-history{display:grid;gap:8px;padding-top:6px;border-top:1px solid var(--line)}
 .market-auction-history h4{margin:0;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
 .market-auction-history ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}

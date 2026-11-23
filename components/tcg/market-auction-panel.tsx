@@ -193,6 +193,52 @@ export function MarketAuctionPanel({
         </div>
       )}
 
+      {auction.buyNowPrice&&auction.buyNowPrice>0&&(
+        <div className={`market-auction-buyout-row${isEnded||isOwner||auction.currentBid>=auction.buyNowPrice?' is-readonly':''}`}>
+          <div>
+            <small>{locale==='ID'?'Harga Buy Out (langsung menang)':'Buy Out price (instant win)'}</small>
+            <strong>{formatMoney(auction.buyNowPrice,currency)}</strong>
+          </div>
+          {!isEnded&&!isOwner&&auction.buyNowPrice>auction.currentBid?(
+            <button
+              type="button"
+              className="button secondary"
+              disabled={submitting||buyingOut}
+              onClick={async()=>{
+                if(!currentUserId){
+                  window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));
+                  return;
+                }
+                setBuyingOut(true);
+                setError('');
+                try{
+                  const response=await fetch(`/api/auctions/${encodeURIComponent(listingId)}/buy-now`,{method:'POST'});
+                  const payload=await response.json() as {auction?:AuctionSummary;error?:string};
+                  if(!response.ok||!payload.auction)throw new Error(payload.error||(locale==='ID'?'Buy Out gagal.':'Could not complete Buy Out.'));
+                  setAuction(payload.auction);
+                  toast.success(locale==='ID'?'Buy Out berhasil! Melanjutkan ke checkout…':'Buy Out succeeded! Proceeding to checkout…');
+                  onCheckoutWinner?.(payload.auction.currentBid);
+                }catch(cause){
+                  setError((cause as Error).message);
+                }finally{
+                  setBuyingOut(false);
+                }
+              }}
+            >
+              {buyingOut?(locale==='ID'?'Memproses…':'Processing…'):(locale==='ID'?'Buy Out sekarang':'Buy Out now')}
+            </button>
+          ):(
+            <span className="market-auction-buyout-status">
+              {auction.currentBid>=auction.buyNowPrice
+                ?(locale==='ID'?'Terlampaui oleh bid':'Passed by bids')
+                :isOwner
+                  ?(locale==='ID'?'Aktif untuk pembeli':'Available to buyers')
+                  :(locale==='ID'?'Lelang berakhir':'Auction ended')}
+            </span>
+          )}
+        </div>
+      )}
+
       {!isEnded&&!isOwner&&(
         <form className="market-auction-bid-form" onSubmit={handlePlaceBid}>
           {isHighestBidder&&(
@@ -231,41 +277,6 @@ export function MarketAuctionPanel({
               {submitting?(locale==='ID'?'Mengirim...':'Placing...'):(locale==='ID'?'Pasang bid':'Place bid')}
             </button>
           </div>
-          {auction.buyNowPrice&&auction.buyNowPrice>auction.currentBid&&(
-            <div className="market-auction-buyout-row">
-              <div>
-                <small>{locale==='ID'?'Harga Buy Out (langsung menang)':'Buy Out price (instant win)'}</small>
-                <strong>{formatMoney(auction.buyNowPrice,currency)}</strong>
-              </div>
-              <button
-                type="button"
-                className="button secondary"
-                disabled={submitting||buyingOut}
-                onClick={async()=>{
-                  if(!currentUserId){
-                    window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));
-                    return;
-                  }
-                  setBuyingOut(true);
-                  setError('');
-                  try{
-                    const response=await fetch(`/api/auctions/${encodeURIComponent(listingId)}/buy-now`,{method:'POST'});
-                    const payload=await response.json() as {auction?:AuctionSummary;error?:string};
-                    if(!response.ok||!payload.auction)throw new Error(payload.error||(locale==='ID'?'Buy Out gagal.':'Could not complete Buy Out.'));
-                    setAuction(payload.auction);
-                    toast.success(locale==='ID'?'Buy Out berhasil! Melanjutkan ke checkout…':'Buy Out succeeded! Proceeding to checkout…');
-                    onCheckoutWinner?.(payload.auction.currentBid);
-                  }catch(cause){
-                    setError((cause as Error).message);
-                  }finally{
-                    setBuyingOut(false);
-                  }
-                }}
-              >
-                {buyingOut?(locale==='ID'?'Memproses...':'Processing...'):(locale==='ID'?'Buy Out sekarang':'Buy Out now')}
-              </button>
-            </div>
-          )}
           {error&&<p className="error-text" role="alert">{error}</p>}
         </form>
       )}

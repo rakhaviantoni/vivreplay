@@ -965,6 +965,28 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   </section>;
 }
 
+function formatAuctionSharePrice(
+  listing: Listing,
+  auction: AuctionSummary | undefined | null,
+  fallbackAmount: number,
+  language: 'EN' | 'ID',
+) {
+  if (auction && auction.bidCount > 0 && auction.currentBid > 0) {
+    if (auction.status !== 'ACTIVE') {
+      return language === 'ID'
+        ? `Bid pemenang ${formatMoney(auction.currentBid, listing.currency)}`
+        : `Winning bid ${formatMoney(auction.currentBid, listing.currency)}`;
+    }
+    return language === 'ID'
+      ? `Bid saat ini ${formatMoney(auction.currentBid, listing.currency)}`
+      : `Current bid ${formatMoney(auction.currentBid, listing.currency)}`;
+  }
+  const openBid = auction?.startingBid || fallbackAmount;
+  return language === 'ID'
+    ? `Open bid mulai ${formatMoney(openBid, listing.currency)}`
+    : `Open bid from ${formatMoney(openBid, listing.currency)}`;
+}
+
 export function MarketListingDetailView({
   listing,
   stored,
@@ -1166,7 +1188,7 @@ export function MarketListingDetailView({
                           path={marketListingPath(listingTitle,listing.id)}
                           cards={marketShareCards(editableCards)}
                           price={listing.type === 'WTA'
-                            ? (language === 'ID' ? `Open bid mulai ${formatMoney(listingAmount, listing.currency)}` : `Open bid from ${formatMoney(listingAmount, listing.currency)}`)
+                            ? formatAuctionSharePrice(listing, auctionDetail?.auction ?? listing.auction, listingAmount, language)
                             : formatMoney(listingAmount, listing.currency)}
                           subtitle={language==='ID'?`${editableCards.reduce((acc, it) => acc + it.quantity, 0)} kartu`:`${editableCards.reduce((acc, it) => acc + it.quantity, 0)} ${editableCards.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'}`}
                           listingInfo={{seller:listing.seller,city:listing.city,expiresAt:expiresAt??undefined}}
@@ -1284,7 +1306,7 @@ export function MarketListingDetailView({
                   path={marketListingPath(listingTitle,listing.id)}
                   cards={marketShareCards(editableCards)}
                   price={listing.type === 'WTA'
-                    ? (language === 'ID' ? `Open bid mulai ${formatMoney(listingAmount, listing.currency)}` : `Open bid from ${formatMoney(listingAmount, listing.currency)}`)
+                    ? formatAuctionSharePrice(listing, auctionDetail?.auction ?? listing.auction, listingAmount, language)
                     : formatMoney(listingAmount, listing.currency)}
                   subtitle={language==='ID'?`${editableCards.reduce((acc, it) => acc + it.quantity, 0)} kartu`:`${editableCards.reduce((acc, it) => acc + it.quantity, 0)} ${editableCards.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'}`}
                   listingInfo={{seller:listing.seller,city:listing.city,expiresAt:expiresAt??undefined}}
