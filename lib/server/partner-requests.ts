@@ -71,21 +71,25 @@ function heuristicReview(input:{
   requestType:string;
   connectedSocials:Array<{platform:string;handle:string}>|null;
 }):PartnerAiReview{
-  let score=52;
+  let score=input.requestType==='SOCIAL_TESTER'?64:52;
   const digits=input.contactWhatsapp.replace(/\D/g,'');
-  if(digits.length>=10&&digits.length<=15)score+=10;
-  if(input.socialHandle.trim().length>=3)score+=8;
-  if(input.monthlyVolume==='100+')score+=15;
-  else if(input.monthlyVolume==='30-100')score+=10;
-  else if(input.monthlyVolume==='10-30')score+=5;
+  if(digits.length>=10&&digits.length<=15)score+=12;
+  if(input.socialHandle.trim().length>=3)score+=10;
+  if(input.requestType!=='SOCIAL_TESTER'){
+    if(input.monthlyVolume==='100+')score+=15;
+    else if(input.monthlyVolume==='30-100')score+=10;
+    else if(input.monthlyVolume==='10-30')score+=5;
+  }
   if(input.notes&&input.notes.trim().length>=15)score+=5;
   if(input.connectedSocials?.length)score+=10;
   score=Math.min(98,Math.max(25,score));
 
   const risk:PartnerAiReview['risk']=score>=75?'LOW':score>=55?'MEDIUM':'HIGH';
   const socialNote=input.connectedSocials?.length
-    ?`Verified connected social(s): ${input.connectedSocials.map(s=>`${s.platform} (${s.handle})`).join(', ')}.`
-    :'No connected social account on file yet; verify handle manually via WhatsApp.';
+    ?`Connected social(s): ${input.connectedSocials.map(s=>`${s.platform} (${s.handle})`).join(', ')}.`
+    :input.requestType==='SOCIAL_TESTER'
+      ?'No connected social account yet; confirm IG Professional/FB Page setup via WhatsApp before adding to early access.'
+      :'No connected social account on file yet; verify handle manually via WhatsApp.';
   const summary=`${input.shopName} (${input.city}) applied for ${input.requestType} in ${input.category} (${input.monthlyVolume||'unspecified'} items/mo). ${socialNote}`;
   return {score,risk,summary};
 }

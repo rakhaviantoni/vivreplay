@@ -680,7 +680,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
   const [sort,setSort]=useState<'newest'|'price_asc'|'price_desc'>('newest');
   const feedListRef=useRef<HTMLElement|null>(null);
   const previousFeedPositions=useRef<Map<string,{left:number;top:number}>|null>(null);
-  const [tradeType,setTradeType]=useState<'all'|'WTS'|'WTB'|'WTA'>('all');
+  const [tradeTypes,setTradeTypes]=useState<Array<'WTS'|'WTB'|'WTA'>>(['WTS','WTB','WTA']);
   const [onePieceItemTypes,setOnePieceItemTypes]=useState<string[]>([]);
   const [pokemonItemTypes,setPokemonItemTypes]=useState<string[]>([]);
   const [otherCategories,setOtherCategories]=useState<GeneralMarketCategory[]>([]);
@@ -869,7 +869,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
     const includeTcg=marketCategory==='tcg'||marketCategory==='mixed';
     const includeOther=marketCategory==='other'||marketCategory==='mixed';
     const nextCategory=includeOther?'tcg':(includeTcg?'mixed':'other');
-    setMarketCategory(nextCategory);setFeedScope('listings');setTradeType('all');setLang('all');
+    setMarketCategory(nextCategory);setFeedScope('listings');setTradeTypes(['WTS','WTB','WTA']);setLang('all');
     const params=new URLSearchParams(window.location.search);
     if(nextCategory==='other'||nextCategory==='mixed')params.set('category','other');else params.delete('category');
     if(nextCategory==='other'){params.delete('scope');params.delete('game');}
@@ -882,7 +882,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
     const tcgActive=marketCategory==='tcg'||marketCategory==='mixed';
     const otherActive=marketCategory==='other'||marketCategory==='mixed';
     if(!tcgActive){
-      setGameSlug(target);setMarketCategory(otherActive?'mixed':'tcg');setFeedScope('listings');setLang('all');setTradeType('all');
+      setGameSlug(target);setMarketCategory(otherActive?'mixed':'tcg');setFeedScope('listings');setLang('all');setTradeTypes(['WTS','WTB','WTA']);
       const params=new URLSearchParams(window.location.search);params.delete('scope');if(target==='pokemon')params.set('game','pokemon');else if(otherActive)params.set('game','one-piece');else params.delete('game');
       if(otherActive)params.set('category','other');else params.delete('category');
       if(query.trim())params.set('card',query.trim());
@@ -891,13 +891,13 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
     const targetEnabled=gameSlug==='all'||gameSlug===target;
     if(targetEnabled&&gameSlug===target){
       if(!otherActive)return;
-      setMarketCategory('other');setFeedScope('listings');setLang('all');setTradeType('all');
+      setMarketCategory('other');setFeedScope('listings');setLang('all');setTradeTypes(['WTS','WTB','WTA']);
       const params=new URLSearchParams(window.location.search);params.delete('scope');params.delete('game');
       if(query.trim())params.set('card',query.trim());
       router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});return;
     }
     const next=gameSlug==='all'?(target==='one-piece'?'pokemon':'one-piece'):'all';
-    setGameSlug(next);setLang('all');setTradeType('all');setFeedScope('listings');
+    setGameSlug(next);setLang('all');setTradeTypes(['WTS','WTB','WTA']);setFeedScope('listings');
     const params=new URLSearchParams(window.location.search);
     if(next==='all'){params.set('scope','all');params.delete('game');}
     else {params.delete('scope');if(next==='pokemon')params.set('game','pokemon');else params.delete('game');}
@@ -1102,7 +1102,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
       const cardName=card?.name??listing.title;
       const cardCode=card?.code??'';
       const listingItems=listing.items?.length?listing.items:[{printingId:listing.printingId,quantity:listing.quantity}];
-      const matchesTrade = tradeType === 'all' || listing.type === tradeType;
+      const matchesTrade = tradeTypes.includes((listing.type || 'WTS') as 'WTS'|'WTB'|'WTA');
       const matchesSearch = !term || [listing.title,cardName,cardCode].some(value=>value.toLowerCase().includes(term));
       const matchesInitial = !initialCards.length || (card && initialCards.includes(card.id));
       const hasSelectedGeneral=includeOther&&listingItems.some(item=>item.generalProduct&&(!otherCategories.length||otherCategories.includes(item.generalProduct.category as GeneralMarketCategory)));
@@ -1124,7 +1124,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
     if (sort === 'price_asc') return [...matches].sort((a,b)=>a.amount-b.amount);
     if (sort === 'price_desc') return [...matches].sort((a,b)=>b.amount-a.amount);
     return matches;
-  },[initialCards,lang,listings,marketCategory,includeOther,includeTcg,includeOnePiece,includePokemon,otherCategories,onePieceItemTypes,pokemonItemTypes,query,sort,tradeType]);
+  },[initialCards,lang,listings,marketCategory,includeOther,includeTcg,includeOnePiece,includePokemon,otherCategories,onePieceItemTypes,pokemonItemTypes,query,sort,tradeTypes]);
   const categoryListings=useMemo(()=>listings.filter(listing=>{
     const items=listing.items?.length?listing.items:[{printingId:listing.printingId,quantity:listing.quantity}];
     return includeOther&&items.some(item=>Boolean(item.generalProduct))||includeTcg&&items.some(item=>!item.generalProduct);
@@ -1156,7 +1156,12 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
     setSort(next);
   };
   const changeLanguage=(next:'all'|'EN'|'JP'|'ID')=>{if(next===lang)return;captureFeedPositions();triggerFeedMotion();setLang(next)};
-  const changeTradeType=(next:'all'|'WTS'|'WTB'|'WTA')=>{if(next===tradeType)return;captureFeedPositions();triggerFeedMotion();setTradeType(next)};
+  const toggleTradeType=(target:'WTS'|'WTB'|'WTA')=>{
+    if(tradeTypes.includes(target)&&tradeTypes.length<=1)return;
+    captureFeedPositions();
+    triggerFeedMotion();
+    setTradeTypes(current=>current.includes(target)?current.filter(item=>item!==target):[...current,target]);
+  };
   useEffect(()=>{
     const previous=previousFeedPositions.current;
     if(!previous)return;
@@ -1175,7 +1180,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
       }
     });
     return()=>window.cancelAnimationFrame(frame);
-  },[sort,lang,tradeType]);
+  },[sort,lang,tradeTypes]);
   const tradeCounts = useMemo(() => {
     const wts = listings.filter(l => l.type === 'WTS').length;
     const wtb = listings.filter(l => l.type === 'WTB').length;
@@ -1577,16 +1582,9 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
               <div className="market-trade-chips" role="group" aria-label={locale === 'ID' ? 'Filter tipe penawaran' : 'Filter offer type'}>
                 <button
                   type="button"
-                  className={`market-trade-chip ${tradeType === 'all' ? 'is-active' : ''}`}
-                  onClick={() => changeTradeType('all')}
-                >
-                  <span>{locale === 'ID' ? 'Semua' : 'All'}</span>
-                  <small>({tradeCounts.all})</small>
-                </button>
-                <button
-                  type="button"
-                  className={`market-trade-chip ${tradeType === 'WTS' ? 'is-active' : ''}`}
-                  onClick={() => changeTradeType('WTS')}
+                  aria-pressed={tradeTypes.includes('WTS')}
+                  className={`market-trade-chip ${tradeTypes.includes('WTS') ? 'is-active' : ''}`}
+                  onClick={() => toggleTradeType('WTS')}
                 >
                   <span className="market-trade-dot is-wts" aria-hidden="true" />
                   <span>{locale === 'ID' ? 'Dijual' : 'For sale'}</span>
@@ -1594,8 +1592,9 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                 </button>
                 <button
                   type="button"
-                  className={`market-trade-chip ${tradeType === 'WTB' ? 'is-active' : ''}`}
-                  onClick={() => changeTradeType('WTB')}
+                  aria-pressed={tradeTypes.includes('WTB')}
+                  className={`market-trade-chip ${tradeTypes.includes('WTB') ? 'is-active' : ''}`}
+                  onClick={() => toggleTradeType('WTB')}
                 >
                   <span className="market-trade-dot is-wtb" aria-hidden="true" />
                   <span>{locale === 'ID' ? 'Membeli' : 'Buying'}</span>
@@ -1603,8 +1602,9 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                 </button>
                 <button
                   type="button"
-                  className={`market-trade-chip ${tradeType === 'WTA' ? 'is-active' : ''}`}
-                  onClick={() => changeTradeType('WTA')}
+                  aria-pressed={tradeTypes.includes('WTA')}
+                  className={`market-trade-chip ${tradeTypes.includes('WTA') ? 'is-active' : ''}`}
+                  onClick={() => toggleTradeType('WTA')}
                 >
                   <span className="market-trade-dot is-wta" aria-hidden="true" />
                   <span>{locale === 'ID' ? 'Lelang' : 'Auction'}</span>

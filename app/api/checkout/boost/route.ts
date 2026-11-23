@@ -22,10 +22,11 @@ export async function POST(request:Request){
     const database=db();
     await ensureBoostSchema(database);
 
-    const listing=await database.prepare("SELECT id,seller_id AS sellerId,title,status FROM listings WHERE id=?").bind(input.listingId).first<{id:string;sellerId:string;title:string;status:string}>();
+    const listing=await database.prepare("SELECT id,seller_id AS sellerId,title,status,expires_at AS expiresAt FROM listings WHERE id=?").bind(input.listingId).first<{id:string;sellerId:string;title:string;status:string;expiresAt:string|null}>();
     if(!listing)throw new HttpError(404,'Listing not found.');
     if(listing.sellerId!==profile.id)throw new HttpError(403,'You can only boost your own listings.');
     if(listing.status!=='ACTIVE')throw new HttpError(400,'Only active listings can be boosted.');
+    if(listing.expiresAt&&Date.parse(listing.expiresAt)<=Date.now())throw new HttpError(400,'Expired listings cannot be boosted.');
 
     const isPro=getListingPolicy(profile.tier,profile.pro_billing_period).tier==='pro';
     if(input.useProCredit){

@@ -1122,7 +1122,7 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-feed-tabs-main > .market-view-toggle { align-self: flex-end !important; gap: 3px !important; padding: 2px !important; }
   .market-feed-tabs-main > .market-view-toggle button { width: 40px !important; height: 40px !important; min-height: 40px !important; }
   .market-feed-tabs-sub { display: grid !important; gap: 8px !important; }
-  .market-trade-chips { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 4px !important; width: 100% !important; overflow: visible !important; padding: 0 !important; }
+  .market-trade-chips { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 5px !important; width: 100% !important; overflow: visible !important; padding: 0 !important; }
   .market-trade-chip { min-width: 0 !important; height: 40px !important; justify-content: center !important; gap: 4px !important; padding-inline: 5px !important; font-size: 11px !important; white-space: nowrap !important; }
   .market-trade-chip small { font-size: 10px !important; }
   .market-feed-filters { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 6px !important; }
@@ -4630,8 +4630,8 @@ html[data-theme='dark'] .market-category-switch button.is-active { border-color:
   .market-game-switch.market-scope-switch { display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr))!important; width:100%!important; flex:1 1 100%!important; }
   .market-scope-switch > .market-scope-trigger { min-width:0!important; width:100%!important; }
   .market-feed-tabs-sub { display:grid!important; grid-template-columns:minmax(0,1fr)!important; gap:8px!important; }
-  .market-feed-tabs-sub > .market-trade-chips { display:grid!important; grid-template-columns:repeat(4,minmax(0,1fr))!important; grid-column:1/-1!important; width:100%!important; gap:4px!important; }
-  .market-feed-tabs-sub > .market-trade-chips > .market-trade-chip { width:100%!important; min-width:0!important; justify-content:center!important; padding:0 5px!important; font-size:11px!important; gap:4px!important; }
+  .market-feed-tabs-sub > .market-trade-chips { display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr))!important; grid-column:1/-1!important; width:100%!important; gap:6px!important; }
+  .market-feed-tabs-sub > .market-trade-chips > .market-trade-chip { width:100%!important; min-width:0!important; justify-content:center!important; padding:0 8px!important; font-size:11.5px!important; gap:5px!important; }
   .market-feed-tabs-sub > .market-feed-filters { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important; grid-column:1/-1!important; gap:8px!important; }
   .market-feed-tabs-sub .market-feed-filter-control { min-width:0!important; width:100%!important; }
   .market-feed-tabs-sub .market-feed-filter-control .picker,

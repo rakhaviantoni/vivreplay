@@ -70,7 +70,7 @@ export function MarketPartnerDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {!submitted&&(
+        {!submitted&&requestType!=='SOCIAL_TESTER'&&(
           <div className="market-partner-benefits" aria-label={id?'Keuntungan partner':'Partner benefits'}>
             <div>
               <Sparkle size={16} weight="fill"/>
@@ -102,6 +102,24 @@ export function MarketPartnerDialog({
             </div>
           </div>
         )}
+        {!submitted&&requestType==='SOCIAL_TESTER'&&(
+          <div className="market-partner-benefits" aria-label={id?'Info akses awal sosial':'Social early-access notes'}>
+            <div>
+              <Megaphone size={16} weight="fill"/>
+              <div>
+                <strong>{id?'Akun Profesional IG / FB Page':'Professional IG / FB Page'}</strong>
+                <span>{id?'Auto-post Instagram & Threads membutuhkan akun IG Profesional (Kreator/Bisnis) yang terhubung ke Facebook Page.':'Instagram & Threads auto-post requires an IG Professional (Creator/Business) account linked to a Facebook Page.'}</span>
+              </div>
+            </div>
+            <div>
+              <Sparkle size={16} weight="fill"/>
+              <div>
+                <strong>{id?'Belum Akun Bisnis? Tetap Bisa Daftar':'Personal Account? Still Welcome'}</strong>
+                <span>{id?'Jika akun Anda masih Pribadi, kami akan kirim panduan singkat sebelum mengaktifkan akses awal Anda.':'If your account is still Personal, we will send a quick setup guide before enabling early access.'}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {submitted?(
           <div className="market-partner-success">
@@ -125,45 +143,49 @@ export function MarketPartnerDialog({
             </div>
             <div className="form-row">
               <label>
-                <span>{id?'Nama toko atau akun':'Store or account name'}</span>
-                <input value={shopName} onChange={e=>setShopName(e.target.value)} placeholder={id?'Contoh: Toko Hobi Nusantara':'e.g. Nusantara Hobby Shop'} minLength={2} maxLength={100} required/>
+                <span>{requestType==='SOCIAL_TESTER'?(id?'Nama Anda atau toko (opsional)':'Your name or shop (optional)'):(id?'Nama toko atau akun':'Store or account name')}</span>
+                <input value={shopName} onChange={e=>setShopName(e.target.value)} placeholder={id?'Contoh: Toko Hobi Nusantara':'e.g. Nusantara Hobby Shop'} minLength={requestType==='SOCIAL_TESTER'?0:2} maxLength={100} required={requestType!=='SOCIAL_TESTER'}/>
               </label>
               <label>
                 <span>{id?'Akun Instagram / Sosial':'Instagram / Social handle'}</span>
                 <input value={socialHandle} onChange={e=>setSocialHandle(e.target.value)} placeholder="@yourshop" minLength={2} maxLength={100} required/>
               </label>
             </div>
-            <div className="form-row">
-              <div className="market-partner-field">
-                <span>{id?'Kategori utama':'Primary category'}</span>
-                <Select value={category} onValueChange={v=>setCategory(v as typeof category)}>
-                  <SelectTrigger className="market-product-select-trigger"><SelectValue/></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="FIGURES_COLLECTIBLES">{id?'Figur & Koleksi':'Figures & Collectibles'}</SelectItem>
-                    <SelectItem value="TCG_SINGLES_SLABS">{id?'Kartu TCG & Slab':'TCG Singles & Slabs'}</SelectItem>
-                    <SelectItem value="SEALED_PRODUCTS">{id?'Produk Sealed':'Sealed Products'}</SelectItem>
-                    <SelectItem value="GAMING_TECH">{id?'Konsol & PC':'Gaming & Tech'}</SelectItem>
-                    <SelectItem value="MULTI_CATEGORY">{id?'Multi-kategori':'Multi-category'}</SelectItem>
-                  </SelectContent>
-                </Select>
+            {requestType!=='SOCIAL_TESTER'&&(
+              <div className="form-row">
+                <div className="market-partner-field">
+                  <span>{id?'Kategori utama':'Primary category'}</span>
+                  <Select value={category} onValueChange={v=>setCategory(v as typeof category)}>
+                    <SelectTrigger className="market-product-select-trigger"><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FIGURES_COLLECTIBLES">{id?'Figur & Koleksi':'Figures & Collectibles'}</SelectItem>
+                      <SelectItem value="TCG_SINGLES_SLABS">{id?'Kartu TCG & Slab':'TCG Singles & Slabs'}</SelectItem>
+                      <SelectItem value="SEALED_PRODUCTS">{id?'Produk Sealed':'Sealed Products'}</SelectItem>
+                      <SelectItem value="GAMING_TECH">{id?'Konsol & PC':'Gaming & Tech'}</SelectItem>
+                      <SelectItem value="MULTI_CATEGORY">{id?'Multi-kategori':'Multi-category'}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="market-partner-field">
+                  <span>{id?'Perkiraan item per bulan':'Estimated monthly items'}</span>
+                  <Select value={monthlyVolume} onValueChange={setMonthlyVolume}>
+                    <SelectTrigger className="market-product-select-trigger"><SelectValue/></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10-30">{id?'10–30 item / bulan':'10–30 items / month'}</SelectItem>
+                      <SelectItem value="30-100">{id?'30–100 item / bulan':'30–100 items / month'}</SelectItem>
+                      <SelectItem value="100+">{id?'100+ item / bulan':'100+ items / month'}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="market-partner-field">
-                <span>{id?'Perkiraan item per bulan':'Estimated monthly items'}</span>
-                <Select value={monthlyVolume} onValueChange={setMonthlyVolume}>
-                  <SelectTrigger className="market-product-select-trigger"><SelectValue/></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10-30">{id?'10–30 item / bulan':'10–30 items / month'}</SelectItem>
-                    <SelectItem value="30-100">{id?'30–100 item / bulan':'30–100 items / month'}</SelectItem>
-                    <SelectItem value="100+">{id?'100+ item / bulan':'100+ items / month'}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            )}
             <div className="form-row">
-              <label>
-                <span>{id?'Kota':'City'}</span>
-                <input value={city} onChange={e=>setCity(e.target.value)} placeholder="Jakarta" minLength={2} maxLength={80} required/>
-              </label>
+              {requestType!=='SOCIAL_TESTER'&&(
+                <label>
+                  <span>{id?'Kota':'City'}</span>
+                  <input value={city} onChange={e=>setCity(e.target.value)} placeholder="Jakarta" minLength={2} maxLength={80} required/>
+                </label>
+              )}
               <label>
                 <span>{id?'Nomor WhatsApp aktif':'Active WhatsApp number'}</span>
                 <input value={contactWhatsapp} onChange={e=>setContactWhatsapp(e.target.value)} placeholder="0812xxxxxxxx" minLength={8} maxLength={30} required/>

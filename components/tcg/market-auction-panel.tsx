@@ -175,7 +175,7 @@ export function MarketAuctionPanel({
         </div>
       </div>
 
-      {isWinner&&(
+      {isWinner&&!auction.winnerOrderId&&(
         <div className="market-auction-winner-banner">
           <div>
             <CheckCircle size={18} weight="fill"/>

@@ -86,6 +86,11 @@ export async function fulfillCheckoutOrder(database:ReturnType<typeof db>,order:
   }
   const selectedJson=JSON.stringify(selected.filter(item=>item.instanceId));
   if(selectedJson!=='[]')statements.push(database.prepare(`UPDATE collectible_instances SET deleted_at=CASE WHEN quantity-COALESCE((SELECT SUM(CAST(json_extract(item.value,'$.quantity') AS INTEGER)) FROM json_each(?) item WHERE json_extract(item.value,'$.instanceId')=collectible_instances.id),0)<=0 THEN CURRENT_TIMESTAMP ELSE deleted_at END,quantity=MAX(1,quantity-COALESCE((SELECT SUM(CAST(json_extract(item.value,'$.quantity') AS INTEGER)) FROM json_each(?) item WHERE json_extract(item.value,'$.instanceId')=collectible_instances.id),0)) WHERE owner_id=? AND id IN (SELECT json_extract(item.value,'$.instanceId') FROM json_each(?) item WHERE json_extract(item.value,'$.instanceId') IS NOT NULL) AND EXISTS(SELECT 1 FROM checkout_orders WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?)`).bind(selectedJson,selectedJson,order.sellerId,selectedJson,order.id,claim));
+  if(listingIds.length){
+    for(const listingId of listingIds){
+      statements.push(database.prepare("UPDATE market_auctions SET winner_order_id=? WHERE listing_id=? AND winner_order_id IS NULL").bind(order.id,listingId));
+    }
+  }
   statements.push(database.prepare("UPDATE checkout_orders SET status='PAID',details=json_remove(details,'$.fulfillmentClaim'),paid_at=COALESCE(paid_at,CURRENT_TIMESTAMP),fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?").bind(order.id,claim));
   const results=await database.batch(statements);
   const changed=Boolean(results[0]?.meta.changes);

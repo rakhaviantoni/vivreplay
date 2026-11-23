@@ -605,6 +605,7 @@ html[data-theme='dark'] .market-product-details-art{background:#0e2029}
   user-select: none!important;
   white-space: nowrap!important;
 }
+.market-trade-chip small{font-variant-numeric:tabular-nums}
 .market-scope-tab:hover{
   color: var(--ink)!important;
   background: color-mix(in srgb,var(--accent) 7%,transparent)!important;
@@ -681,6 +682,7 @@ html[data-theme='dark'] .market-product-details-art{background:#0e2029}
   transition: all .15s ease!important;
   white-space: nowrap!important;
 }
+.market-trade-chip small{font-variant-numeric:tabular-nums}
 .market-trade-chip:hover{
   border-color: var(--accent)!important;
   color: var(--ink)!important;
