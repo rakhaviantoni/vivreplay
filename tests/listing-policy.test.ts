@@ -19,7 +19,7 @@ test('free listing policy allows a 51-card deck bundle', () => {
   assert.equal(policy.maxCopiesPerCard, 4);
   assert.equal(policy.maxCardTypes, 51);
   assert.equal(policy.canAutoRenew, false);
-  assert.equal(policy.commissionPercent, 1.5);
+  assert.equal(policy.commissionPercent, 1.75);
 });
 
 test('monthly Pro allows 500 active listings and 75-card bundles', () => {

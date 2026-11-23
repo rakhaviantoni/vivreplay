@@ -9,11 +9,11 @@ export interface ProPricing {
 }
 
 export const DEFAULT_PRO_PRICING: ProPricing = {
-  amount: 24_900,
+  amount: 29_900,
   durationDays: 30,
-  annualAmount: 249_000,
+  annualAmount: 299_000,
   annualDurationDays: 365,
-  introAmount: 19_900,
+  introAmount: 24_900,
   introEndsAt: '2026-12-31T16:59:59.000Z',
   introLimit: 100,
 };

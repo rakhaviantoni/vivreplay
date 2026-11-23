@@ -34,7 +34,7 @@ export const LISTING_POLICIES: MarketPolicies = {
     maxCardTypes: 51,
     maxProductStock: 10,
     canAutoRenew: false,
-    commissionPercent: 1.5,
+    commissionPercent: 1.75,
   },
   pro: {
     tier: 'pro',

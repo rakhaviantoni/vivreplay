@@ -52,7 +52,7 @@ export function MarketPolicyManager() {
   const [freeMax, setFreeMax] = useState(10);
   const [freeBundle,setFreeBundle]=useState({maxListingCopies:51,maxCopiesPerCard:4,maxCardTypes:51});
   const [freeProductStock,setFreeProductStock]=useState(10);
-  const [freeFee, setFreeFee] = useState(1.5);
+  const [freeFee, setFreeFee] = useState(1.75);
 
   const [proDays, setProDays] = useState(30);
   const [proMax, setProMax] = useState(500);

@@ -9,7 +9,10 @@ function settingsDatabase(value:string|null){
 
 test('annual Pro pricing defaults to one year at the configured annual rate',async()=>{
   const pricing=await getProPricing(settingsDatabase(null));
-  assert.equal(pricing.annualAmount,249_000);
+  assert.equal(pricing.amount,29_900);
+  assert.equal(pricing.annualAmount,299_000);
+  assert.equal(pricing.introAmount,24_900);
+  assert.equal(pricing.introLimit,100);
   assert.equal(pricing.annualDurationDays,365);
 });
 
