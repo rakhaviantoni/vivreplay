@@ -8,9 +8,11 @@ import {marketParcel} from '@/lib/market/sealed-products';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
 import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,calculateBuyerServiceFee,calculateSellerServiceFee,getMarketBuyerFeeCap,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 import {syncSocialListingStage} from '@/lib/server/postforme';
+import {spendCredits} from '@/lib/server/credits';
+import {fulfillCheckoutOrder} from '@/lib/server/checkout-orders';
 
 const checkoutItem=z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),sealedProductId:z.string().optional(),parcel:z.object({weight:z.number().int().positive(),length:z.number().int().positive(),width:z.number().int().positive(),height:z.number().int().positive()}).optional()});
-const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(checkoutItem.extend({listingId:z.string().optional()})).min(1).max(600),lines:z.array(z.object({listingId:z.string().min(1),items:z.array(checkoutItem).min(1).max(60)})).max(10).optional(),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional(),shippingInsurance:z.boolean().default(false),useShippingVoucher:z.boolean().default(true),paymentMethod:z.enum(['va','cstore','qris','cc','paylater','ewallet']).default('qris'),paymentChannel:z.string().regex(/^[a-z0-9_]{2,24}$/).default('mpm')});
+const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(checkoutItem.extend({listingId:z.string().optional()})).min(1).max(600),lines:z.array(z.object({listingId:z.string().min(1),items:z.array(checkoutItem).min(1).max(60)})).max(10).optional(),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional(),shippingInsurance:z.boolean().default(false),useShippingVoucher:z.boolean().default(true),payWithCredits:z.boolean().optional(),paymentMethod:z.enum(['va','cstore','qris','cc','paylater','ewallet']).default('qris'),paymentChannel:z.string().regex(/^[a-z0-9_]{2,24}$/).default('mpm')});
 type BundleEntry={instanceId?:string;printingId:string;sealedProductId?:string;parcel?:{weight:number;length:number;width:number;height:number};photoIds?:string[];notes?:string;quantity:number;condition?:string;unitAmount:number;listingId?:string;productType?:string;generalProduct?:{category:string;brand?:string;model?:string}};
 type AcceptedOffer={id:string;actorId:string;buyerId:string;initialActorId:string;listingOwnerId:string;listingType:string;sealedProductId:string|null;listingId:string;status:string;amount:number;items:string};
 
@@ -200,7 +202,7 @@ export async function POST(request:Request){
     for(const item of orderItems){const sourceListingId=item.listingId||listing.id;const key=`${sourceListingId}:${item.instanceId?`instance:${item.instanceId}`:`printing:${item.printingId}`}`;const entry=requested.get(key)??{listingId:sourceListingId,instanceId:item.instanceId??null,printingId:item.printingId,quantity:0,capacity:0};entry.quantity+=item.quantity;requested.set(key,entry);}
     for(const [sourceListingId,bundle] of bundleByListing){for(const item of bundle){const key=`${sourceListingId}:${item.instanceId?`instance:${item.instanceId}`:`printing:${item.printingId}`}`;const requestedEntry=requested.get(key);if(requestedEntry)requestedEntry.capacity+=item.quantity;}}
     const reservationChecks=acceptedOffer?.listingType==='WTB'?'1=1':`NOT EXISTS(SELECT 1 FROM json_each(?) requested WHERE CAST(json_extract(requested.value,'$.quantity') AS INTEGER)+COALESCE((SELECT SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)) FROM checkout_orders o,json_each(o.items) j WHERE ((json_extract(requested.value,'$.instanceId') IS NOT NULL AND json_extract(j.value,'$.instanceId')=json_extract(requested.value,'$.instanceId')) OR (json_extract(requested.value,'$.instanceId') IS NULL AND (json_extract(j.value,'$.listingId')=json_extract(requested.value,'$.listingId') OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=json_extract(requested.value,'$.listingId'))))) AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP)) AND ((json_extract(requested.value,'$.instanceId') IS NOT NULL AND json_extract(j.value,'$.instanceId')=json_extract(requested.value,'$.instanceId')) OR (json_extract(requested.value,'$.instanceId') IS NULL AND json_extract(j.value,'$.instanceId') IS NULL AND json_extract(j.value,'$.printingId')=json_extract(requested.value,'$.printingId')))),0)>CAST(json_extract(requested.value,'$.capacity') AS INTEGER))`;
-    const listingGuards=listingRows.results.map(()=>`AND EXISTS(SELECT 1 FROM listings current WHERE current.id=? AND current.seller_id=? AND current.status='ACTIVE' AND current.amount=? AND current.quantity=? AND current.items IS ? AND (current.expires_at IS NULL OR current.expires_at>CURRENT_TIMESTAMP))`).join('\n');
+    const listingGuards=listingRows.results.map(()=>`AND EXISTS(SELECT 1 FROM listings current WHERE current.id=? AND current.seller_id=? AND (current.status='ACTIVE' OR (current.type='WTA' AND current.status IN ('RESERVED','ENDED'))) AND current.amount=? AND current.quantity=? AND current.items IS ? AND (current.expires_at IS NULL OR current.expires_at>CURRENT_TIMESTAMP))`).join('\n');
     const listingGuardBindings=listingRows.results.flatMap(row=>[row.id,row.sellerId,row.amount,row.quantity,row.items]);
     const offerGuard=acceptedOffer
       ?`AND EXISTS(SELECT 1 FROM listing_offers f WHERE f.id=? AND f.listing_id=? AND f.status='ACCEPTED' AND (SELECT first.actor_id FROM listing_offers first WHERE COALESCE(first.thread_id,first.id)=COALESCE(f.thread_id,f.id) ORDER BY first.created_at,first.rowid LIMIT 1)=?) AND NOT EXISTS(SELECT 1 FROM checkout_orders prior WHERE prior.offer_id=? AND (prior.status IN ('PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED','FULFILLED') OR (prior.status='PENDING_PAYMENT' AND prior.expires_at>CURRENT_TIMESTAMP)))`
@@ -209,13 +211,41 @@ export async function POST(request:Request){
     const orderDetails={...shipping,parcel,parcelDescription,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel,ipaymuSelectedName:selectedPaymentChannel?.name??'QRIS',ipaymuSelectedLogo:selectedPaymentChannel?.logo??''};
     const inserted=await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,seller_net_amount,shipping_fee,amount,currency,status,expires_at)
       SELECT ?,'MARKET',?,?,?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?
-      WHERE EXISTS(SELECT 1 FROM listings current WHERE current.id=? AND current.status='ACTIVE' AND current.amount=? AND current.quantity=? AND current.items IS ? AND (current.expires_at IS NULL OR current.expires_at>CURRENT_TIMESTAMP))
+      WHERE EXISTS(SELECT 1 FROM listings current WHERE current.id=? AND (current.status='ACTIVE' OR (current.type='WTA' AND current.status IN ('RESERVED','ENDED'))) AND current.amount=? AND current.quantity=? AND current.items IS ? AND (current.expires_at IS NULL OR current.expires_at>CURRENT_TIMESTAMP))
       ${listingGuards}
       ${offerGuard}
       AND ${reservationChecks}
       AND (?=0 OR ((? IS NOT NULL AND EXISTS(SELECT 1 FROM market_pro_voucher_grants g WHERE g.id=? AND g.owner_id=? AND g.starts_at<=CURRENT_TIMESTAMP AND g.expires_at>CURRENT_TIMESTAMP) AND (SELECT COUNT(*) FROM checkout_orders prior WHERE prior.buyer_id=? AND prior.kind='MARKET' AND prior.status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(prior.details,'$.marketProShippingVoucherGrantId')=?)<${MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR}) OR (? IS NULL AND (SELECT COUNT(*) FROM checkout_orders prior WHERE prior.buyer_id=? AND prior.kind='MARKET' AND prior.status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(prior.details,'$.marketProShippingVoucherMonth')=?)<${MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH})))`)
       .bind(id,profile.id,fulfillmentSellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(orderDetails),subtotal,sellerNetAmount,shippingFee,amount,'IDR',expiresAt,listing.id,listing.amount,listing.quantity,listing.items,...listingGuardBindings,...offerBindings,...(reservationChecks==='1=1'?[]:[JSON.stringify([...requested.values()])]),voucherAvailable?1:0,annualGrant?.id??null,annualGrant?.id??null,profile.id,profile.id,annualGrant?.id??null,annualGrant?.id??null,profile.id,voucherMonth).run();
     if(!inserted.meta.changes)throw new HttpError(409,voucherAvailable?'Your monthly shipping benefit was just used. Refresh checkout to continue.':'This listing changed or the selected cards were reserved by another checkout. Refresh and try again.');
+    if(input.payWithCredits){
+      const spend=await spendCredits(database,{
+        profileId:profile.id,
+        amount,
+        kind:'MARKET_ORDER',
+        referenceId:id,
+        description:`Market order ${listing.title}`,
+      });
+      if(!spend.ok){
+        await database.prepare("DELETE FROM checkout_orders WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();
+        throw new HttpError(402,'Insufficient VivrePlay Credits balance.');
+      }
+      const creditPaymentId=`CREDITS:${id}`;
+      await database.prepare("UPDATE checkout_orders SET payment_id=? WHERE id=? AND status='PENDING_PAYMENT'").bind(creditPaymentId,id).run();
+      await fulfillCheckoutOrder(database,{
+        id,
+        kind:'MARKET',
+        buyerId:profile.id,
+        sellerId:fulfillmentSellerId,
+        listingId:listing.id,
+        items:JSON.stringify(orderItems),
+        details:JSON.stringify(orderDetails),
+        subtotal,
+        paymentId:creditPaymentId,
+      });
+      await syncSocialListingStage({listingIds:listingRows.results.map(row=>row.id),stage:'SOLD'}).catch(()=>{});
+      return Response.json({id,paidWithCredits:true,balance:spend.balance,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee,shippingDiscount,buyerServiceFeeAmount,total:amount},{status:201});
+    }
     await syncSocialListingStage({listingIds:listingRows.results.map(row=>row.id),stage:'BOOKED'}).catch(()=>{});
     return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee,shippingDiscount,buyerServiceFeeAmount,total:amount},{status:201});
   }catch(error){return errorResponse(error)}

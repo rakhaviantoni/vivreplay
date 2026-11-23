@@ -1165,7 +1165,9 @@ export function MarketListingDetailView({
                           title={listingTitle}
                           path={marketListingPath(listingTitle,listing.id)}
                           cards={marketShareCards(editableCards)}
-                          price={formatMoney(listingAmount, listing.currency)}
+                          price={listing.type === 'WTA'
+                            ? (language === 'ID' ? `Open bid mulai ${formatMoney(listingAmount, listing.currency)}` : `Open bid from ${formatMoney(listingAmount, listing.currency)}`)
+                            : formatMoney(listingAmount, listing.currency)}
                           subtitle={language==='ID'?`${editableCards.reduce((acc, it) => acc + it.quantity, 0)} kartu`:`${editableCards.reduce((acc, it) => acc + it.quantity, 0)} ${editableCards.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'}`}
                           listingInfo={{seller:listing.seller,city:listing.city,expiresAt:expiresAt??undefined}}
                           className="market-listing-share"
@@ -1281,7 +1283,9 @@ export function MarketListingDetailView({
                   title={listingTitle}
                   path={marketListingPath(listingTitle,listing.id)}
                   cards={marketShareCards(editableCards)}
-                  price={formatMoney(listingAmount, listing.currency)}
+                  price={listing.type === 'WTA'
+                    ? (language === 'ID' ? `Open bid mulai ${formatMoney(listingAmount, listing.currency)}` : `Open bid from ${formatMoney(listingAmount, listing.currency)}`)
+                    : formatMoney(listingAmount, listing.currency)}
                   subtitle={language==='ID'?`${editableCards.reduce((acc, it) => acc + it.quantity, 0)} kartu`:`${editableCards.reduce((acc, it) => acc + it.quantity, 0)} ${editableCards.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'}`}
                   listingInfo={{seller:listing.seller,city:listing.city,expiresAt:expiresAt??undefined}}
                   className="market-listing-share"

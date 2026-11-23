@@ -5,6 +5,7 @@ export interface AuctionSummary {
   listingId: string;
   sellerId: string;
   startingBid: number;
+  buyNowPrice?: number | null;
   minIncrement: number;
   currentBid: number;
   highestBidderId: string | null;

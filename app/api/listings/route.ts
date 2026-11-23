@@ -15,6 +15,7 @@ import {recordMarketActivity} from '@/lib/server/market-activity-progress';
 const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),productType:z.enum(['RAW','GRADED']).optional(),gradingCompany:z.string().trim().max(40).optional(),grade:z.string().trim().max(20).optional(),certification:z.string().trim().max(100).optional(),slabLabelStyle:z.enum(['clear','standard']).optional(),unitAmount:z.number().int().nonnegative().optional(),photoIds:z.array(z.string().min(1).max(120)).max(6).optional()});
 const auctionSchema=z.object({
   startingBid:z.number().int().min(1000).max(100000000000),
+  buyNowPrice:z.number().int().min(1000).max(100000000000).nullable().optional(),
   minIncrement:z.number().int().min(1000).max(100000000).default(10000),
   durationMode:z.enum(['FIXED','ROLLING_24H','ROLLING_48H']).default('ROLLING_24H'),
   fixedHours:z.number().int().min(1).max(168).optional(),
@@ -189,6 +190,10 @@ export async function POST(request:Request){
     let finalExpiresAt=expiresAt;
     if(value.type==='WTA'){
       const auctionInput=value.auction??{startingBid:value.amount,minIncrement:10000,durationMode:'ROLLING_24H' as const};
+      const startingBid=auctionInput.startingBid||value.amount;
+      if(auctionInput.buyNowPrice&&auctionInput.buyNowPrice<=startingBid){
+        throw new HttpError(400,'Buy Out price must be higher than the starting bid.');
+      }
       if(auctionInput.durationMode==='FIXED'&&auctionInput.fixedEndsAt){
         const check=validateFixedAuctionEndsAt(auctionInput.fixedEndsAt);
         if(!check.ok)throw new HttpError(400,check.error);
@@ -196,7 +201,8 @@ export async function POST(request:Request){
       createdAuction=await createAuctionForListing(database,{
         listingId:id,
         sellerId:profile.id,
-        startingBid:auctionInput.startingBid||value.amount,
+        startingBid,
+        buyNowPrice:auctionInput.buyNowPrice??null,
         minIncrement:auctionInput.minIncrement??10000,
         durationMode:auctionInput.durationMode??'ROLLING_24H',
         fixedHours:auctionInput.fixedHours,

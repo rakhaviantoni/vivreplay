@@ -351,25 +351,32 @@ export function ProfileSocialsPanel({
               </p>
             )}
 
-            <div className="profile-social-connect-row">
-              {availablePlatforms.map((plat) => (
-                <button
-                  key={plat}
-                  type="button"
-                  className="profile-social-connect-btn"
-                  disabled={connectingPlatform === plat}
-                  onClick={() => void handleConnect(plat)}
-                >
-                  <PlatformIcon platform={plat} size={15} />
-                  <span>
-                    {connectingPlatform === plat
-                      ? t('Connecting...', 'Menghubungkan...')
-                      : t(`Connect ${PLATFORM_META[plat]?.label ?? plat}`, `Hubungkan ${PLATFORM_META[plat]?.label ?? plat}`)}
-                  </span>
-                  <Plus size={13} />
-                </button>
-              ))}
-            </div>
+            {(() => {
+              const connectedSet = new Set(accounts.map((acc) => acc.platform.toLowerCase()));
+              const remainingPlatforms = availablePlatforms.filter((plat) => !connectedSet.has(plat.toLowerCase()));
+              if (!remainingPlatforms.length) return null;
+              return (
+                <div className="profile-social-connect-row">
+                  {remainingPlatforms.map((plat) => (
+                    <button
+                      key={plat}
+                      type="button"
+                      className="profile-social-connect-btn"
+                      disabled={connectingPlatform === plat}
+                      onClick={() => void handleConnect(plat)}
+                    >
+                      <PlatformIcon platform={plat} size={15} />
+                      <span>
+                        {connectingPlatform === plat
+                          ? t('Connecting...', 'Menghubungkan...')
+                          : t(`Connect ${PLATFORM_META[plat]?.label ?? plat}`, `Hubungkan ${PLATFORM_META[plat]?.label ?? plat}`)}
+                      </span>
+                      <Plus size={13} />
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
       </section>

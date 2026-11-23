@@ -4696,14 +4696,14 @@ html[data-theme='dark'] .social-post-detail-close{border-color:#253e4b;backgroun
 }
 
 /* WTA (Auction) listing & live bidding UI */
-.market-trade-dot.is-wta{background:#6d4aff}
-.market-feed-row.is-wta{--market-row-accent:#6d4aff}
-.market-listing-status.is-wta{background:color-mix(in srgb,#6d4aff 14%,var(--surface-raised));color:#5634d9;border-color:color-mix(in srgb,#6d4aff 34%,var(--line))}
-html[data-theme='dark'] .market-listing-status.is-wta{color:#b7a3ff}
+.market-trade-dot.is-wta{background:#b84a1e}
+.market-feed-row.is-wta{--market-row-accent:#b84a1e}
+.market-listing-status.is-wta{background:color-mix(in srgb,#b84a1e 14%,var(--surface-raised));color:#9c3a14;border-color:color-mix(in srgb,#b84a1e 34%,var(--line))}
+html[data-theme='dark'] .market-listing-status.is-wta{color:#e87a4d}
 .market-auction-config{display:grid;gap:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-muted)}
-.market-auction-panel{display:grid;gap:14px;margin:16px 0;padding:16px;border:1px solid color-mix(in srgb,#6d4aff 30%,var(--line));border-radius:14px;background:color-mix(in srgb,#6d4aff 4%,var(--surface-raised))}
+.market-auction-panel{display:grid;gap:14px;margin:16px 0;padding:16px;border:1px solid color-mix(in srgb,#b84a1e 30%,var(--line));border-radius:14px;background:color-mix(in srgb,#b84a1e 4%,var(--surface-raised))}
 .market-auction-header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.market-auction-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#6d4aff;color:#fff;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.market-auction-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#b84a1e;color:#fff;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
 .market-auction-pill.is-ended{background:var(--surface-muted);color:var(--muted);border:1px solid var(--line)}
 .market-auction-rule{color:var(--muted);font-size:12px;font-weight:650}
 .market-auction-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-raised)}
@@ -4720,15 +4720,32 @@ html[data-theme='dark'] .market-listing-status.is-wta{color:#b7a3ff}
 .market-auction-leading{margin:0;padding:8px 12px;border-radius:9px;background:color-mix(in srgb,#16845f 10%,var(--surface-raised));color:#146c4e;font-size:12px;font-weight:700}
 .market-auction-quick-bids{display:flex;flex-wrap:wrap;gap:6px}
 .market-auction-quick-bids button{min-height:32px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface-raised);color:var(--ink);font:inherit;font-size:11.5px;font-weight:650;cursor:pointer}
-.market-auction-quick-bids button.is-selected{border-color:#6d4aff;background:color-mix(in srgb,#6d4aff 12%,var(--surface-raised));color:var(--ink)}
+.market-auction-quick-bids button.is-selected{border-color:#b84a1e;background:color-mix(in srgb,#b84a1e 12%,var(--surface-raised));color:var(--ink)}
 .market-auction-quick-bids button:disabled{opacity:.5;cursor:not-allowed}
 .market-auction-bid-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
 .market-auction-bid-row .button{min-height:42px;padding-inline:18px}
+.market-sell-bundle-edit-btn{display:grid;gap:4px;padding:0;border:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:pointer}
+.market-sell-bundle-edit-btn:hover strong{color:var(--accent)}
+.market-auction-buyout-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:11px 14px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--accent) 8%,var(--surface-raised))}
+.market-auction-buyout-row>div{display:grid;gap:2px}
+.market-auction-buyout-row small{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.market-auction-buyout-row strong{color:var(--ink);font-size:16px}
+.market-credits-quick,.market-socials-quick{display:grid;gap:14px}
+.market-credits-topup-block{display:grid;gap:8px}
+.market-credits-topup-block>strong{color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.market-credits-topup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.market-credits-topup-btn{display:grid;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-raised);color:var(--ink);text-align:left;font:inherit;cursor:pointer;transition:border-color .15s,background .15s}
+.market-credits-topup-btn:hover:not(:disabled){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface-raised))}
+.market-credits-topup-btn:disabled{opacity:.6;cursor:wait}
+.market-credits-topup-btn strong{font-size:13px}
+.market-credits-topup-btn small{color:var(--muted);font-size:11px;font-weight:700}
+.market-payout-history b.is-positive{color:var(--ok)}
+.market-payout-history b.is-negative{color:var(--accent)}
 .market-auction-history{display:grid;gap:8px;padding-top:6px;border-top:1px solid var(--line)}
 .market-auction-history h4{margin:0;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
 .market-auction-history ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}
 .market-auction-history li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:7px 10px;border-radius:8px;background:var(--surface-raised);font-size:12.5px}
-.market-auction-history li.is-top{border:1px solid color-mix(in srgb,#6d4aff 32%,var(--line))}
+.market-auction-history li.is-top{border:1px solid color-mix(in srgb,#b84a1e 32%,var(--line))}
 .market-auction-history li span{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .market-auction-history li small{color:var(--muted);font-size:11px}
 @media(max-width:600px){
@@ -4740,8 +4757,8 @@ html[data-theme='dark'] .market-listing-status.is-wta{color:#b7a3ff}
 .market-auction-fixed-box{display:grid;gap:10px}
 .market-auction-fixed-box label>small{color:var(--muted);font-size:11.5px;font-weight:500}
 .market-feed-featured-badge,.market-listing-boosted-badge{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 7px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--accent) 13%,var(--surface-raised));color:var(--accent-deep,var(--accent));font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;vertical-align:middle}
-.market-listing-type-badge.is-auction{background:color-mix(in srgb,#6d4aff 14%,var(--surface-raised));color:#5634d9;border-color:color-mix(in srgb,#6d4aff 32%,var(--line))}
-html[data-theme='dark'] .market-listing-type-badge.is-auction{color:#b7a3ff}
+.market-listing-type-badge.is-auction{background:color-mix(in srgb,#b84a1e 14%,var(--surface-raised));color:#9c3a14;border-color:color-mix(in srgb,#b84a1e 32%,var(--line))}
+html[data-theme='dark'] .market-listing-type-badge.is-auction{color:#e87a4d}
 .market-activity-actions button.is-boost-action{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));color:var(--accent-deep,var(--accent))}
 .market-boost-dialog,.market-partner-dialog{width:min(540px,calc(100vw - 24px))!important;max-width:540px!important}
 .market-boost-plans{display:grid;gap:10px}

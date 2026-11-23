@@ -78,6 +78,11 @@ export function MarketCheckout(){
   const [useShippingInsurance,setUseShippingInsurance]=useState(false);
   const [quoting,setQuoting]=useState(false);
   const [submitting,setSubmitting]=useState(false);
+  const [creditBalance,setCreditBalance]=useState<number|null>(null);
+  useEffect(()=>{
+    if(!account)return;
+    fetch('/api/market/credits',{cache:'no-store'}).then(r=>(r.ok?r.json():null) as Promise<{balance?:number}|null>).then(d=>{if(d&&typeof d.balance==='number')setCreditBalance(d.balance)}).catch(()=>undefined);
+  },[account]);
   const [error,setError]=useState('');
   const [quoteError,setQuoteError]=useState('');
   const [detailsError,setDetailsError]=useState('');
@@ -258,12 +263,12 @@ export function MarketCheckout(){
   const chooseDelivery=()=>{if(editingAddress||!addressReady){setEditingAddress(true);document.querySelector('.checkout-address-editor')?.scrollIntoView({behavior:'smooth',block:'start'});return}const panel=document.getElementById('checkout-delivery-services');panel?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});panel?.focus({preventScroll:true});};
   const updateCartQuantity=(sourceListingId:string,printingId:string,quantity:number)=>{const source=cartListings.find(row=>row.id===sourceListingId);const cap=source?.items?.filter(item=>item.printingId===printingId).reduce((total,item)=>total+item.quantity,0)??99;quantity=Math.min(99,cap,quantity);const next=cartLines.map(line=>line.listingId===sourceListingId?{...line,items:line.items.map(item=>item.printingId===printingId?{...item,quantity}:item).filter(item=>item.quantity>0)}:line).filter(line=>line.items.length>0);setCartLines(next);let storedLines:CartLine[]=[];try{const stored=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'{"lines":[]}') as {lines?:CartLine[]};storedLines=Array.isArray(stored.lines)?stored.lines:[]}catch{}const selectedIds=new Set(cartLines.map(line=>line.listingId));const selectedById=new Map(next.map(line=>[line.listingId,line]));const allLines=storedLines.flatMap(line=>{if(!selectedIds.has(line.listingId))return[line];const updated=selectedById.get(line.listingId);return updated?[updated]:[]});window.localStorage.setItem('vivreplay-market-cart-v1',JSON.stringify({lines:allLines}));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));autoQuoteKey.current='';};
 
-  const startCheckout=async()=>{
+  const startCheckout=async(payWithCredits=false)=>{
     if(!currentRate)return;
-    if(!selectedPaymentOption){setError(t('Choose an available payment method to continue.','Pilih metode pembayaran yang tersedia untuk melanjutkan.'));return;}
+    if(!payWithCredits&&!selectedPaymentOption){setError(t('Choose an available payment method to continue.','Pilih metode pembayaran yang tersedia untuk melanjutkan.'));return;}
     setSubmitting(true);setError('');
     try{
-      const response=await fetch('/api/checkout/market',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId:orderListingId,offerId:offerId||undefined,items:cartMode?selectedCards.map(item=>({printingId:item.printingId,quantity:item.quantity,listingId:item.listingId})):items,lines:cartMode?activeCartLines.map(line=>({listingId:line.listingId,items:line.items})):undefined,courierName:currentRate.courier_name,courierServiceName:currentRate.courier_service_name,courierCode:currentRate.courier_code,courierServiceCode:currentRate.courier_service_code,courierType:currentRate.type,shippingFee:shippingTotal,shippingInsurance:useShippingInsurance,useShippingVoucher,paymentMethod:selectedPaymentOption.method,paymentChannel:selectedPaymentOption.channel})});
+      const response=await fetch('/api/checkout/market',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId:orderListingId,offerId:offerId||undefined,items:cartMode?selectedCards.map(item=>({printingId:item.printingId,quantity:item.quantity,listingId:item.listingId})):items,lines:cartMode?activeCartLines.map(line=>({listingId:line.listingId,items:line.items})):undefined,courierName:currentRate.courier_name,courierServiceName:currentRate.courier_service_name,courierCode:currentRate.courier_code,courierServiceCode:currentRate.courier_service_code,courierType:currentRate.type,shippingFee:shippingTotal,shippingInsurance:useShippingInsurance,useShippingVoucher,payWithCredits,paymentMethod:selectedPaymentOption?.method??'qris',paymentChannel:selectedPaymentOption?.channel??'mpm'})});
       const result=await response.json() as {checkoutUrl?:string;error?:string};
       if(response.status===409&&result.error?.includes('delivery fee changed')){await loadQuotes(true);throw new Error(t('Delivery fees changed. Review the updated options before paying.','Ongkir berubah. Periksa opsi terbaru sebelum membayar.'));}
       if(!response.ok||!result.checkoutUrl)throw new Error(result.error??t('Checkout could not be started.','Checkout tidak dapat dimulai.'));
@@ -344,7 +349,12 @@ export function MarketCheckout(){
         {checkoutAvailable&&<MarketPaymentMethodPicker locale={locale} options={paymentOptions} amount={paymentBaseTotal} selectedMethod={selectedPaymentMethod} selectedChannel={selectedPaymentChannel} unavailableReason={paymentChannelStatus} onChange={(method,channel)=>{selectedPaymentChoice.current={method,channel};setSelectedPaymentMethod(method);setSelectedPaymentChannel(channel)}}/>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}
         {!checkoutAvailable&&<MarketPaymentPreview amount={subtotal+shippingTotal-shippingDiscount+buyerServiceFee} currency={listing.currency} language={locale}/>}
-        <button type="button" className="button checkout-pay-button" disabled={!currentRate||editingAddress||submitting||!checkoutAvailable||!selectedPaymentOption||!contactComplete||quoting} onClick={startCheckout}>{submitting?t('Preparing payment…','Menyiapkan pembayaran…'):checkoutAvailable?t('Continue to payment','Lanjut ke pembayaran'):t('Payment coming soon','Pembayaran segera tersedia')}</button>
+        {checkoutAvailable&&creditBalance!==null&&creditBalance>=paymentBaseTotal&&currentRate&&!editingAddress&&contactComplete&&(
+          <button type="button" className="button" style={{marginBottom:8}} disabled={submitting||quoting} onClick={()=>void startCheckout(true)}>
+            {submitting?t('Processing…','Memproses…'):t(`Pay in full with VivrePlay Credits (${formatMoney(paymentBaseTotal,listing.currency)})`,`Bayar penuh pakai Kredit VivrePlay (${formatMoney(paymentBaseTotal,listing.currency)})`)}
+          </button>
+        )}
+        <button type="button" className={creditBalance!==null&&creditBalance>=paymentBaseTotal?'button secondary checkout-pay-button':'button checkout-pay-button'} disabled={!currentRate||editingAddress||submitting||!checkoutAvailable||!selectedPaymentOption||!contactComplete||quoting} onClick={()=>void startCheckout(false)}>{submitting?t('Preparing payment…','Menyiapkan pembayaran…'):checkoutAvailable?t('Continue to payment','Lanjut ke pembayaran'):t('Payment coming soon','Pembayaran segera tersedia')}</button>
       </section>
     </div>
   </main>

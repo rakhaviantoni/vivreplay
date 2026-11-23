@@ -3,6 +3,7 @@ import {getCurrentUser} from '@/lib/server/auth';
 import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannelChoices,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,parseCheckoutTimestamp} from '@/lib/server/ipaymu';
 import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,MARKET_FREE_SOCIAL_POSTS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 import {getProPricing} from '@/lib/market/pro-pricing';
+import {spendCredits} from '@/lib/server/credits';
 
 const PAID_INTRO_STATUSES="'PROCESSING','PAID','COMPLETED'";
 
@@ -105,7 +106,7 @@ export async function GET(){
 export async function POST(request:Request){
   try{
     guard(request);
-    const body=await request.json().catch(()=>({})) as {introOffer?:boolean;paymentMethod?:string;paymentChannel?:string;billingPeriod?:'monthly'|'yearly'};
+    const body=await request.json().catch(()=>({})) as {introOffer?:boolean;payWithCredits?:boolean;paymentMethod?:string;paymentChannel?:string;billingPeriod?:'monthly'|'yearly'};
     const profile=await user();
     const account=await getCurrentUser();
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
@@ -113,6 +114,26 @@ export async function POST(request:Request){
     const billingPeriod=body.billingPeriod==='yearly'?'yearly':'monthly';
     const amount=billingPeriod==='yearly'?pricing.annualAmount:pricing.amount;
     const durationDays=billingPeriod==='yearly'?pricing.annualDurationDays:pricing.durationDays;
+    if(body.payWithCredits){
+      if(!amount||!durationDays)throw new HttpError(503,'Market Pro checkout is temporarily unavailable.');
+      if(profile.tier==='pro'&&billingPeriod!=='yearly')throw new HttpError(409,'Your Pro membership is already active. Choose the annual plan to extend it.');
+      const database=db();
+      const orderId=crypto.randomUUID();
+      const spend=await spendCredits(database,{
+        profileId:profile.id,
+        amount,
+        kind:'PRO',
+        referenceId:orderId,
+        description:`Market Pro (${billingPeriod})`,
+      });
+      if(!spend.ok)throw new HttpError(402,'Insufficient VivrePlay Credits balance.');
+      await database.batch([
+        database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,items,details,subtotal,shipping_fee,amount,currency,status,payment_id,paid_at,fulfilled_at)
+          VALUES (?,'PRO',?,'[]',?,?,0,?,'IDR','PAID',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`).bind(orderId,profile.id,JSON.stringify({durationDays,billingPeriod,paidWithCredits:true}),amount,amount,`CREDITS:${orderId}`),
+        database.prepare(`UPDATE profiles SET tier='pro',pro_billing_period=?,pro_expires_at=datetime(max(COALESCE(pro_expires_at,CURRENT_TIMESTAMP),CURRENT_TIMESTAMP), '+' || ? || ' days') WHERE id=?`).bind(billingPeriod,durationDays,profile.id),
+      ]);
+      return Response.json({id:orderId,paidWithCredits:true,balance:spend.balance,amount,billingPeriod},{status:200});
+    }
     if(!hasMarketIpaymuPaymentConfig()||!amount||!durationDays)throw new HttpError(503,'Market Pro checkout is temporarily unavailable.');
     const paymentMethod=body.paymentMethod??'qris';
     const paymentChannel=body.paymentChannel??'mpm';
