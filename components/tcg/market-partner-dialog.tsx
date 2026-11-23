@@ -89,7 +89,7 @@ export function MarketPartnerDialog({
             <div>
               <Megaphone size={16} weight="fill"/>
               <div>
-                <strong>{id?'Auto-Post Sosial Media':'Social Auto-Post Access'}</strong>
+                <strong>{id?'Auto-Post Sosial Media (Akses Awal / Tester)':'Social Auto-Post Access (Early-Access / Tester)'}</strong>
                 <span>{id?'Publikasikan listing langsung ke Instagram, Facebook, dan Threads.':'Cross-post listings directly to Instagram, Facebook, and Threads.'}</span>
               </div>
             </div>

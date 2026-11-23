@@ -2,7 +2,7 @@
 
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import Link from '@/components/ui/localized-link';
-import {BookmarkSimpleIcon as Bookmark,ClockIcon as Clock,GavelIcon as Gavel,CheckCircleIcon as CheckCircle,PencilSimpleIcon as Pencil,SealCheckIcon as SealCheck} from '@phosphor-icons/react';
+import {ClockIcon as Clock,GavelIcon as Gavel,CheckCircleIcon as CheckCircle,PencilSimpleIcon as Pencil,SealCheckIcon as SealCheck} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {formatMoney} from '@/packages/domain';
 import {
@@ -80,7 +80,6 @@ export function MarketAuctionPanel({
   const [auction,setAuction]=useState<AuctionSummary>(initialAuction);
   const [bids,setBids]=useState<AuctionBidRecord[]>(initialBids);
   const [watchers,setWatchers]=useState<AuctionWatcher[]>(initialWatchers);
-  const [trackingBusy,setTrackingBusy]=useState(false);
 
   useEffect(()=>{
     const onSavedChanged=(event:Event)=>{
@@ -420,52 +419,8 @@ export function MarketAuctionPanel({
 
       {isScheduled&&(
         <div className="market-auction-scheduled-banner" role="status">
-          <div className="market-auction-scheduled-head">
-            <div>
-              <strong>{locale==='ID'?'Lelang belum dimulai':'Auction is scheduled'}</strong>
-              <span>{locale==='ID'?'Tandai (Jejak / Save) listing ini untuk ikut antre dan mendapatkan notifikasi saat bidding dibuka.':'Track (Save / Jejak) this listing to show interest and get notified when bidding opens.'}</span>
-            </div>
-            {!isOwner&&(()=>{
-              const isTracking=Boolean(currentUserId&&watchers.some(w=>w.userId===currentUserId));
-              return (
-                <button
-                  type="button"
-                  className={`button ${isTracking?'secondary':'primary'}`}
-                  disabled={trackingBusy}
-                  onClick={async()=>{
-                    if(!currentUserId){
-                      window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));
-                      return;
-                    }
-                    setTrackingBusy(true);
-                    try{
-                      const nextSaved=!isTracking;
-                      const res=await fetch('/api/market/saved',{
-                        method:'POST',
-                        headers:{'content-type':'application/json'},
-                        body:JSON.stringify({listingId,saved:nextSaved,alerts:true}),
-                      });
-                      if(!res.ok)throw new Error(locale==='ID'?'Gagal menyimpan status Jejak.':'Could not update tracking status.');
-                      window.dispatchEvent(new Event('vivreplay:saved-listings'));
-                      window.dispatchEvent(new CustomEvent('vivreplay:saved-changed',{detail:{listingId,saved:nextSaved}}));
-                      if(nextSaved){
-                        toast.success(locale==='ID'?'Disimpan (Jejak)! Anda akan diberi tahu saat lelang dimulai.':'Saved (Jejak)! You will be notified when the auction starts.');
-                      }else{
-                        toast.success(locale==='ID'?'Dihapus dari simpanan.':'Removed from saved listings.');
-                      }
-                    }catch(cause){
-                      toast.error((cause as Error).message);
-                    }finally{
-                      setTrackingBusy(false);
-                    }
-                  }}
-                >
-                  <Bookmark size={14} weight={isTracking?'fill':'regular'}/>
-                  <span>{isTracking?(locale==='ID'?'Tersimpan (Jejak)':'Saved (Jejak)'):(locale==='ID'?'Simpan / Jejak':'Save / Jejak')}</span>
-                </button>
-              );
-            })()}
-          </div>
+          <strong>{locale==='ID'?'Lelang belum dimulai':'Auction is scheduled'}</strong>
+          <span>{locale==='ID'?'Klik tombol Simpan listing di atas untuk menandai (Jejak) dan mendapatkan notifikasi saat bidding dibuka.':'Click Save listing above to bookmark (Jejak) and get notified when bidding opens.'}</span>
           {watchers.length>0&&(
             <div className="market-auction-watchers">
               <small>{locale==='ID'?`Kolektor yang menandai (${watchers.length})`:`Collectors tracking (${watchers.length})`}</small>

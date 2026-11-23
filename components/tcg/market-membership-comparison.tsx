@@ -21,7 +21,7 @@ export function MarketMembershipComparison({locale,selectedPeriod,freeListings,m
     [t('Listing period','Masa tayang'),`${freeDays} ${t('days','hari')}`,`${proDays} ${t('days','hari')}`],
     [t('Market service fee','Biaya layanan Market'),`${freeFee}%`,`${proFee}%`],
     [t('Listing Boost / Spotlight','Sorotan Listing'),t('Pay per boost (from IDR 5,000)','Bayar per sorotan (mulai IDR 5.000)'),t('2 free 3-day boosts/mo + 50% off','2 sorotan 3 hari gratis/bln + diskon 50%')],
-    [t('Social auto-publish','Auto-post media sosial'),`${freeSocialPosts} / ${t('month','bulan')}`,t('Unlimited + scheduled','Tanpa batas + terjadwal')],
+    [t('Social auto-publish (Early-Access / Tester)','Auto-post media sosial (Akses Awal / Tester)'),`${freeSocialPosts} / ${t('month','bulan')}`,t('Unlimited + scheduled','Tanpa batas + terjadwal')],
     [t('Delivery vouchers','Voucher ongkir'),t('None','Tidak ada'),selectedVoucher],
   ];
   return <div className="market-membership-compare market-membership-compare-wide" aria-label={t('Free and Market Pro comparison','Perbandingan Free dan Market Pro')}>

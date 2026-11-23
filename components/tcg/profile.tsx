@@ -992,7 +992,7 @@ function ProfileForm({
           <button type="button" role="tab" aria-selected={activeTab==='bank'} className={`profile-tab ${activeTab==='bank'?'is-active':''}`} onClick={()=>setActiveTab('bank')}><span>{t('Bank accounts','Rekening bank')}</span></button>
           <button type="button" role="tab" aria-selected={activeTab==='socials'} className={`profile-tab ${activeTab==='socials'?'is-active':''}`} onClick={()=>setActiveTab('socials')}>
             <ShareNetwork size={16}/>
-            <span>{t('Socials & Auto-Post','Sosial & Auto-Post')}</span>
+            <span>{t('Socials & Auto-Post (Early-Access / Tester)','Sosial & Auto-Post (Akses Awal / Tester)')}</span>
           </button>
         </div>
 
