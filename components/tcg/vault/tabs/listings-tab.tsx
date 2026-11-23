@@ -33,6 +33,8 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
   const [boostBusy,setBoostBusy]=useState(false);
   const [isPro,setIsPro]=useState(false);
   const [proBoostCredits,setProBoostCredits]=useState(0);
+  const [creditBalance,setCreditBalance]=useState(0);
+  const [autoRenewPro,setAutoRenewPro]=useState(false);
   const operationLock=useRef(false);
   const refreshSequence=useRef(0);
   const refresh=useCallback(async(silent=false)=>{
@@ -40,12 +42,14 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
     if(!silent){setLoading(true);setLoadError('')}
     try{
       const response=await fetch(`/api/listings/mine?game=${gameSlug}`,{cache:'no-store'});
-      const data=await response.json() as {listings?:SellerListing[];isPro?:boolean;proBoostCreditsRemaining?:number;error?:string};
+      const data=await response.json() as {listings?:SellerListing[];isPro?:boolean;proBoostCreditsRemaining?:number;creditBalance?:number;autoRenewPro?:boolean;error?:string};
       if(!response.ok)throw new Error(data.error||'Your listings could not be loaded.');
       if(sequence!==refreshSequence.current)return;
       setListings(data.listings??[]);
       setIsPro(Boolean(data.isPro));
       setProBoostCredits(Number(data.proBoostCreditsRemaining)||0);
+      setCreditBalance(Number(data.creditBalance)||0);
+      setAutoRenewPro(Boolean(data.autoRenewPro));
       setNow(Date.now());
     }catch(error){if(!silent&&sequence===refreshSequence.current)setLoadError(error instanceof Error?error.message:'Your listings could not be loaded.');}
     finally{if(sequence===refreshSequence.current)setLoading(false)}
@@ -163,13 +167,103 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
             );
           })}
         </div>
+        <div className="market-boost-wallet-bar">
+          <div>
+            <small>{id?'Saldo Kredit VivrePlay':'VivrePlay Credits'}</small>
+            <strong>{money(creditBalance,'IDR')}</strong>
+          </div>
+          <div className="market-boost-topup-chips">
+            {[25_000,50_000,100_000].map(pkgAmount=>(
+              <button
+                key={pkgAmount}
+                type="button"
+                disabled={boostBusy}
+                onClick={async()=>{
+                  setBoostBusy(true);
+                  try{
+                    const response=await fetch('/api/market/credits',{
+                      method:'POST',
+                      headers:{'content-type':'application/json'},
+                      body:JSON.stringify({amount:pkgAmount}),
+                    });
+                    const payload=await response.json() as {checkoutUrl?:string;error?:string};
+                    if(!response.ok||!payload.checkoutUrl)throw new Error(payload.error||(id?'Gagal membuat top up.':'Could not start top-up.'));
+                    setBoostTarget(null);
+                    router.push(payload.checkoutUrl);
+                  }catch(error){
+                    toast.error(error instanceof Error?error.message:(id?'Gagal top up.':'Could not top up.'));
+                  }finally{
+                    setBoostBusy(false);
+                  }
+                }}
+              >
+                + {money(pkgAmount,'IDR')}
+              </button>
+            ))}
+          </div>
+        </div>
+        {isPro&&(
+          <label className="market-boost-autorenew-row">
+            <input
+              type="checkbox"
+              checked={autoRenewPro}
+              onChange={async event=>{
+                const next=event.target.checked;
+                setAutoRenewPro(next);
+                try{
+                  const response=await fetch('/api/market/credits',{
+                    method:'PATCH',
+                    headers:{'content-type':'application/json'},
+                    body:JSON.stringify({autoRenewPro:next}),
+                  });
+                  if(!response.ok)throw new Error();
+                  toast.success(next?(id?'Perpanjangan otomatis Pro dengan Kredit aktif':'Pro auto-renewal with Credits enabled'):(id?'Perpanjangan otomatis Pro dimatikan':'Pro auto-renewal disabled'));
+                }catch{
+                  setAutoRenewPro(!next);
+                  toast.error(id?'Gagal menyimpan pengaturan.':'Could not update setting.');
+                }
+              }}
+            />
+            <span>{id?'Perpanjang Market Pro otomatis menggunakan Kredit saat saldo mencukupi':'Auto-renew Market Pro using Credits when balance is sufficient'}</span>
+          </label>
+        )}
         <div className="market-boost-dialog-actions">
           <button type="button" className="button secondary" disabled={boostBusy} onClick={()=>setBoostTarget(null)}>
             {id?'Batal':'Cancel'}
           </button>
+          {creditBalance>=getBoostPlanAmount(boostPlan,isPro)&&boostTarget&&(
+            <button
+              type="button"
+              className="button"
+              disabled={boostBusy}
+              onClick={async()=>{
+                setBoostBusy(true);
+                try{
+                  const response=await fetch('/api/checkout/boost',{
+                    method:'POST',
+                    headers:{'content-type':'application/json'},
+                    body:JSON.stringify({listingId:boostTarget.id,planId:boostPlan,payWithCredits:true}),
+                  });
+                  const payload=await response.json() as {boostedUntil?:string;balance?:number;error?:string};
+                  if(!response.ok||!payload.boostedUntil)throw new Error(payload.error||(id?'Gagal menggunakan kredit.':'Could not pay with credits.'));
+                  setListings(current=>current.map(item=>item.id===boostTarget.id?{...item,boostedUntil:payload.boostedUntil}:item));
+                  if(typeof payload.balance==='number')setCreditBalance(payload.balance);
+                  setBoostTarget(null);
+                  void Promise.resolve(onListingChanged?.()).catch(()=>undefined);
+                  toast.success(id?'Sorotan aktif instan menggunakan Kredit!':'Spotlight activated instantly with Credits!');
+                }catch(error){
+                  toast.error(error instanceof Error?error.message:(id?'Gagal menggunakan kredit.':'Could not pay with credits.'));
+                }finally{
+                  setBoostBusy(false);
+                }
+              }}
+            >
+              {boostBusy?(id?'Memproses...':'Processing...'):(id?'Bayar pakai Kredit':'Pay with Credits')}
+            </button>
+          )}
           <button
             type="button"
-            className="button"
+            className={creditBalance>=getBoostPlanAmount(boostPlan,isPro)?'button secondary':'button'}
             disabled={boostBusy||!boostTarget}
             onClick={async()=>{
               if(!boostTarget)return;
@@ -191,7 +285,7 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
               }
             }}
           >
-            {boostBusy?(id?'Menyiapkan...':'Preparing...'):(id?'Lanjut ke pembayaran':'Continue to payment')}
+            {boostBusy?(id?'Menyiapkan...':'Preparing...'):(id?'Bayar langsung':'Pay directly')}
           </button>
         </div>
       </DialogContent>

@@ -20,6 +20,7 @@ export function MarketPartnerDialog({
   const [category,setCategory]=useState<'TCG_SINGLES_SLABS'|'SEALED_PRODUCTS'|'FIGURES_COLLECTIBLES'|'GAMING_TECH'|'MULTI_CATEGORY'>('FIGURES_COLLECTIBLES');
   const [city,setCity]=useState('');
   const [monthlyVolume,setMonthlyVolume]=useState('10-30');
+  const [requestType,setRequestType]=useState<'BOTH'|'PARTNER_CONSIGN'|'SOCIAL_TESTER'>('BOTH');
   const [contactWhatsapp,setContactWhatsapp]=useState('');
   const [notes,setNotes]=useState('');
   const [busy,setBusy]=useState(false);
@@ -40,6 +41,7 @@ export function MarketPartnerDialog({
           category,
           city,
           monthlyVolume,
+          requestType,
           contactWhatsapp,
           notes,
         }),
@@ -76,6 +78,14 @@ export function MarketPartnerDialog({
           </div>
         ):(
           <form className="market-partner-form" onSubmit={handleSubmit}>
+            <label>
+              <span>{id?'Program yang diminati':'Program interest'}</span>
+              <select value={requestType} onChange={e=>setRequestType(e.target.value as typeof requestType)}>
+                <option value="BOTH">{id?'Partner & Konsinyasi + Akses Awal Auto-Post Sosial':'Partner & Consignment + Social Auto-Post Early Access'}</option>
+                <option value="PARTNER_CONSIGN">{id?'Partner & Konsinyasi saja':'Partner & Consignment only'}</option>
+                <option value="SOCIAL_TESTER">{id?'Akses Awal Auto-Post Sosial saja':'Social Auto-Post Early Access only'}</option>
+              </select>
+            </label>
             <div className="form-row">
               <label>
                 <span>{id?'Nama toko atau akun':'Store or account name'}</span>

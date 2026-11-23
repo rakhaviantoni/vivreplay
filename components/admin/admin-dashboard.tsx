@@ -14,6 +14,7 @@ import { MarketPolicyManager } from '@/components/admin/market-policy-manager';
 import { PaymentMethodsManager } from '@/components/admin/payment-methods-manager';
 import { MarketplaceManager } from '@/components/admin/marketplace-manager';
 import { AdminSocialTestersPanel } from '@/components/admin/admin-social-testers-panel';
+import { AdminPartnersPanel } from '@/components/admin/admin-partners-panel';
 import { FeedbackInbox } from '@/components/admin/feedback-inbox';
 import { TrafficAttribution } from '@/components/admin/traffic-attribution';
 import { PayoutManager } from '@/components/admin/payout-manager';
@@ -27,7 +28,7 @@ type Health={generatedAt:string;summary:{identities:number;printings:number;sets
 type CoachRequest={id:string;actor_email:string|null;actor_subject:string|null;ip_address:string|null;user_agent:string|null;locale:string;model:string;question:string;leader_code:string|null;deck_size:number;candidate_count:number;response_text:string|null;status:string;error_code:string|null;duration_ms:number;created_at:string};
 const number=new Intl.NumberFormat('en-US');
 
-type Section='overview'|'customers'|'catalog'|'policy'|'payments'|'marketplace'|'feedback'|'traffic'|'payouts'|'disputes'|'operations';
+type Section='overview'|'customers'|'catalog'|'policy'|'payments'|'marketplace'|'partners'|'feedback'|'traffic'|'payouts'|'disputes'|'operations';
 export function AdminDashboard({initialSection='overview'}:{initialSection?:Section}){
   const section=initialSection;
   const [data,setData]=useState<Health|null>(null);
@@ -95,6 +96,8 @@ export function AdminDashboard({initialSection='overview'}:{initialSection?:Sect
           <MarketplaceManager />
           <AdminSocialTestersPanel />
         </>
+      ) : section === 'partners' ? (
+        <AdminPartnersPanel />
       ) : section === 'feedback' ? (
         <FeedbackInbox />
       ) : section === 'traffic' ? (

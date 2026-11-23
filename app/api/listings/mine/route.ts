@@ -1,6 +1,7 @@
 import {user,db,errorResponse} from '@/lib/server/store';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 import {getActiveBoostMap,getRemainingProBoostCredits} from '@/lib/server/listing-boosts';
+import {getCreditWallet} from '@/lib/server/credits';
 import {getListingPolicy} from '@/lib/market/policy';
 
 type ListingRow={id:string;title:string;amount:number;currency:string;quantity:number;type:string;status:string;city:string;createdAt:string;expiresAt:string|null;printingId:string;items:string|null;negotiable:number};
@@ -20,11 +21,12 @@ export async function GET(request:Request){
       return {listing,cards};
     });
     const isPro=getListingPolicy(profile.tier,profile.pro_billing_period).tier==='pro';
-    const [thumbnails,boostMap,proBoostCreditsRemaining]=await Promise.all([
+    const [thumbnails,boostMap,proBoostCreditsRemaining,wallet]=await Promise.all([
       marketCardThumbnails(entries.flatMap(entry=>entry.cards.map(card=>card.printingId))),
       getActiveBoostMap(db(),entries.map(({listing})=>listing.id)),
       isPro?getRemainingProBoostCredits(db(),profile.id):Promise.resolve(0),
+      getCreditWallet(db(),profile.id),
     ]);
-    return Response.json({isPro,proBoostCreditsRemaining,listings:entries.map(({listing,cards})=>({...listing,negotiable:Boolean(listing.negotiable),boostedUntil:boostMap.get(listing.id)??null,cards:cards.map(card=>({...card,card:thumbnails.get(card.printingId)??null}))}))},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
+    return Response.json({isPro,proBoostCreditsRemaining,creditBalance:wallet.balance,autoRenewPro:wallet.autoRenewPro,listings:entries.map(({listing,cards})=>({...listing,negotiable:Boolean(listing.negotiable),boostedUntil:boostMap.get(listing.id)??null,cards:cards.map(card=>({...card,card:thumbnails.get(card.printingId)??null}))}))},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}
 }

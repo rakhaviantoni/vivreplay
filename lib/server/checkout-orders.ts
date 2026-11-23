@@ -2,6 +2,7 @@ import {db,HttpError} from '@/lib/server/store';
 import {MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR} from '@/lib/market/policy';
 import {syncSocialListingStage} from '@/lib/server/postforme';
 import {activateListingBoost} from '@/lib/server/listing-boosts';
+import {addCredits} from '@/lib/server/credits';
 
 type FulfillableOrder={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;paymentId:string|null};
 
@@ -45,6 +46,25 @@ export async function fulfillCheckoutOrder(database:ReturnType<typeof db>,order:
       planId,
       days:durationDays,
       orderId:order.id,
+    });
+    await database.prepare("UPDATE checkout_orders SET status='PAID',details=json_remove(details,'$.fulfillmentClaim'),paid_at=COALESCE(paid_at,CURRENT_TIMESTAMP),fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?").bind(order.id,claim).run();
+    return true;
+  }
+  if(order.kind==='CREDITS'){
+    let creditAmount=Number(order.subtotal)||0;
+    try{
+      const details=JSON.parse(order.details) as {creditAmount?:number};
+      if(Number.isSafeInteger(details.creditAmount)&&Number(details.creditAmount)>0)creditAmount=Number(details.creditAmount);
+    }catch{}
+    if(creditAmount<=0)throw new HttpError(500,'The credit amount for this order is invalid.');
+    const claimResult=await database.prepare("UPDATE checkout_orders SET status='PROCESSING',details=json_set(details,'$.fulfillmentClaim',?),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(claim,order.id,order.paymentId).run();
+    if(!claimResult.meta.changes)return false;
+    await addCredits(database,{
+      profileId:order.buyerId,
+      amount:creditAmount,
+      kind:'TOPUP',
+      referenceId:order.id,
+      description:`Top up Rp ${creditAmount.toLocaleString('id-ID')}`,
     });
     await database.prepare("UPDATE checkout_orders SET status='PAID',details=json_remove(details,'$.fulfillmentClaim'),paid_at=COALESCE(paid_at,CURRENT_TIMESTAMP),fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?").bind(order.id,claim).run();
     return true;

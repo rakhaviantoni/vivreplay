@@ -2,6 +2,8 @@ import {env} from 'cloudflare:workers';
 import {db} from '@/lib/server/store';
 import {ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
 import {sendMarketEmailOnce} from '@/lib/server/market-notifications';
+import {getProPricing} from '@/lib/market/pro-pricing';
+import {ensureCreditSchema,spendCredits} from '@/lib/server/credits';
 
 type ProfileExpiry={id:string;expiresAt:string};
 type ProOrder={id:string;buyerId:string;status:string};
@@ -39,6 +41,29 @@ export async function POST(request:Request){
         WHERE id=? AND kind='PRO' AND status='PENDING_PAYMENT'`).bind(JSON.stringify(details),expirySql,order.id).run();
     }else if(expiredAt!==null&&expiredAt-Date.now()<=2*60*60*1000&&typeof details.ipaymuPaymentMethod==='string'&&order.paymentId&&!order.paymentId.startsWith('CREATING:')){
       paymentReminderOrders.push(order.id);
+    }
+  }
+
+  await ensureCreditSchema(database);
+  const proPricing=await getProPricing(database);
+  const renewPrice=proPricing.amount||24_900;
+  const renewDays=proPricing.durationDays||30;
+  const autoRenewCandidates=(await database.prepare(`SELECT p.id,p.pro_expires_at AS expiresAt
+    FROM profiles p
+    JOIN market_credit_wallets w ON w.profile_id=p.id
+    WHERE p.tier='pro' AND p.pro_expires_at IS NOT NULL AND p.pro_expires_at<=datetime('now','+12 hours')
+      AND w.auto_renew_pro=1 AND w.balance>=?
+    LIMIT 200`).bind(renewPrice).all<ProfileExpiry>()).results;
+  for(const candidate of autoRenewCandidates){
+    const spend=await spendCredits(database,{
+      profileId:candidate.id,
+      amount:renewPrice,
+      kind:'PRO_RENEW',
+      referenceId:candidate.expiresAt,
+      description:`Auto-renew Market Pro (${renewDays} days)`,
+    });
+    if(spend.ok){
+      await database.prepare(`UPDATE profiles SET tier='pro',pro_billing_period='monthly',pro_expires_at=datetime(max(COALESCE(pro_expires_at,CURRENT_TIMESTAMP),CURRENT_TIMESTAMP), '+' || ? || ' days') WHERE id=?`).bind(renewDays,candidate.id).run();
     }
   }
 

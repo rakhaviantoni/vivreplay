@@ -2,12 +2,14 @@ import {z} from 'zod';
 import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
 import {getBoostPlanAmount,LISTING_BOOST_PLANS} from '@/lib/market/boost';
 import {getListingPolicy} from '@/lib/market/policy';
-import {consumeProBoostCredit,ensureBoostSchema} from '@/lib/server/listing-boosts';
+import {activateListingBoost,consumeProBoostCredit,ensureBoostSchema} from '@/lib/server/listing-boosts';
+import {spendCredits} from '@/lib/server/credits';
 
 const schema=z.object({
   listingId:z.string().uuid(),
   planId:z.enum(['24h','3d','7d']).default('3d'),
   useProCredit:z.boolean().optional(),
+  payWithCredits:z.boolean().optional(),
   paymentMethod:z.string().trim().max(40).default('qris'),
   paymentChannel:z.string().trim().max(40).default('mpm'),
 });
@@ -42,6 +44,34 @@ export async function POST(request:Request){
 
     const plan=LISTING_BOOST_PLANS[input.planId];
     const amount=getBoostPlanAmount(input.planId,isPro);
+    if(input.payWithCredits){
+      const spend=await spendCredits(database,{
+        profileId:profile.id,
+        amount,
+        kind:'BOOST',
+        referenceId:listing.id,
+        description:`${plan.labelEn}: ${listing.title}`,
+      });
+      if(!spend.ok){
+        throw new HttpError(402,'Insufficient VivrePlay Credits balance. Top up credits or pay directly.');
+      }
+      const boostedUntil=await activateListingBoost(database,{
+        listingId:listing.id,
+        sellerId:profile.id,
+        planId:plan.id,
+        days:plan.days,
+        orderId:`CREDITS:${Date.now()}`,
+      });
+      return Response.json({
+        id:`credits-boost-${listing.id}`,
+        activated:true,
+        boostedUntil,
+        balance:spend.balance,
+        amount,
+        planId:plan.id,
+        days:plan.days,
+      },{status:200});
+    }
     const orderId=crypto.randomUUID();
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
     const details=JSON.stringify({
