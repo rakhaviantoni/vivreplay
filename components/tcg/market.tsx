@@ -661,7 +661,7 @@ function MarketProductLookup({value,listings,locale,onViewListings,onCreateListi
   </section>;
 }
 
-export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=false,initialSellPrinting,initialSellType,initialGameSlug}:{initialCards?:string[];modalOnly?:boolean;listenForDeliveryEvents?:boolean;initialSellPrinting?:string;initialSellType?:'WTS'|'WTB';initialGameSlug?:'one-piece'|'pokemon'}) {
+export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=false,initialSellPrinting,initialSellType,initialGameSlug}:{initialCards?:string[];modalOnly?:boolean;listenForDeliveryEvents?:boolean;initialSellPrinting?:string;initialSellType?:'WTS'|'WTB'|'WTA';initialGameSlug?:'one-piece'|'pokemon'}) {
   const {data,loading:accountLoading,refresh:refreshAccount}=useAccount();
   const listingLimits=useMarketListingLimits(`${data?.profile?.id??'anonymous'}:${data?.profile?.tier??'free'}:${data?.profile?.pro_billing_period??'monthly'}`);
   const router=useRouter();
@@ -1218,7 +1218,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
     return true;
   }
   useEffect(()=>{
-    const openSellListing=(event:Event)=>{setAccountPanel(null);setQuickPanel(null);const type=(event as CustomEvent<'WTS'|'WTB'>).detail;beginListing(type==='WTB'?'WTB':'WTS')};
+    const openSellListing=(event:Event)=>{setAccountPanel(null);setQuickPanel(null);const type=(event as CustomEvent<'WTS'|'WTB'|'WTA'>).detail;beginListing(type==='WTB'?'WTB':type==='WTA'?'WTA':'WTS')};
     window.addEventListener('vivreplay:open-sell-listing',openSellListing);
     return()=>window.removeEventListener('vivreplay:open-sell-listing',openSellListing);
   },[data,accountLoading,locale,buyerCity]);
@@ -2316,7 +2316,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                 )}
                 {/* Keep card source and game scope together as one toolbar. */}
                 <div className="market-card-picker-switch-row">
-                {listingType==='WTS'&&(data?.collection?.length??0)>0&&(
+                {(listingType==='WTS'||listingType==='WTA')&&(data?.collection?.length??0)>0&&(
                   <div className="market-sell-source-toggle" role="group" aria-label={locale==='ID'?'Sumber kartu':'Card source'}>
                     <button
                       type="button"

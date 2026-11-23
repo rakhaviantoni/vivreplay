@@ -7,7 +7,7 @@ import type {MarketAccountPanel} from './market-quick-panel';
 const MarketSellDialog=lazy(()=>import('./market').then(module=>({default:module.Market})));
 const MarketAccountDialog=lazy(()=>import('./market-quick-panel').then(module=>({default:module.MarketQuickPanel})));
 
-type SellRequest={key:number;printingId?:string;type?:'WTS'|'WTB';gameSlug:'one-piece'|'pokemon'};
+type SellRequest={key:number;printingId?:string;type?:'WTS'|'WTB'|'WTA';gameSlug:'one-piece'|'pokemon'};
 type AccountRequest={key:number;panel:MarketAccountPanel;profileTab?:'account'|'delivery'|'payouts';editDeliveryAddress?:boolean;orderId?:string;conversationId?:string};
 
 export function MarketDialogHost({accountActions=true}:{accountActions?:boolean}){
@@ -28,9 +28,9 @@ export function MarketDialogHost({accountActions=true}:{accountActions?:boolean}
       if(printingId)setSellRequest({key:++sequence.current,printingId,gameSlug:typeof detail==='string'?currentGame():detail.gameSlug??currentGame()});
     };
     const openListing=(event:Event)=>{
-      const detail=(event as CustomEvent<'WTS'|'WTB'|{type?:'WTS'|'WTB';gameSlug?:'one-piece'|'pokemon'}>).detail;
+      const detail=(event as CustomEvent<'WTS'|'WTB'|'WTA'|{type?:'WTS'|'WTB'|'WTA';gameSlug?:'one-piece'|'pokemon'}>).detail;
       const type=typeof detail==='string'?detail:detail?.type;
-      setSellRequest({key:++sequence.current,type:type==='WTB'?'WTB':'WTS',gameSlug:typeof detail==='string'?currentGame():detail?.gameSlug??currentGame()});
+      setSellRequest({key:++sequence.current,type:type==='WTB'?'WTB':type==='WTA'?'WTA':'WTS',gameSlug:typeof detail==='string'?currentGame():detail?.gameSlug??currentGame()});
     };
     window.addEventListener('vivreplay:open-sell-printing',openPrinting);
     window.addEventListener('vivreplay:open-sell-listing',openListing);

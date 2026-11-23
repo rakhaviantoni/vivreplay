@@ -6,7 +6,7 @@ import Link from '@/components/ui/localized-link';
 import {usePathname} from 'next/navigation';
 import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {FormEvent,useCallback,useEffect,useRef,useState} from 'react';
-import {ArrowLeftIcon as ArrowLeft,CardsIcon as Cards,MoonIcon as Moon,PlusIcon as Plus,MagnifyingGlassIcon as Search,SunIcon as Sun,UserIcon as UserRound,StorefrontIcon as Storefront,ShoppingCartIcon as Cart} from '@phosphor-icons/react';
+import {ArrowLeftIcon as ArrowLeft,CardsIcon as Cards,GavelIcon as Gavel,MoonIcon as Moon,PlusIcon as Plus,MagnifyingGlassIcon as Search,SunIcon as Sun,UserIcon as UserRound,StorefrontIcon as Storefront,ShoppingCartIcon as Cart} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {VivreMark} from './brand-assets';
 import {useAccount} from '@/lib/client';
@@ -23,14 +23,14 @@ import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger} f
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {CardScanButton} from './card-scan-button';
 
-function CreateMenu({locale,mobile,onCreate}:{locale:'EN'|'ID';mobile:boolean;onCreate:(type:'WTS'|'WTB')=>void}){
+function CreateMenu({locale,mobile,onCreate}:{locale:'EN'|'ID';mobile:boolean;onCreate:(type:'WTS'|'WTB'|'WTA')=>void}){
   const [open,setOpen]=useState(false);
-  const copy=locale==='ID'?{title:'Buat listing',sell:'Jual',buy:'Cari barang untuk dibeli'}:{title:'Create a listing',sell:'Sell',buy:'Looking to buy'};
-  if(mobile)return <Dialog open={open} onOpenChange={setOpen}><button type="button" className="is-sell" aria-label={copy.title} onClick={()=>setOpen(true)}><Plus size={20}/><span>{locale==='ID'?'Buat':'Create'}</span></button><DialogContent className="market-create-dialog"><DialogHeader><DialogTitle>{copy.title}</DialogTitle></DialogHeader><div className="market-create-choices"><button type="button" onClick={()=>{setOpen(false);onCreate('WTS')}}><Storefront size={20}/><span>{copy.sell}</span></button><button type="button" onClick={()=>{setOpen(false);onCreate('WTB')}}><Cards size={20}/><span>{copy.buy}</span></button></div></DialogContent></Dialog>;
-  return <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="default" size="sm" className="market-list-button join-link" aria-label={copy.title}><Plus size={15} weight="bold"/><span className="market-list-button-text">{locale==='ID'?'Buat':'Create'}</span><span className="market-list-button-short">{locale==='ID'?'Buat':'Create'}</span></Button></DropdownMenuTrigger><DropdownMenuContent align="end" side="bottom" sideOffset={8} className="market-create-menu"><DropdownMenuItem className="market-create-menu-item" onSelect={()=>onCreate('WTS')}><Storefront size={17}/><span>{copy.sell}</span></DropdownMenuItem><DropdownMenuItem className="market-create-menu-item" onSelect={()=>onCreate('WTB')}><Cards size={17}/><span>{copy.buy}</span></DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
+  const copy=locale==='ID'?{title:'Buat listing',sell:'Jual',auction:'Lelang',buy:'Cari barang untuk dibeli'}:{title:'Create a listing',sell:'Sell',auction:'Auction',buy:'Looking to buy'};
+  if(mobile)return <Dialog open={open} onOpenChange={setOpen}><button type="button" className="is-sell" aria-label={copy.title} onClick={()=>setOpen(true)}><Plus size={20}/><span>{locale==='ID'?'Buat':'Create'}</span></button><DialogContent className="market-create-dialog"><DialogHeader><DialogTitle>{copy.title}</DialogTitle></DialogHeader><div className="market-create-choices"><button type="button" onClick={()=>{setOpen(false);onCreate('WTS')}}><Storefront size={20}/><span>{copy.sell}</span></button><button type="button" onClick={()=>{setOpen(false);onCreate('WTA')}}><Gavel size={20}/><span>{copy.auction}</span></button><button type="button" onClick={()=>{setOpen(false);onCreate('WTB')}}><Cards size={20}/><span>{copy.buy}</span></button></div></DialogContent></Dialog>;
+  return <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="default" size="sm" className="market-list-button join-link" aria-label={copy.title}><Plus size={15} weight="bold"/><span className="market-list-button-text">{locale==='ID'?'Buat':'Create'}</span><span className="market-list-button-short">{locale==='ID'?'Buat':'Create'}</span></Button></DropdownMenuTrigger><DropdownMenuContent align="end" side="bottom" sideOffset={8} className="market-create-menu"><DropdownMenuItem className="market-create-menu-item" onSelect={()=>onCreate('WTS')}><Storefront size={17}/><span>{copy.sell}</span></DropdownMenuItem><DropdownMenuItem className="market-create-menu-item" onSelect={()=>onCreate('WTA')}><Gavel size={17}/><span>{copy.auction}</span></DropdownMenuItem><DropdownMenuItem className="market-create-menu-item" onSelect={()=>onCreate('WTB')}><Cards size={17}/><span>{copy.buy}</span></DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
 }
 
-export function MarketStoreNav({initialQuery='',sellHref='/market?sell=open',showPromo=true,queryValue,onQueryChange,searchPlaceholder,searchAriaLabel,onSearchSubmit,onCreateListing}:{initialQuery?:string;sellHref?:string;showPromo?:boolean;queryValue?:string;onQueryChange?:(value:string)=>void;searchPlaceholder?:string;searchAriaLabel?:string;onSearchSubmit?:(value:string)=>void;onCreateListing?:(type:'WTS'|'WTB')=>void}){
+export function MarketStoreNav({initialQuery='',sellHref='/market?sell=open',showPromo=true,queryValue,onQueryChange,searchPlaceholder,searchAriaLabel,onSearchSubmit,onCreateListing}:{initialQuery?:string;sellHref?:string;showPromo?:boolean;queryValue?:string;onQueryChange?:(value:string)=>void;searchPlaceholder?:string;searchAriaLabel?:string;onSearchSubmit?:(value:string)=>void;onCreateListing?:(type:'WTS'|'WTB'|'WTA')=>void}){
   const router=useRouter();
   const pathname=usePathname();
   const marketHref=pathname.startsWith('/id')?'/id/market':'/market';
@@ -91,7 +91,7 @@ export function MarketStoreNav({initialQuery='',sellHref='/market?sell=open',sho
       window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));
     }
   };
-  const createListing=(type:'WTS'|'WTB')=>{
+  const createListing=(type:'WTS'|'WTB'|'WTA')=>{
     setAccountPanel(null);
     if(onCreateListing){onCreateListing(type);return;}
     if(pathname.includes('/market/')&&data&&type==='WTS'){
