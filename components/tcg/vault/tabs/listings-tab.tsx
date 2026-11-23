@@ -2,9 +2,11 @@
 
 import {useCallback,useEffect,useRef,useState} from 'react';
 import Link from '@/components/ui/localized-link';
-import {PauseIcon as Pause,PlayIcon as Play,ArrowClockwiseIcon as Renew,ArrowSquareOutIcon as Open,XIcon as Close,ArrowCounterClockwiseIcon as Refresh,PlusIcon as Plus,RocketLaunchIcon as Boost,SpinnerGapIcon as Spinner,StorefrontIcon as Store} from '@phosphor-icons/react';
+import {GavelIcon as Gavel,PauseIcon as Pause,PlayIcon as Play,ArrowClockwiseIcon as Renew,ArrowSquareOutIcon as Open,XIcon as Close,ArrowCounterClockwiseIcon as Refresh,PlusIcon as Plus,RocketLaunchIcon as Boost,SpinnerGapIcon as Spinner,StorefrontIcon as Store} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
+import {IdrInput} from '@/components/ui/idr-input';
+import type {AuctionSummary} from '@/lib/market/auction';
 import {getBoostPlanAmount,LISTING_BOOST_PLANS,type ListingBoostPlanId} from '@/lib/market/boost';
 import {useLocalizedRouter} from '@/lib/use-localized-router';
 import {MarketActivityLoading,MarketCardStack,type MarketActivityCard} from '@/components/tcg/vault/tabs/market-activity-state';
@@ -13,7 +15,7 @@ import {marketListingPath} from '@/lib/market/listing-url';
 import {MarketListingPriceEdit,MarketListingPriceTerms,MarketListingTitleEdit} from '@/components/tcg/market-listing-inline-edit';
 import {formatDateTimeWithOffset} from '@/components/tcg/market-timestamp';
 
-type SellerListing={id:string;title:string;amount:number;currency:string;quantity:number;type:string;status:string;city:string;createdAt:string;expiresAt:string|null;negotiable:boolean;hasActiveBids?:boolean;boostedUntil?:string|null;cards:(MarketActivityCard&{unitAmount?:number})[]};
+type SellerListing={id:string;title:string;amount:number;currency:string;quantity:number;type:string;status:string;city:string;createdAt:string;expiresAt:string|null;negotiable:boolean;hasActiveBids?:boolean;boostedUntil?:string|null;auction?:AuctionSummary|null;cards:(MarketActivityCard&{unitAmount?:number})[]};
 const money=(amount:number,currency:string)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:currency||'IDR',currencyDisplay:'code',maximumFractionDigits:0}).format(amount);
 const expiryTime=(value:string)=>{const raw=value.trim();const iso=/^\d{4}-\d{2}-\d{2}$/.test(raw)?`${raw}T23:59:59Z`:raw.includes('T')?raw:raw.replace(' ','T');const zoned=/([zZ]|[+-]\d{2}(?::?\d{2})?)$/.test(iso)?iso:`${iso}Z`;const parsed=Date.parse(zoned);return Number.isFinite(parsed)?parsed:null};
 const shortDate=(value:string,id:boolean,timeZone:string)=>{const time=expiryTime(value);return time===null?(id?'Tanggal tidak tersedia':'Date unavailable'):formatDateTimeWithOffset(new Date(time).toISOString(),id?'id':'en',timeZone)};
@@ -35,6 +37,15 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
   const [proBoostCredits,setProBoostCredits]=useState(0);
   const [creditBalance,setCreditBalance]=useState(0);
   const [autoRenewPro,setAutoRenewPro]=useState(false);
+  const [auctionTarget,setAuctionTarget]=useState<SellerListing|null>(null);
+  const [auctionEditBusy,setAuctionEditBusy]=useState(false);
+  const [editStartingBid,setEditStartingBid]=useState('');
+  const [editBuyNow,setEditBuyNow]=useState('');
+  const [editIncrement,setEditIncrement]=useState('');
+  const [editDurationMode,setEditDurationMode]=useState<'ROLLING_24H'|'ROLLING_48H'|'FIXED'>('ROLLING_24H');
+  const [editStartMode,setEditStartMode]=useState<'immediate'|'scheduled'>('immediate');
+  const [editStartsAt,setEditStartsAt]=useState('');
+  const [auctionEditError,setAuctionEditError]=useState('');
   const operationLock=useRef(false);
   const refreshSequence=useRef(0);
   const refresh=useCallback(async(silent=false)=>{
@@ -99,6 +110,31 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
         <div className="market-listing-price-cell">{['ACTIVE','PAUSED'].includes(listing.status)?<MarketListingPriceEdit listingId={listing.id} title={listing.title} listingType={listing.type==='WTB'?'WTB':'WTS'} amount={listing.amount} currency={listing.currency} cards={listing.cards.map(card=>({printingId:card.printingId,name:card.card?.name||(id?'Kartu':'Card'),quantity:card.quantity,unitAmount:card.unitAmount||Math.round(listing.amount/listing.quantity)}))} language={language} onSaved={updated=>setListings(current=>current.map(item=>item.id===listing.id?{...item,amount:updated.amount,cards:item.cards.map((card,index)=>({...card,unitAmount:updated.prices[index]??card.unitAmount}))}:item))}><strong className="market-activity-price">{money(listing.amount,listing.currency)}</strong></MarketListingPriceEdit>:<strong className="market-activity-price">{money(listing.amount,listing.currency)}</strong>}</div>
         <div className="market-activity-actions">
           {listing.status!=='CLOSED'&&<Link className="market-activity-view-listing" href={detailHref} aria-label={id?'Lihat listing':'View listing'} title={id?'Lihat listing':'View listing'}><Open size={14}/><span>{id?'Lihat listing':'View listing'}</span></Link>}
+          {listing.type==='WTA'&&listing.status==='ACTIVE'&&!expired&&listing.auction&&(
+            <button
+              type="button"
+              disabled={Boolean(busyId)}
+              onClick={()=>{
+                const a=listing.auction!;
+                setEditStartingBid(String(a.startingBid));
+                setEditBuyNow(a.buyNowPrice?String(a.buyNowPrice):'');
+                setEditIncrement(String(a.minIncrement));
+                setEditDurationMode(a.durationMode);
+                const hasSched=Boolean(a.startsAt&&Date.parse(a.startsAt)>Date.now());
+                setEditStartMode(hasSched?'scheduled':'immediate');
+                const target=a.startsAt?new Date(a.startsAt):new Date(Date.now()+60*60*1000);
+                const pad=(n:number)=>String(n).padStart(2,'0');
+                setEditStartsAt(`${target.getFullYear()}-${pad(target.getMonth()+1)}-${pad(target.getDate())}T${pad(target.getHours())}:${pad(target.getMinutes())}`);
+                setAuctionEditError('');
+                setAuctionTarget(listing);
+              }}
+              aria-label={listing.auction.bidCount>0?(id?'Ubah Buy Out / BIN':'Edit Buy Out / BIN'):(id?'Ubah pengaturan lelang':'Edit auction settings')}
+              title={listing.auction.bidCount>0?(id?'Ubah Buy Out / BIN':'Edit Buy Out / BIN'):(id?'Ubah pengaturan lelang':'Edit auction settings')}
+            >
+              <Gavel size={15}/>
+              <span>{listing.auction.bidCount>0?(id?'Ubah BIN':'Edit BIN'):(id?'Ubah lelang':'Edit auction')}</span>
+            </button>
+          )}
           {listing.status==='ACTIVE'&&!expired&&<button type="button" className="is-boost-action" disabled={Boolean(busyId)} onClick={()=>{setBoostTarget(listing);setBoostPlan('3d');}} aria-label={id?'Sorot listing':'Boost listing'} title={id?'Sorot listing':'Boost listing'}><Boost size={15}/><span>{listing.boostedUntil?(id?'Perpanjang sorotan':'Extend boost'):(id?'Sorot':'Boost')}</span></button>}
           {listing.status==='ACTIVE'&&!expired&&<button type="button" disabled={Boolean(busyId)||Boolean(listing.hasActiveBids)} onClick={()=>void act(listing,'pause')} aria-label={busyId===listing.id?(id?'Menjeda listing':'Pausing listing'):(id?'Jeda listing':'Pause listing')} title={listing.hasActiveBids?(id?'Lelang aktif dengan bid tidak dapat dijeda hingga selesai':'Active auction with bids cannot be paused until it finishes'):(id?'Jeda listing':'Pause listing')}>{busyId===listing.id?<Spinner className="is-spinning" size={15}/>:<Pause size={15}/>}<span>{busyId===listing.id?(id?'Menjeda…':'Pausing…'):(id?'Jeda':'Pause')}</span></button>}
           {listing.status==='PAUSED'&&<button type="button" className="is-primary-action" disabled={Boolean(busyId)} onClick={()=>void act(listing,'resume')} aria-label={busyId===listing.id?(id?'Mengaktifkan listing':'Resuming listing'):(id?'Lanjutkan listing':'Resume listing')} title={id?'Aktifkan kembali':'Resume listing'}>{busyId===listing.id?<Spinner className="is-spinning" size={15}/>:<Play size={15}/>}<span>{busyId===listing.id?(id?'Mengaktifkan…':'Resuming…'):(id?'Lanjutkan':'Resume')}</span></button>}
@@ -236,6 +272,113 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
             {boostBusy?(id?'Menyiapkan...':'Preparing...'):(id?'Bayar langsung':'Pay directly')}
           </button>
         </div>
+      </DialogContent>
+    </Dialog>
+    <Dialog open={Boolean(auctionTarget)} onOpenChange={open=>{if(!open&&!auctionEditBusy)setAuctionTarget(null);}}>
+      <DialogContent className="market-boost-dialog">
+        <DialogHeader className="market-boost-heading">
+          <span>{id?'PENGATURAN LELANG':'AUCTION SETTINGS'}</span>
+          <DialogTitle>{auctionTarget?.auction?.bidCount?(id?'Ubah Buy Out / BIN':'Edit Buy Out / BIN'):(id?'Ubah pengaturan lelang':'Edit auction settings')}</DialogTitle>
+          <DialogDescription>{auctionTarget?.title??''}</DialogDescription>
+        </DialogHeader>
+        {auctionTarget?.auction&&(
+          <form
+            className="market-auction-settings-form"
+            onSubmit={async event=>{
+              event.preventDefault();
+              const a=auctionTarget.auction!;
+              const hasBids=a.bidCount>0;
+              const startingBid=hasBids?a.startingBid:Math.round(Number(editStartingBid));
+              const buyNowPrice=editBuyNow.trim()?Math.round(Number(editBuyNow)):null;
+              const minIncrement=hasBids?a.minIncrement:Math.round(Number(editIncrement));
+              const floor=hasBids?Math.max(a.startingBid,a.currentBid):startingBid;
+              if(!Number.isSafeInteger(startingBid)||startingBid<100){
+                setAuctionEditError(id?'Masukkan Open Bid yang valid.':'Enter a valid starting bid.');
+                return;
+              }
+              if(buyNowPrice!==null&&buyNowPrice<=floor){
+                setAuctionEditError(hasBids?(id?'Harga Buy Out harus lebih tinggi dari bid tertinggi saat ini.':'Buy Out price must be higher than current bid.'):(id?'Harga Buy Out harus lebih tinggi dari Open Bid.':'Buy Out price must be higher than starting bid.'));
+                return;
+              }
+              setAuctionEditBusy(true);
+              setAuctionEditError('');
+              try{
+                const response=await fetch(`/api/listings/${encodeURIComponent(auctionTarget.id)}`,{
+                  method:'PATCH',
+                  headers:{'content-type':'application/json'},
+                  body:JSON.stringify({
+                    action:'auction-settings',
+                    itemKey:a.itemKey||'__LOT__',
+                    startingBid,
+                    buyNowPrice,
+                    minIncrement,
+                    durationMode:hasBids?a.durationMode:editDurationMode,
+                    startsAt:hasBids?(a.startsAt??null):(editStartMode==='scheduled'&&editStartsAt?new Date(editStartsAt).toISOString():null),
+                  }),
+                });
+                const payload=await response.json() as {auction?:AuctionSummary;error?:string};
+                if(!response.ok||!payload.auction)throw new Error(payload.error||(id?'Gagal memperbarui lelang.':'Could not update auction settings.'));
+                setListings(current=>current.map(item=>item.id===auctionTarget.id?{...item,amount:payload.auction!.bidCount>0?payload.auction!.currentBid:payload.auction!.startingBid,expiresAt:payload.auction!.endsAt,auction:payload.auction}:item));
+                setAuctionTarget(null);
+                toast.success(id?'Pengaturan lelang diperbarui':'Auction settings updated');
+              }catch(cause){
+                setAuctionEditError((cause as Error).message);
+              }finally{
+                setAuctionEditBusy(false);
+              }
+            }}
+          >
+            {auctionTarget.auction.bidCount>0&&(
+              <p className="market-auction-settings-lock-note">
+                {id?'Bid sudah masuk: Open Bid, kelipatan, dan jadwal terkunci. Anda masih dapat mengatur Buy Out / BIN di atas bid saat ini.':'Bids are live: starting bid, step, and schedule are locked. You can still set or update Buy Out / BIN above the current bid.'}
+              </p>
+            )}
+            <div className="market-auction-settings-grid">
+              <label>
+                <span>{id?`Open Bid (${auctionTarget.currency})`:`Starting Bid (${auctionTarget.currency})`}</span>
+                <IdrInput value={editStartingBid} onValueChange={setEditStartingBid} disabled={auctionTarget.auction.bidCount>0} required/>
+              </label>
+              <label>
+                <span>{id?`Buy Out / BIN (${auctionTarget.currency}, opsional)`:`Buy Out / BIN (${auctionTarget.currency}, optional)`}</span>
+                <IdrInput value={editBuyNow} onValueChange={setEditBuyNow} placeholder={id?'Kosongkan untuk nonaktif':'Leave blank to disable'}/>
+              </label>
+              <label>
+                <span>{id?`Kelipatan min. (${auctionTarget.currency})`:`Min. increment (${auctionTarget.currency})`}</span>
+                <IdrInput value={editIncrement} onValueChange={setEditIncrement} disabled={auctionTarget.auction.bidCount>0} required/>
+              </label>
+              <label>
+                <span>{id?'Aturan berakhir':'End rule'}</span>
+                <select value={editDurationMode} disabled={auctionTarget.auction.bidCount>0} onChange={e=>setEditDurationMode(e.target.value as typeof editDurationMode)}>
+                  <option value="ROLLING_24H">{id?'24 jam setelah bid terakhir':'24h after last bid'}</option>
+                  <option value="ROLLING_48H">{id?'48 jam setelah bid terakhir':'48h after last bid'}</option>
+                  <option value="FIXED">{id?'Waktu akhir tetap':'Fixed end time'}</option>
+                </select>
+              </label>
+              {auctionTarget.auction.bidCount===0&&(
+                <>
+                  <label>
+                    <span>{id?'Waktu mulai':'Start timing'}</span>
+                    <select value={editStartMode} onChange={e=>setEditStartMode(e.target.value==='scheduled'?'scheduled':'immediate')}>
+                      <option value="immediate">{id?'Mulai sekarang':'Start immediately'}</option>
+                      <option value="scheduled">{id?'Jadwalkan mulai':'Schedule start'}</option>
+                    </select>
+                  </label>
+                  {editStartMode==='scheduled'&&(
+                    <label>
+                      <span>{id?'Tanggal & jam mulai':'Scheduled start'}</span>
+                      <input type="datetime-local" value={editStartsAt} onChange={e=>setEditStartsAt(e.target.value)} required/>
+                    </label>
+                  )}
+                </>
+              )}
+            </div>
+            {auctionEditError&&<p className="error-text" role="alert">{auctionEditError}</p>}
+            <div className="market-auction-settings-actions">
+              <button type="button" className="button secondary" onClick={()=>setAuctionTarget(null)} disabled={auctionEditBusy}>{id?'Batal':'Cancel'}</button>
+              <button type="submit" className="button" disabled={auctionEditBusy}>{auctionEditBusy?(id?'Menyimpan…':'Saving…'):(id?'Simpan pengaturan':'Save settings')}</button>
+            </div>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   </section>;

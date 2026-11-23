@@ -3,6 +3,7 @@ import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 import {getActiveBoostMap,getRemainingProBoostCredits} from '@/lib/server/listing-boosts';
 import {getCreditWallet} from '@/lib/server/credits';
 import {getListingPolicy} from '@/lib/market/policy';
+import {getAuctionSummaryMap} from '@/lib/server/auctions';
 
 type ListingRow={id:string;title:string;amount:number;currency:string;quantity:number;type:string;status:string;city:string;createdAt:string;expiresAt:string|null;printingId:string;items:string|null;negotiable:number;hasActiveBids?:number};
 function parseItems(raw:string|null){try{const parsed=raw?JSON.parse(raw) as unknown:[];if(!Array.isArray(parsed))return [];return parsed.flatMap(value=>{if(!value||typeof value!=='object')return [];const item=value as {printingId?:unknown;quantity?:unknown;unitAmount?:unknown};return typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&Number(item.quantity)>0?[{printingId:item.printingId,quantity:Number(item.quantity),unitAmount:Number(item.unitAmount)||0}]:[]})}catch{return []}}
@@ -21,12 +22,14 @@ export async function GET(request:Request){
       return {listing,cards};
     });
     const isPro=getListingPolicy(profile.tier,profile.pro_billing_period).tier==='pro';
-    const [thumbnails,boostMap,proBoostCreditsRemaining,wallet]=await Promise.all([
+    const wtaIds=entries.filter(({listing})=>listing.type==='WTA').map(({listing})=>listing.id);
+    const [thumbnails,boostMap,proBoostCreditsRemaining,wallet,auctionMap]=await Promise.all([
       marketCardThumbnails(entries.flatMap(entry=>entry.cards.map(card=>card.printingId))),
       getActiveBoostMap(db(),entries.map(({listing})=>listing.id)),
       isPro?getRemainingProBoostCredits(db(),profile.id):Promise.resolve(0),
       getCreditWallet(db(),profile.id),
+      wtaIds.length?getAuctionSummaryMap(db(),wtaIds):Promise.resolve(new Map()),
     ]);
-    return Response.json({isPro,proBoostCreditsRemaining,creditBalance:wallet.balance,autoRenewPro:wallet.autoRenewPro,listings:entries.map(({listing,cards})=>({...listing,negotiable:Boolean(listing.negotiable),hasActiveBids:Boolean(listing.hasActiveBids),boostedUntil:boostMap.get(listing.id)??null,cards:cards.map(card=>({...card,card:thumbnails.get(card.printingId)??null}))}))},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
+    return Response.json({isPro,proBoostCreditsRemaining,creditBalance:wallet.balance,autoRenewPro:wallet.autoRenewPro,listings:entries.map(({listing,cards})=>({...listing,negotiable:Boolean(listing.negotiable),hasActiveBids:Boolean(listing.hasActiveBids),boostedUntil:boostMap.get(listing.id)??null,auction:listing.type==='WTA'?(auctionMap.get(listing.id)??null):null,cards:cards.map(card=>({...card,card:thumbnails.get(card.printingId)??null}))}))},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}
 }
