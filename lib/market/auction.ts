@@ -58,6 +58,7 @@ export const AUCTION_MAX_SCHEDULE_MS = 14 * 24 * 60 * 60 * 1000;
 export function validateScheduledStartAt(
   startsAt: string,
   nowMs: number = Date.now(),
+  maxDays: number = 14,
 ): { ok: true; startsAtMs: number } | { ok: false; error: string } {
   const parsed = Date.parse(startsAt);
   if (!Number.isFinite(parsed)) {
@@ -66,8 +67,14 @@ export function validateScheduledStartAt(
   if (parsed < nowMs + AUCTION_MIN_SCHEDULE_MS) {
     return { ok: false, error: 'Scheduled start must be at least 5 minutes from now.' };
   }
-  if (parsed > nowMs + AUCTION_MAX_SCHEDULE_MS) {
-    return { ok: false, error: 'Scheduled start cannot exceed 14 days from now.' };
+  const maxMs = Math.max(1, maxDays) * 24 * 60 * 60 * 1000;
+  if (parsed > nowMs + maxMs) {
+    return {
+      ok: false,
+      error: maxDays === 1
+        ? 'Free accounts can schedule auctions up to 24 hours ahead. Upgrade to Market Pro to schedule up to 30 days ahead.'
+        : `Scheduled start cannot exceed ${maxDays} days from now.`,
+    };
   }
   return { ok: true, startsAtMs: parsed };
 }
@@ -127,12 +134,17 @@ export function computeNextAuctionEndsAtMs(
   durationMode: AuctionDurationMode,
   nowMs: number,
   currentEndsAtMs: number,
+  snipeProtection: boolean = false,
 ): number {
   if (durationMode === 'ROLLING_24H') {
     return nowMs + 24 * 60 * 60 * 1000;
   }
   if (durationMode === 'ROLLING_48H') {
     return nowMs + 48 * 60 * 60 * 1000;
+  }
+  // Snipe protection: if enabled and a bid lands in the final 60s of a FIXED auction, extend by +2 minutes.
+  if (snipeProtection && currentEndsAtMs - nowMs > 0 && currentEndsAtMs - nowMs <= 60_000) {
+    return Math.max(currentEndsAtMs, nowMs + 2 * 60 * 1000);
   }
   return currentEndsAtMs;
 }

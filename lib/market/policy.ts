@@ -85,6 +85,12 @@ export const MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL = 500_000;
 export const MARKET_PRO_SHIPPING_VOUCHER_SHARE = 0.5;
 export const MARKET_PRO_SHIPPING_VOUCHER_CAP = 5_000;
 export const MARKET_FREE_SOCIAL_POSTS_PER_MONTH = 3;
+export const MARKET_PRO_MONTHLY_SOCIAL_POSTS_PER_MONTH = 30;
+export const MARKET_FREE_MAX_ACTIVE_AUCTIONS = 2;
+export const MARKET_PRO_MONTHLY_MAX_ACTIVE_AUCTIONS = 25;
+export const MARKET_FREE_AUCTION_SCHEDULE_DAYS = 1;
+export const MARKET_PRO_MONTHLY_AUCTION_SCHEDULE_DAYS = 14;
+export const MARKET_PRO_ANNUAL_AUCTION_SCHEDULE_DAYS = 30;
 
 export function getMarketBuyerFeeCap(subtotal: number): number {
   const safeSubtotal = Math.max(0, subtotal);

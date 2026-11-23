@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const includeAll = request.nextUrl.searchParams.get('all') === '1';
 
   try {
-    const quota = await getSellerSocialPublishQuota(profile.id, (profile as { tier?: string }).tier);
+    const quota = await getSellerSocialPublishQuota(profile.id, (profile as { tier?: string }).tier, (profile as { pro_billing_period?: string }).pro_billing_period);
     if (listingId) {
       const logs = await fetchAndVerifySocialPublishLogs(profile.id, listingId);
       return NextResponse.json({ logs, quota });
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const quota = await getSellerSocialPublishQuota(profile.id, (profile as { tier?: string }).tier);
+    const quota = await getSellerSocialPublishQuota(profile.id, (profile as { tier?: string }).tier, (profile as { pro_billing_period?: string }).pro_billing_period);
     if (body.scheduledAt && !quota.canSchedule) {
       return NextResponse.json(
         {
@@ -91,7 +91,9 @@ export async function POST(request: NextRequest) {
     if (quota.remainingThisMonth !== null && quota.remainingThisMonth <= 0) {
       return NextResponse.json(
         {
-          error: `You have reached the Free limit of ${quota.monthlyLimit} social auto-posts per month. Upgrade to Market Pro for unlimited auto-posts.`,
+          error: quota.tier === 'pro'
+            ? `You have reached the Pro Monthly limit of ${quota.monthlyLimit} social auto-posts per month. Upgrade to Pro Annual for unlimited auto-posts.`
+            : `You have reached the Free limit of ${quota.monthlyLimit} social auto-posts per month. Upgrade to Market Pro for more auto-posts.`,
         },
         { status: 403 }
       );

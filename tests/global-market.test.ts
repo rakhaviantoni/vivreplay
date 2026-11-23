@@ -78,3 +78,20 @@ test('scheduled auctions validate start time and block early bids', async () => 
   assert.equal(earlyBid.ok, false);
   if (!earlyBid.ok) assert.equal(earlyBid.status, 409);
 });
+
+test('FIXED auctions apply 2-minute snipe protection in the final 60 seconds and tiered schedule windows', async () => {
+  const { computeNextAuctionEndsAtMs, validateScheduledStartAt } = await import('../lib/market/auction');
+  const now = Date.now();
+  const endsIn30s = now + 30_000;
+  const endsIn2h = now + 2 * 60 * 60 * 1000;
+
+  assert.equal(computeNextAuctionEndsAtMs('FIXED', now, endsIn30s, true), now + 2 * 60 * 1000);
+  assert.equal(computeNextAuctionEndsAtMs('FIXED', now, endsIn2h, true), endsIn2h);
+
+  const in3Days = new Date(now + 3 * 24 * 60 * 60 * 1000).toISOString();
+  const in20Days = new Date(now + 20 * 24 * 60 * 60 * 1000).toISOString();
+  assert.equal(validateScheduledStartAt(in3Days, now, 1).ok, false);
+  assert.equal(validateScheduledStartAt(in3Days, now, 14).ok, true);
+  assert.equal(validateScheduledStartAt(in20Days, now, 14).ok, false);
+  assert.equal(validateScheduledStartAt(in20Days, now, 30).ok, true);
+});

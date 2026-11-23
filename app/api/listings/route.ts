@@ -3,7 +3,7 @@ import {notifyListingWatchers} from '@/lib/server/market-watch-alerts';
 import {z} from 'zod';
 import {user,db,ensureListingGlobalSchema,errorResponse,guard,market,HttpError} from '@/lib/server/store';
 import {minListingUnitAmount} from '@/lib/market/global';
-import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
+import {getDynamicListingPolicy,computeListingExpiration,MARKET_FREE_AUCTION_SCHEDULE_DAYS,MARKET_FREE_MAX_ACTIVE_AUCTIONS,MARKET_PRO_ANNUAL_AUCTION_SCHEDULE_DAYS,MARKET_PRO_MONTHLY_AUCTION_SCHEDULE_DAYS,MARKET_PRO_MONTHLY_MAX_ACTIVE_AUCTIONS} from '@/lib/market/policy';
 import {MARKET_MAX_COPIES_PER_CARD,MARKET_ABSOLUTE_MAX_LISTING_COPIES,listingLimitMessage} from '@/lib/market/listing-limits';
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 import {createSealedListing} from '@/lib/server/sealed-listings';
@@ -195,6 +195,16 @@ export async function POST(request:Request){
     let createdAuction=null;
     let finalExpiresAt=expiresAt;
     if(value.type==='WTA'){
+      const isPro=policy.tier==='pro';
+      const isAnnual=isPro&&profile.pro_billing_period==='yearly';
+      const maxActiveAuctions=isAnnual?policy.maxActiveListings:isPro?MARKET_PRO_MONTHLY_MAX_ACTIVE_AUCTIONS:MARKET_FREE_MAX_ACTIVE_AUCTIONS;
+      const activeAuctionCount=await database.prepare("SELECT COUNT(*) AS total FROM listings WHERE seller_id=? AND type='WTA' AND status='ACTIVE' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP)").bind(profile.id).first<{total:number}>();
+      if((activeAuctionCount?.total??0)>=maxActiveAuctions){
+        throw new HttpError(403,isPro
+          ?`You have reached the Pro Monthly limit of ${maxActiveAuctions} active auctions. Upgrade to Pro Annual for unlimited active auctions.`
+          :`Free accounts can run up to ${maxActiveAuctions} active auctions at a time. Upgrade to Market Pro for more.`);
+      }
+      const maxScheduleDays=isAnnual?MARKET_PRO_ANNUAL_AUCTION_SCHEDULE_DAYS:isPro?MARKET_PRO_MONTHLY_AUCTION_SCHEDULE_DAYS:MARKET_FREE_AUCTION_SCHEDULE_DAYS;
       const minStart=minListingUnitAmount(value.currency);
       const minStep=value.currency==='USD'?50:1000;
       const defaultStep=value.currency==='USD'?100:10000;
@@ -213,7 +223,7 @@ export async function POST(request:Request){
           throw new HttpError(400,'Buy Out price must be higher than the starting bid.');
         }
         if(slot.startsAt){
-          const startCheck=validateScheduledStartAt(slot.startsAt);
+          const startCheck=validateScheduledStartAt(slot.startsAt,Date.now(),maxScheduleDays);
           if(!startCheck.ok)throw new HttpError(400,startCheck.error);
         }
         if(slot.durationMode==='FIXED'&&slot.fixedEndsAt){

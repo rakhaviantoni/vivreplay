@@ -1,5 +1,5 @@
 import {db as database} from './store';
-import {MARKET_PRO_MONTHLY_BOOST_CREDITS} from '@/lib/market/boost';
+import {MARKET_PRO_ANNUAL_BOOST_CREDITS_PER_MONTH,MARKET_PRO_MONTHLY_BOOST_CREDITS} from '@/lib/market/boost';
 
 type DB=ReturnType<typeof database>;
 
@@ -30,11 +30,17 @@ export async function ensureBoostSchema(db:DB){
   boostSchemaReady=true;
 }
 
-export async function getRemainingProBoostCredits(db:DB,sellerId:string):Promise<number>{
+export async function getRemainingProBoostCredits(db:DB,sellerId:string,proBillingPeriod?:string|null):Promise<number>{
   await ensureBoostSchema(db);
+  let period=proBillingPeriod;
+  if(period===undefined){
+    const row=await db.prepare('SELECT pro_billing_period AS period FROM profiles WHERE id=?').bind(sellerId).first<{period?:string|null}>().catch(()=>null);
+    period=row?.period??null;
+  }
+  const allowance=period==='yearly'?MARKET_PRO_ANNUAL_BOOST_CREDITS_PER_MONTH:MARKET_PRO_MONTHLY_BOOST_CREDITS;
   const monthKey=new Date().toISOString().slice(0,7);
   const row=await db.prepare('SELECT COUNT(*) AS used FROM market_pro_boost_usage WHERE seller_id=? AND month_key=?').bind(sellerId,monthKey).first<{used:number}>();
-  return Math.max(0,MARKET_PRO_MONTHLY_BOOST_CREDITS-(Number(row?.used)||0));
+  return Math.max(0,allowance-(Number(row?.used)||0));
 }
 
 export async function consumeProBoostCredit(db:DB,params:{listingId:string;sellerId:string}):Promise<string|null>{

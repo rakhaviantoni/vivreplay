@@ -12,6 +12,7 @@ export interface ListingBoostPlan {
 }
 
 export const MARKET_PRO_MONTHLY_BOOST_CREDITS = 2;
+export const MARKET_PRO_ANNUAL_BOOST_CREDITS_PER_MONTH = 3;
 
 export const LISTING_BOOST_PLANS: Record<ListingBoostPlanId, ListingBoostPlan> = {
   '24h': {

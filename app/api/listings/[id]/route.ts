@@ -1,7 +1,7 @@
 import {after} from 'next/server';
 import {notifyListingWatchers} from '@/lib/server/market-watch-alerts';
 import {user,db,errorResponse,guard,HttpError} from '@/lib/server/store';
-import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
+import {getDynamicListingPolicy,computeListingExpiration,MARKET_FREE_AUCTION_SCHEDULE_DAYS,MARKET_PRO_ANNUAL_AUCTION_SCHEDULE_DAYS,MARKET_PRO_MONTHLY_AUCTION_SCHEDULE_DAYS} from '@/lib/market/policy';
 import {z} from 'zod';
 import {MARKET_MAX_COPIES_PER_CARD,MARKET_ABSOLUTE_MAX_LISTING_COPIES} from '@/lib/market/listing-limits';
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
@@ -277,7 +277,10 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
       let startsAt:string|null=null;
       let anchorMs=Date.now();
       if(input.startsAt){
-        const check=validateScheduledStartAt(input.startsAt);
+        const isPro=p.tier==='pro';
+        const isAnnual=isPro&&p.pro_billing_period==='yearly';
+        const maxScheduleDays=isAnnual?MARKET_PRO_ANNUAL_AUCTION_SCHEDULE_DAYS:isPro?MARKET_PRO_MONTHLY_AUCTION_SCHEDULE_DAYS:MARKET_FREE_AUCTION_SCHEDULE_DAYS;
+        const check=validateScheduledStartAt(input.startsAt,Date.now(),maxScheduleDays);
         if(!check.ok)throw new HttpError(400,check.error);
         startsAt=new Date(check.startsAtMs).toISOString();
         anchorMs=check.startsAtMs;

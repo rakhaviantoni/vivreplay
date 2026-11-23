@@ -1,6 +1,6 @@
 import { database } from '@/lib/server/database';
 import { marketListingPath, marketListingSelectorFromPath } from '@/lib/market/listing-url';
-import { MARKET_FREE_SOCIAL_POSTS_PER_MONTH } from '@/lib/market/policy';
+import { MARKET_FREE_SOCIAL_POSTS_PER_MONTH, MARKET_PRO_MONTHLY_SOCIAL_POSTS_PER_MONTH } from '@/lib/market/policy';
 import type { PublicSocialConnection } from '@/lib/social-links';
 
 export type SupportedPlatform =
@@ -1516,19 +1516,23 @@ export type SocialPublishQuotaInfo = {
 
 export async function getSellerSocialPublishQuota(
   sellerId: string,
-  tier?: string | null
+  tier?: string | null,
+  proBillingPeriod?: string | null
 ): Promise<SocialPublishQuotaInfo> {
   const db = database();
   let resolvedTier = (tier ?? '').trim().toLowerCase();
-  if (!resolvedTier) {
+  let resolvedPeriod = (proBillingPeriod ?? '').trim().toLowerCase();
+  if (!resolvedTier || (resolvedTier === 'pro' && !resolvedPeriod)) {
     const profileRow = await db
-      .prepare(`SELECT tier FROM profiles WHERE id = ?`)
+      .prepare(`SELECT tier, pro_billing_period AS proBillingPeriod FROM profiles WHERE id = ?`)
       .bind(sellerId)
-      .first<{ tier?: string | null }>()
+      .first<{ tier?: string | null; proBillingPeriod?: string | null }>()
       .catch(() => null);
-    resolvedTier = (profileRow?.tier ?? 'free').trim().toLowerCase();
+    if (!resolvedTier) resolvedTier = (profileRow?.tier ?? 'free').trim().toLowerCase();
+    if (!resolvedPeriod) resolvedPeriod = (profileRow?.proBillingPeriod ?? '').trim().toLowerCase();
   }
   const isPro = resolvedTier === 'pro';
+  const isAnnual = isPro && resolvedPeriod === 'yearly';
 
   const countRow = await db
     .prepare(
@@ -1543,8 +1547,12 @@ export async function getSellerSocialPublishQuota(
     .catch(() => ({ count: 0 }));
 
   const usedThisMonth = Number(countRow?.count ?? 0);
-  const monthlyLimit = isPro ? null : MARKET_FREE_SOCIAL_POSTS_PER_MONTH;
-  const remainingThisMonth = isPro ? null : Math.max(0, MARKET_FREE_SOCIAL_POSTS_PER_MONTH - usedThisMonth);
+  const monthlyLimit = isAnnual
+    ? null
+    : isPro
+      ? MARKET_PRO_MONTHLY_SOCIAL_POSTS_PER_MONTH
+      : MARKET_FREE_SOCIAL_POSTS_PER_MONTH;
+  const remainingThisMonth = monthlyLimit === null ? null : Math.max(0, monthlyLimit - usedThisMonth);
 
   return {
     tier: isPro ? 'pro' : 'free',
