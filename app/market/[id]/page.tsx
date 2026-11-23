@@ -79,7 +79,7 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}){
 
     if(row){
       const formattedPrice = row.amount > 0 ? new Intl.NumberFormat('id-ID',{style:'currency',currency:row.currency||'IDR',maximumFractionDigits:0}).format(row.amount) : '';
-      const typeLabel = row.type === 'WTB' ? '[WTB / Buying]' : '[WTS / Selling]';
+      const typeLabel = row.type === 'WTB' ? '[WTB / Buying]' : row.type === 'WTA' ? '[WTA / Auction]' : '[WTS / Selling]';
       const descParts = [
         formattedPrice,
         row.condition ? `Condition: ${row.condition}` : '',

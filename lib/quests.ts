@@ -74,8 +74,8 @@ export const QUEST_DEFINITIONS: QuestDefinition[] = [
     href: '/market',
     title: { EN: 'List on Market', ID: 'Buat Listing di Market' },
     description: {
-      EN: 'Publish your first WTS or WTB card listing.',
-      ID: 'Publikasikan listing WTS atau WTB pertama Anda.',
+      EN: 'Publish your first WTS, WTB, or Auction card listing.',
+      ID: 'Publikasikan listing WTS, WTB, atau Lelang pertama Anda.',
     },
   },
   {

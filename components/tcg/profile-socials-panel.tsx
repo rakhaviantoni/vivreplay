@@ -625,8 +625,8 @@ export function ProfileSocialsPanel({
 
                     {post.listingHref && (
                       <Link href={post.listingHref} className="profile-social-linked-listing">
-                        <span className={post.listingType === 'WTB' ? 'is-wtb' : 'is-wts'}>
-                          {post.listingType === 'WTB' ? 'WTB' : 'WTS'}
+                        <span className={post.listingType === 'WTB' ? 'is-wtb' : post.listingType === 'WTA' ? 'is-wta' : 'is-wts'}>
+                          {post.listingType === 'WTB' ? 'WTB' : post.listingType === 'WTA' ? 'WTA' : 'WTS'}
                         </span>
                         <strong>{post.listingTitle || t('Market Listing', 'Listing Market')}</strong>
                         {typeof post.listingAmount === 'number' && post.listingCurrency && (
