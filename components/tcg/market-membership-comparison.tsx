@@ -3,7 +3,7 @@
 import {MarketServiceFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
 
 type BundleLimits={maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number};
-export function MarketMembershipComparison({locale,selectedPeriod,freeListings,monthlyListings,annualListings,freeDays,proDays,freeBundle,monthlyBundle,annualBundle,freeProductStock=10,monthlyProductStock=50,annualProductStock=99,freeFee,proFee,buyerMinimum,sellerMinimum,monthlyVouchers,annualVouchers,loading=false}:{locale:'EN'|'ID';selectedPeriod:'monthly'|'yearly';freeListings:number;monthlyListings:number;annualListings:number;freeDays:number;proDays:number;freeBundle:BundleLimits;monthlyBundle:BundleLimits;annualBundle:BundleLimits;freeProductStock?:number;monthlyProductStock?:number;annualProductStock?:number;freeFee:number;proFee:number;buyerMinimum:number;sellerMinimum:number;monthlyVouchers:number;annualVouchers:number;loading?:boolean}){
+export function MarketMembershipComparison({locale,selectedPeriod,freeListings,monthlyListings,annualListings,freeDays,proDays,freeBundle,monthlyBundle,annualBundle,freeProductStock=10,monthlyProductStock=50,annualProductStock=99,freeFee,proFee,buyerMinimum,sellerMinimum,monthlyVouchers,annualVouchers,freeSocialPosts=3,loading=false}:{locale:'EN'|'ID';selectedPeriod:'monthly'|'yearly';freeListings:number;monthlyListings:number;annualListings:number;freeDays:number;proDays:number;freeBundle:BundleLimits;monthlyBundle:BundleLimits;annualBundle:BundleLimits;freeProductStock?:number;monthlyProductStock?:number;annualProductStock?:number;freeFee:number;proFee:number;buyerMinimum:number;sellerMinimum:number;monthlyVouchers:number;annualVouchers:number;freeSocialPosts?:number;loading?:boolean}){
   const id=locale==='ID';
   const t=(en:string,ind:string)=>id?ind:en;
   const format=(value:number)=>value.toLocaleString(id?'id-ID':'en-US');
@@ -20,6 +20,7 @@ export function MarketMembershipComparison({locale,selectedPeriod,freeListings,m
     [t('Product stock','Stok produk'),`${t('Up to','Maksimal')} ${format(freeProductStock)} ${t('units per listing','unit per listing')}`,`${t('Up to','Maksimal')} ${format(selectedProductStock)} ${t('units per listing','unit per listing')}`],
     [t('Listing period','Masa tayang'),`${freeDays} ${t('days','hari')}`,`${proDays} ${t('days','hari')}`],
     [t('Market service fee','Biaya layanan Market'),`${freeFee}%`,`${proFee}%`],
+    [t('Social auto-publish','Auto-post media sosial'),`${freeSocialPosts} / ${t('month','bulan')}`,t('Unlimited + scheduled','Tanpa batas + terjadwal')],
     [t('Delivery vouchers','Voucher ongkir'),t('None','Tidak ada'),selectedVoucher],
   ];
   return <div className="market-membership-compare market-membership-compare-wide" aria-label={t('Free and Market Pro comparison','Perbandingan Free dan Market Pro')}>

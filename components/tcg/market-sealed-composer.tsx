@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useMemo,useState,type ReactNode} from 'react';
 import {useRouteLocale} from '@/components/locale-provider';
-import {ArrowRightIcon as ArrowRight,MagnifyingGlassIcon as Search,PlusIcon as Plus,UploadSimpleIcon as UploadSimple,XIcon as X} from '@phosphor-icons/react';
+import {ArrowLeftIcon as ArrowLeft,ArrowRightIcon as ArrowRight,MagnifyingGlassIcon as Search,PlusIcon as Plus,UploadSimpleIcon as UploadSimple,XIcon as X} from '@phosphor-icons/react';
 import {matchesSealedProductQuery,normalizeSealedProductQuery,sealedProductDisplayName,sealedProductPublicCode,sealedProductLanguage,sealedProducts,sealedProductKinds,type SealedProduct,type SealedProductKind} from '@/lib/market/sealed-products';
 import {isAccessoryKind,productConditionLabel,productConditionOptions} from '@/lib/market/product-conditions';
 import {MarketGeneralComposer} from './market-general-composer';
@@ -130,7 +130,11 @@ export function MarketSealedComposer({type,onPublished,onAddToBundle,modeControl
         </div>}
       </div>
     </>:<>
-      <div className="market-sealed-selection"><span className="market-product-selection-art">{product.imageUrl?<img src={product.imageUrl} alt=""/>:null}</span><div><span className="market-product-selection-kind">{sealedProductKinds[product.kind]}</span><strong>{displayProduct(product)}</strong><small>{sealedProductPublicCode(product)}<span>{sealedProductLanguage(product)}</span></small>{product.contents&&<p className="market-product-contents">{product.contents}</p>}<button type="button" disabled={busy} onClick={()=>setProduct(undefined)}>{copy('Choose another product','Pilih produk lain')}</button></div></div>
+      <button type="button" className="market-product-back-btn" disabled={busy} onClick={()=>setProduct(undefined)}>
+        <ArrowLeft size={14} aria-hidden="true"/>
+        <span>{copy('Back to products','Kembali ke daftar produk')}</span>
+      </button>
+      <div className="market-sealed-selection"><span className="market-product-selection-art">{product.imageUrl?<img src={product.imageUrl} alt={displayProduct(product)}/>:null}</span><div><span className="market-product-selection-kind">{sealedProductKinds[product.kind]}</span><strong>{displayProduct(product)}</strong><small>{sealedProductPublicCode(product)}<span>{sealedProductLanguage(product)}</span></small>{product.contents&&<p className="market-product-contents">{product.contents}</p>}</div></div>
       <div className="market-sealed-fields"><label>{type==='WTS'?copy('Quantity available','Jumlah tersedia'):copy('Quantity wanted','Jumlah yang dicari')}<input type="number" min={1} max={productStockLimit} value={quantity} onChange={event=>setQuantity(Math.min(productStockLimit,Math.max(1,Number(event.target.value)||1)))}/><small>{copy(`Up to ${productStockLimit} units per listing`,`Maksimal ${productStockLimit} unit per listing`)}</small></label><label>{type==='WTS'?copy('Price per item (IDR)','Harga per produk (IDR)'):copy('Offer per item (IDR)','Tawaran per produk (IDR)')}<input type="number" min={1} value={price} onChange={event=>setPrice(event.target.value)}/></label>
         <fieldset className="market-product-condition-field"><legend>{type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}</legend>
           {selectedConditionOptions.length<=2?<RadioGroup value={condition} onValueChange={setCondition} className="market-product-condition-options" aria-label={type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}>
