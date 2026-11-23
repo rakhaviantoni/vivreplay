@@ -196,7 +196,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
   },[open,pendingOrder?.id,pendingOrder?.paymentCreated]);
 
   const amount=pendingOrder?.amount??(billingPeriod==='yearly'?plan?.annualAmount:plan?.amount);
-  const annualSavings=Math.max(0,(plan?.standardAmount??plan?.amount??29900)*12-(plan?.annualAmount??299000));
+  const annualSavings=Math.max(0,(plan?.standardAmount??plan?.amount??29900)*12-(plan?.annualAmount??249000));
   const monthlyStandardAmount=plan?.standardAmount??plan?.amount??29900;
   const annualSavingsPercent=monthlyStandardAmount>0?Math.round(annualSavings/(monthlyStandardAmount*12)*100):0;
   const paymentOptions=Array.isArray(plan?.paymentChannels)?plan.paymentChannels:defaultPaymentOptions;
@@ -231,7 +231,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
               </div>
               <strong>{formatMoney(amount,'IDR')}</strong>
               <span>{billingPeriod==='yearly'?t('/ year','/ tahun'):t('/ month','/ bulan')}</span>
-              {!pendingOrder&&billingPeriod==='yearly'?<small><s>{formatMoney(monthlyStandardAmount*12,'IDR')}</s> <b className="market-membership-savings">{t(`Save ${formatMoney(annualSavings,'IDR')} (${annualSavingsPercent}%) vs 12 monthly payments`,`Hemat ${formatMoney(annualSavings,'IDR')} (${annualSavingsPercent}%) dibandingkan 12 pembayaran bulanan`)}</b>{t(`. Use ${plan?.shippingVouchersPerYear??24} vouchers any time during the year; unused vouchers expire when membership ends.`,`. Gunakan ${plan?.shippingVouchersPerYear??24} voucher kapan saja selama setahun; sisa voucher kedaluwarsa saat masa aktif berakhir.`)}</small>:!pendingOrder&&plan?.introOffer&&plan.standardAmount!==null?<small>{t(`Intro price for ${plan.durationDays??30} days, then ${formatMoney(plan.standardAmount,'IDR')} every 30 days. Renew manually.`,`Harga promo ${plan.durationDays??30} hari, lalu ${formatMoney(plan.standardAmount,'IDR')} tiap 30 hari. Perpanjang manual.`)}</small>:null}
+              {!pendingOrder&&billingPeriod==='yearly'?<small>{annualSavings>0&&<><s>{formatMoney(monthlyStandardAmount*12,'IDR')}</s> <b className="market-membership-savings">{t(`Save ${formatMoney(annualSavings,'IDR')} (${annualSavingsPercent}%) vs 12 monthly payments`,`Hemat ${formatMoney(annualSavings,'IDR')} (${annualSavingsPercent}%) dibandingkan 12 pembayaran bulanan`)}</b>. </>}{t(`Use ${plan?.shippingVouchersPerYear??24} vouchers any time during the year; unused vouchers expire when membership ends.`,`Gunakan ${plan?.shippingVouchersPerYear??24} voucher kapan saja selama setahun; sisa voucher kedaluwarsa saat masa aktif berakhir.`)}</small>:!pendingOrder&&plan?.introOffer&&plan.standardAmount!==null?<small>{t(`Intro price for ${plan.durationDays??30} days, then ${formatMoney(plan.standardAmount,'IDR')} every 30 days. Renew manually.`,`Harga promo ${plan.durationDays??30} hari, lalu ${formatMoney(plan.standardAmount,'IDR')} tiap 30 hari. Perpanjang manual.`)}</small>:null}
               {!pendingOrder&&billingPeriod==='monthly'&&introLimit&&<MarketIntroOfferProgress compact limit={introLimit} remaining={plan?.introOfferSpotsRemaining} endsAt={plan?.introOfferEndsAt} locale={locale}/>}
             </>
           ) : (
