@@ -35,17 +35,43 @@ export const AUCTION_DEFAULT_MIN_INCREMENT = 10_000;
 export const AUCTION_MAX_BID_AMOUNT = 100_000_000_000;
 export const AUCTION_MIN_FIXED_HOURS = 1;
 export const AUCTION_MAX_FIXED_HOURS = 168; // 7 days
+export const AUCTION_MIN_FIXED_MS = 60 * 60 * 1000;
+export const AUCTION_MAX_FIXED_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function validateFixedAuctionEndsAt(
+  fixedEndsAt: string,
+  nowMs: number = Date.now(),
+): { ok: true; endsAtMs: number } | { ok: false; error: string } {
+  const parsed = Date.parse(fixedEndsAt);
+  if (!Number.isFinite(parsed)) {
+    return { ok: false, error: 'Choose a valid end date and time.' };
+  }
+  if (parsed < nowMs + AUCTION_MIN_FIXED_MS) {
+    return { ok: false, error: 'Auction end time must be at least 1 hour from now.' };
+  }
+  if (parsed > nowMs + AUCTION_MAX_FIXED_MS) {
+    return { ok: false, error: 'Auction end time cannot exceed 30 days from now.' };
+  }
+  return { ok: true, endsAtMs: parsed };
+}
 
 export function computeInitialAuctionEndsAtMs(
   durationMode: AuctionDurationMode,
   nowMs: number,
   fixedHours?: number,
+  fixedEndsAt?: string,
 ): number {
   if (durationMode === 'ROLLING_24H') {
     return nowMs + 24 * 60 * 60 * 1000;
   }
   if (durationMode === 'ROLLING_48H') {
     return nowMs + 48 * 60 * 60 * 1000;
+  }
+  if (fixedEndsAt) {
+    const parsed = Date.parse(fixedEndsAt);
+    if (Number.isFinite(parsed)) {
+      return Math.min(nowMs + AUCTION_MAX_FIXED_MS, Math.max(nowMs + AUCTION_MIN_FIXED_MS, parsed));
+    }
   }
   const hours = Math.min(
     AUCTION_MAX_FIXED_HOURS,

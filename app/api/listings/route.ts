@@ -9,6 +9,7 @@ import {createSealedListing} from '@/lib/server/sealed-listings';
 import {createGeneralListing} from '@/lib/server/general-listings';
 import {createMixedListing} from '@/lib/server/mixed-listings';
 import {createAuctionForListing} from '@/lib/server/auctions';
+import {validateFixedAuctionEndsAt} from '@/lib/market/auction';
 import {recordMarketActivity} from '@/lib/server/market-activity-progress';
 
 const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),productType:z.enum(['RAW','GRADED']).optional(),gradingCompany:z.string().trim().max(40).optional(),grade:z.string().trim().max(20).optional(),certification:z.string().trim().max(100).optional(),slabLabelStyle:z.enum(['clear','standard']).optional(),unitAmount:z.number().int().nonnegative().optional(),photoIds:z.array(z.string().min(1).max(120)).max(6).optional()});
@@ -17,6 +18,7 @@ const auctionSchema=z.object({
   minIncrement:z.number().int().min(1000).max(100000000).default(10000),
   durationMode:z.enum(['FIXED','ROLLING_24H','ROLLING_48H']).default('ROLLING_24H'),
   fixedHours:z.number().int().min(1).max(168).optional(),
+  fixedEndsAt:z.string().trim().max(64).optional(),
 });
 const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(MARKET_ABSOLUTE_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB','WTA']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional(),auction:auctionSchema.optional()});
 
@@ -187,6 +189,10 @@ export async function POST(request:Request){
     let finalExpiresAt=expiresAt;
     if(value.type==='WTA'){
       const auctionInput=value.auction??{startingBid:value.amount,minIncrement:10000,durationMode:'ROLLING_24H' as const};
+      if(auctionInput.durationMode==='FIXED'&&auctionInput.fixedEndsAt){
+        const check=validateFixedAuctionEndsAt(auctionInput.fixedEndsAt);
+        if(!check.ok)throw new HttpError(400,check.error);
+      }
       createdAuction=await createAuctionForListing(database,{
         listingId:id,
         sellerId:profile.id,
@@ -194,6 +200,7 @@ export async function POST(request:Request){
         minIncrement:auctionInput.minIncrement??10000,
         durationMode:auctionInput.durationMode??'ROLLING_24H',
         fixedHours:auctionInput.fixedHours,
+        fixedEndsAt:auctionInput.fixedEndsAt,
       });
       finalExpiresAt=createdAuction.endsAt;
       await database.prepare('UPDATE listings SET expires_at=?,negotiable=0 WHERE id=?').bind(finalExpiresAt,id).run();

@@ -7,6 +7,7 @@ import type {CollectionItem,SavedDeck,Listing} from '@/packages/domain';
 import {normalizeListingItemPrices} from '@/lib/market/normalize-listing-prices';
 import {generalMarketCategoryLabel} from '@/lib/market/general-products';
 import {getAuctionSummaryMap} from '@/lib/server/auctions';
+import {getActiveBoostMap} from '@/lib/server/listing-boosts';
 export function db(){if(!env.DB)throw new Error('Persistent storage is unavailable. Please retry shortly.');return env.DB;}
 function defaultUsername(email: string | undefined, id: string): string {
   if (!email) return `player-${id.slice(0, 8)}`;
@@ -307,9 +308,12 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
   }
 
   const wtaIds=rows.filter(row=>row.type==='WTA').map(row=>row.id);
-  const auctionSummaries=wtaIds.length?await getAuctionSummaryMap(db(),wtaIds):new Map();
+  const [auctionSummaries,boostMap]=await Promise.all([
+    wtaIds.length?getAuctionSummaryMap(db(),wtaIds):Promise.resolve(new Map()),
+    getActiveBoostMap(db(),rows.map(row=>row.id)),
+  ]);
 
-  return rows.map(r => {
+  const mapped=rows.map(r=>{
     const filenameCode = r.cardImageUrl ? r.cardImageUrl.split('?')[0].split('#')[0].split('/').pop()?.replace(/\.[^.]+$/, '') : undefined;
     const printingCode = r.catalogPrintingCode ?? (filenameCode&&!filenameCode.toLowerCase().startsWith('tcg-')?filenameCode:undefined) ?? r.cardCode;
 
@@ -372,7 +376,12 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
       items,
       shippingOptionCount:couriers.size,
       shippingCouriers:[...couriers],
+      boostedUntil:boostMap.get(r.id)??null,
       ...(r.type==='WTA'&&auctionSummaries.has(r.id)?{auction:auctionSummaries.get(r.id)}:{}),
     } satisfies Listing;
   });
+  if(!listingIds?.length){
+    mapped.sort((a,b)=>Number(Boolean(b.boostedUntil))-Number(Boolean(a.boostedUntil)));
+  }
+  return mapped;
 }

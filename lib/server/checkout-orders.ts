@@ -1,6 +1,7 @@
 import {db,HttpError} from '@/lib/server/store';
 import {MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR} from '@/lib/market/policy';
 import {syncSocialListingStage} from '@/lib/server/postforme';
+import {activateListingBoost} from '@/lib/server/listing-boosts';
 
 type FulfillableOrder={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;paymentId:string|null};
 
@@ -24,6 +25,29 @@ export async function fulfillCheckoutOrder(database:ReturnType<typeof db>,order:
     );
     const results=await database.batch(statements);
     return Boolean(results[0]?.meta.changes);
+  }
+  if(order.kind==='BOOST'){
+    let durationDays=3;
+    let planId='3d';
+    let listingId=order.listingId??'';
+    try{
+      const details=JSON.parse(order.details) as {durationDays?:number;planId?:string;listingId?:string};
+      durationDays=Number(details.durationDays)||3;
+      planId=details.planId==='7d'?'7d':'3d';
+      listingId=details.listingId||listingId;
+    }catch{}
+    if(!listingId)throw new HttpError(500,'The listing for this boost order could not be found.');
+    const claimResult=await database.prepare("UPDATE checkout_orders SET status='PROCESSING',details=json_set(details,'$.fulfillmentClaim',?),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(claim,order.id,order.paymentId).run();
+    if(!claimResult.meta.changes)return false;
+    await activateListingBoost(database,{
+      listingId,
+      sellerId:order.sellerId||order.buyerId,
+      planId,
+      days:durationDays,
+      orderId:order.id,
+    });
+    await database.prepare("UPDATE checkout_orders SET status='PAID',details=json_remove(details,'$.fulfillmentClaim'),paid_at=COALESCE(paid_at,CURRENT_TIMESTAMP),fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?").bind(order.id,claim).run();
+    return true;
   }
 
   let selected:Array<{instanceId?:string;printingId:string;quantity:number;unitAmount?:number;condition?:string;listingId?:string}>;

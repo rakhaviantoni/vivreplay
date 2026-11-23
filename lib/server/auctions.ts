@@ -93,11 +93,12 @@ export async function createAuctionForListing(
     minIncrement:number;
     durationMode:AuctionDurationMode;
     fixedHours?:number;
+    fixedEndsAt?:string;
   },
 ):Promise<AuctionSummary>{
   await ensureAuctionSchema(db);
   const nowMs=Date.now();
-  const endsAtMs=computeInitialAuctionEndsAtMs(params.durationMode,nowMs,params.fixedHours);
+  const endsAtMs=computeInitialAuctionEndsAtMs(params.durationMode,nowMs,params.fixedHours,params.fixedEndsAt);
   const endsAt=new Date(endsAtMs).toISOString();
   const startingBid=Math.max(1_000,Math.round(params.startingBid));
   const minIncrement=Math.max(1_000,Math.round(params.minIncrement));

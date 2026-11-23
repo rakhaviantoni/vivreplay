@@ -16,6 +16,7 @@ import {
   CardsIcon as VaultIcon,
   CaretDownIcon as ChevronDown,
   GavelIcon as Gavel,
+  HandshakeIcon as Handshake,
   ListIcon as List,
   MapPinIcon as MapPin,
   MinusIcon as Minus,
@@ -72,6 +73,7 @@ import {MarketSealedComposer,type BundleProductInput} from './market-sealed-comp
 import {Slider} from '@/components/ui/slider';
 import {MarketQuickPanel} from './market-quick-panel';
 import {MarketStoreNav} from './market-store-nav';
+import {MarketPartnerDialog} from './market-partner-dialog';
 import {enrichCollectionItem,groupVaultStacks} from './vault/vault-utils';
 import {VaultSlabCase} from './vault/views/vault-slot-slab-plate';
 import type {EnrichedCollectionItem} from './vault/types';
@@ -94,7 +96,8 @@ export function MarketGameMark({gameSlug,compact=false}:{gameSlug:MarketGameScop
 }
 type MarketScopeOption={value:string;label:string};
 function MarketScopePicker({label,logo,active,selected,options,onToggleScope,onToggleOption,onClear,locale}:{label:string;logo?:string;active:boolean;selected:string[];options:MarketScopeOption[];onToggleScope:()=>void;onToggleOption:(value:string)=>void;onClear:()=>void;locale:'EN'|'ID'}){
-  const [open,setOpen]=useState(false);const [query,setQuery]=useState('');
+  const [open,setOpen]=useState(false);
+  const [query,setQuery]=useState('');
   const filtered=options.filter(option=>`${option.label} ${option.value}`.toLowerCase().includes(query.trim().toLowerCase()));
   return <div className={`market-scope-picker${active?' is-active':''}`}>
     <button type="button" className="market-scope-toggle" aria-label={label} aria-pressed={active} onClick={onToggleScope}>
@@ -731,9 +734,16 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
   const [listingTitle,setListingTitle]=useState('');
   const [listingPrice,setListingPrice]=useState('');
   const [listingType,setListingType]=useState<'WTS'|'WTB'|'WTA'>('WTS');
+  const [partnerOpen,setPartnerOpen]=useState(false);
   const [auctionIncrement,setAuctionIncrement]=useState('10000');
   const [auctionDurationMode,setAuctionDurationMode]=useState<'ROLLING_24H'|'ROLLING_48H'|'FIXED'>('ROLLING_24H');
   const [auctionFixedHours,setAuctionFixedHours]=useState('48');
+  const [auctionFixedMode,setAuctionFixedMode]=useState<'preset'|'custom'>('preset');
+  const [auctionFixedEndsAt,setAuctionFixedEndsAt]=useState(()=>{
+    const target=new Date(Date.now()+48*60*60*1000);
+    const pad=(n:number)=>String(n).padStart(2,'0');
+    return `${target.getFullYear()}-${pad(target.getMonth()+1)}-${pad(target.getDate())}T${pad(target.getHours())}:${pad(target.getMinutes())}`;
+  });
   const [liveListingFeePercent,setLiveListingFeePercent]=useState<number|null>(null);
   const [listingNegotiable,setListingNegotiable]=useState(true);
   const [listingCity,setListingCity]=useState('');
@@ -1416,7 +1426,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
         city:listingType==='WTB'?buyerCity:(listingCity||'Jakarta'),
         type:listingType,
         negotiable:listingType==='WTA'?false:listingNegotiable,
-        ...(listingType==='WTA'?{auction:{startingBid:Number(listingPrice),minIncrement:Math.max(1000,Number(auctionIncrement)||10000),durationMode:auctionDurationMode,...(auctionDurationMode==='FIXED'?{fixedHours:Math.min(168,Math.max(1,Number(auctionFixedHours)||48))}:{})}}:{}),
+        ...(listingType==='WTA'?{auction:{startingBid:Number(listingPrice),minIncrement:Math.max(1000,Number(auctionIncrement)||10000),durationMode:auctionDurationMode,...(auctionDurationMode==='FIXED'?(auctionFixedMode==='custom'&&auctionFixedEndsAt?{fixedEndsAt:new Date(auctionFixedEndsAt).toISOString()}:{fixedHours:Math.min(168,Math.max(1,Number(auctionFixedHours)||48))}):{})}}:{}),
         items:[...bundleCards.map(item=>({
           instanceId:item.instanceId,
           printingId:item.printing.id,
@@ -1690,7 +1700,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                       {totalCards>1&&<span className="market-feed-quantity" aria-label={`${totalCards} ${isMixedInventory?(locale==='ID'?'item':'items'):isGeneralListing?(locale==='ID'?'barang':'items'):hasMarketProducts?(locale==='ID'?'produk':'products'):(locale==='ID'?'kartu':'cards')}`}>{totalCards}</span>}
                     </div>
                     <div className="market-feed-copy">
-                      <h2><span className="market-feed-title-text">{listing.title}</span>{marketCategory==='tcg'&&gameSlug==='all'&&listingGame&&<span className="market-feed-game-mark" title={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'} aria-label={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'}><MarketGameMark gameSlug={listingGame} compact/></span>}{(marketCategory==='other'||generalCategories.length>0)&&generalCategories.map(category=><span key={category} className="market-feed-category-mark">{generalMarketCategoryLabel(category,locale)}</span>)}</h2>
+                      <h2><span className="market-feed-title-text">{listing.title}</span>{listing.boostedUntil&&<span className="market-feed-featured-badge">{locale==='ID'?'Unggulan':'Featured'}</span>}{marketCategory==='tcg'&&gameSlug==='all'&&listingGame&&<span className="market-feed-game-mark" title={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'} aria-label={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'}><MarketGameMark gameSlug={listingGame} compact/></span>}{(marketCategory==='other'||generalCategories.length>0)&&generalCategories.map(category=><span key={category} className="market-feed-category-mark">{generalMarketCategoryLabel(category,locale)}</span>)}</h2>
                       <small className="market-feed-meta">
                         <span className="market-feed-meta-primary"><span className="market-feed-meta-primary-line"><span className="market-feed-location"><MapPin size={11}/><span className="market-feed-location-name">{listing.city}</span></span>{listing.createdAt&&<><span className="market-feed-meta-separator" aria-hidden="true">|</span><span className="market-feed-meta-tail"><MarketTimestamp value={listing.createdAt}/><span className="market-feed-seller">{locale==='ID'?'oleh':'by'} {listing.sellerUsername?<Link href={`/players/${encodeURIComponent(listing.sellerUsername)}`} onClick={event=>event.stopPropagation()}>{listing.seller}</Link>:listing.seller}</span></span></>}</span></span>
                         {(listing.type==='WTS'||listing.type==='WTA')&&<span className="market-feed-meta-secondary"><ShippingCouriers couriers={listing.shippingCouriers??[]} language={locale}/></span>}
@@ -1745,6 +1755,16 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                 )}
               </div>
             )}
+            <aside className="market-partner-banner" aria-label={locale==='ID'?'Kemitraan dan konsinyasi':'Partnerships and consignment'}>
+              <div>
+                <strong>{locale==='ID'?'Punya toko hobi atau akun konsinyasi?':'Run a hobby shop or consignment page?'}</strong>
+                <span>{locale==='ID'?'Bergabunglah sebagai Partner Unggulan VivrePlay dengan checkout rekber resmi dan eksposur katalog.':'Join VivrePlay as a Featured Partner with official escrow checkout and catalog visibility.'}</span>
+              </div>
+              <button type="button" className="button secondary" onClick={()=>setPartnerOpen(true)}>
+                <Handshake size={16}/>
+                <span>{locale==='ID'?'Partner & Konsinyasi':'Partner & Consign'}</span>
+              </button>
+            </aside>
           </>
         )}
       </div>
@@ -2184,15 +2204,34 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                       </label>
                     </div>
                     {auctionDurationMode==='FIXED'&&(
-                      <label>
-                        <span>{locale==='ID'?'Durasi lelang (jam)':'Auction duration (hours)'}</span>
-                        <select value={auctionFixedHours} onChange={event=>setAuctionFixedHours(event.target.value)}>
-                          <option value="24">{locale==='ID'?'24 jam':'24 hours'}</option>
-                          <option value="48">{locale==='ID'?'48 jam (2 hari)':'48 hours (2 days)'}</option>
-                          <option value="72">{locale==='ID'?'72 jam (3 hari)':'72 hours (3 days)'}</option>
-                          <option value="168">{locale==='ID'?'168 jam (7 hari)':'168 hours (7 days)'}</option>
-                        </select>
-                      </label>
+                      <div className="market-auction-fixed-box">
+                        <div className="market-category-switch market-sealed-kind-switch" role="group" aria-label={locale==='ID'?'Jenis waktu akhir':'End time mode'}>
+                          <button type="button" className={auctionFixedMode==='preset'?'is-active':''} aria-pressed={auctionFixedMode==='preset'} onClick={()=>setAuctionFixedMode('preset')}>{locale==='ID'?'Durasi cepat':'Quick duration'}</button>
+                          <button type="button" className={auctionFixedMode==='custom'?'is-active':''} aria-pressed={auctionFixedMode==='custom'} onClick={()=>setAuctionFixedMode('custom')}>{locale==='ID'?'Tanggal & jam':'Date & time'}</button>
+                        </div>
+                        {auctionFixedMode==='preset'?(
+                          <label>
+                            <span>{locale==='ID'?'Durasi lelang (jam)':'Auction duration (hours)'}</span>
+                            <select value={auctionFixedHours} onChange={event=>setAuctionFixedHours(event.target.value)}>
+                              <option value="24">{locale==='ID'?'24 jam':'24 hours'}</option>
+                              <option value="48">{locale==='ID'?'48 jam (2 hari)':'48 hours (2 days)'}</option>
+                              <option value="72">{locale==='ID'?'72 jam (3 hari)':'72 hours (3 days)'}</option>
+                              <option value="168">{locale==='ID'?'168 jam (7 hari)':'168 hours (7 days)'}</option>
+                            </select>
+                          </label>
+                        ):(
+                          <label>
+                            <span>{locale==='ID'?'Tanggal & jam berakhir':'End date & time'}</span>
+                            <input
+                              type="datetime-local"
+                              value={auctionFixedEndsAt}
+                              onChange={event=>setAuctionFixedEndsAt(event.target.value)}
+                              required
+                            />
+                            <small>{locale==='ID'?'Minimal 1 jam dan maksimal 30 hari dari sekarang.':'Minimum 1 hour and up to 30 days from now.'}</small>
+                          </label>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -2376,6 +2415,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
         gameSlug={(marketVaultCard as MarketCard|null)?.gameSlug??(/^PK-/i.test(marketVaultCard?.code??'')?'pokemon':listingGameScope==='pokemon'?'pokemon':'one-piece')}
       />
       {/* Collection Form modal for syncing unowned draft card with Vault */}
+      <MarketPartnerDialog open={partnerOpen} onOpenChange={setPartnerOpen} locale={locale}/>
       {collectionCardTarget&&(
         <CollectionForm
           key={collectionCardTarget.printing.id}

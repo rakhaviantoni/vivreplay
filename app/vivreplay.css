@@ -4730,3 +4730,38 @@ html[data-theme='dark'] .market-listing-status.is-wta{color:#b7a3ff}
   .market-auction-stats{grid-template-columns:1fr}
   .market-auction-bid-row{grid-template-columns:1fr}
 }
+
+/* Auction custom date/time, Boost Spotlight, and Partner/Consignment UI */
+.market-auction-fixed-box{display:grid;gap:10px}
+.market-auction-fixed-box label>small{color:var(--muted);font-size:11.5px;font-weight:500}
+.market-feed-featured-badge,.market-listing-boosted-badge{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 7px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--accent) 13%,var(--surface-raised));color:var(--accent-deep,var(--accent));font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;vertical-align:middle}
+.market-listing-type-badge.is-auction{background:color-mix(in srgb,#6d4aff 14%,var(--surface-raised));color:#5634d9;border-color:color-mix(in srgb,#6d4aff 32%,var(--line))}
+html[data-theme='dark'] .market-listing-type-badge.is-auction{color:#b7a3ff}
+.market-activity-actions button.is-boost-action{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));color:var(--accent-deep,var(--accent))}
+.market-boost-dialog,.market-partner-dialog{width:min(540px,calc(100vw - 24px))!important;max-width:540px!important}
+.market-boost-plans{display:grid;gap:10px}
+.market-boost-plan-card{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface-raised);color:var(--ink);text-align:left;cursor:pointer;transition:border-color .15s ease,background-color .15s ease}
+.market-boost-plan-card>div{display:grid;gap:3px}
+.market-boost-plan-card strong{font-size:14px;font-weight:750}
+.market-boost-plan-card small{color:var(--muted);font-size:12px;line-height:1.4}
+.market-boost-plan-card b{flex:none;font-size:15px;font-weight:800;color:var(--accent-deep,var(--accent))}
+.market-boost-plan-card.is-selected{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface-raised))}
+.market-boost-dialog-actions,.market-partner-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:4px}
+.market-partner-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:20px;padding:16px 20px;border:1px solid var(--line);border-radius:14px;background:var(--surface-raised)}
+.market-partner-banner>div{display:grid;gap:4px;min-width:0;max-width:620px}
+.market-partner-banner strong{color:var(--ink);font-size:14.5px;font-weight:750}
+.market-partner-banner span{color:var(--muted);font-size:12.5px;line-height:1.45}
+.market-partner-banner .button{flex:none}
+.market-partner-form{display:grid;gap:13px}
+.market-partner-form label{display:grid;gap:6px;min-width:0;font-size:12.5px;font-weight:700;color:var(--ink)}
+.market-partner-form input,.market-partner-form select,.market-partner-form textarea{width:100%;min-height:42px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-raised);color:var(--ink);font:inherit;font-size:13px;font-weight:500}
+.market-partner-form textarea{min-height:84px;resize:vertical}
+.market-partner-success{display:grid;justify-items:center;gap:10px;padding:24px 12px;text-align:center}
+.market-partner-success svg{color:#16845f}
+.market-partner-success strong{font-size:17px;color:var(--ink)}
+.market-partner-success p{margin:0;max-width:380px;color:var(--muted);font-size:13px;line-height:1.5}
+@media(max-width:600px){
+  .market-partner-form .form-row{grid-template-columns:1fr!important}
+  .market-partner-banner{padding:14px 16px}
+  .market-partner-banner .button{width:100%;justify-content:center}
+}
