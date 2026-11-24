@@ -1098,12 +1098,16 @@ export function MarketListingDetailView({
       const res = await fetch(`/api/listings/${encodeURIComponent(listing.id)}/renew`, {
         method: 'POST',
       });
-      const data = await res.json() as {ok?: boolean; expiresAt?: string; durationDays?: number; error?: string};
+      const data = await res.json() as {ok?: boolean; expiresAt?: string; durationDays?: number; durationHours?: number; error?: string};
       if (!res.ok) throw new Error(data.error || 'Failed to renew listing');
       setExpiresAt(data.expiresAt);
       setStatus('ACTIVE');
       router.refresh();
-      toast.success(language === 'ID' ? `Listing diperbarui untuk ${data.durationDays || renewDurationDays} hari ke depan` : `Listing renewed for ${data.durationDays || renewDurationDays} days`);
+      if (data.durationHours) {
+        toast.success(language === 'ID' ? `Lelang diperbarui untuk ${data.durationHours} jam ke depan` : `Auction renewed for ${data.durationHours} hours`);
+      } else {
+        toast.success(language === 'ID' ? `Listing diperbarui untuk ${data.durationDays || renewDurationDays} hari ke depan` : `Listing renewed for ${data.durationDays || renewDurationDays} days`);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not renew listing');
     } finally {

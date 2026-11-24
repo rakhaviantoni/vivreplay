@@ -14,8 +14,8 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
     const policy=await getDynamicListingPolicy(p.tier,d,p.pro_billing_period);
 
     const listing=await d.prepare(
-      'SELECT id,seller_id,type,status,expires_at,instance_id AS instanceId,sealed_product_id AS sealedProductId,quantity,items FROM listings WHERE id=? AND seller_id=?'
-    ).bind(id,p.id).first<{id:string;seller_id:string;type:string;status:string;expires_at:string|null;instanceId:string|null;sealedProductId:string|null;quantity:number;items:string|null}>();
+      'SELECT id,seller_id,type,status,created_at AS createdAt,expires_at,instance_id AS instanceId,sealed_product_id AS sealedProductId,quantity,items FROM listings WHERE id=? AND seller_id=?'
+    ).bind(id,p.id).first<{id:string;seller_id:string;type:string;status:string;createdAt:string|null;expires_at:string|null;instanceId:string|null;sealedProductId:string|null;quantity:number;items:string|null}>();
 
     if(!listing){
       throw new HttpError(404,'Listing not found or you are not authorized to renew it.');
@@ -25,14 +25,14 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
       throw new HttpError(400,'Sold listings cannot be renewed.');
     }
 
-    type AuctionSlotRow={itemKey:string;startingBid:number;buyNowPrice:number|null;minIncrement:number;bidCount:number;durationMode:string;endsAt:string;status:string};
+    type AuctionSlotRow={itemKey:string;startingBid:number;buyNowPrice:number|null;minIncrement:number;bidCount:number;durationMode:string;startsAt:string|null;endsAt:string;status:string};
     let auctionSlots:AuctionSlotRow[]=[];
     let hasEndedZeroBidAuction=false;
     if(listing.type==='WTA'){
       await ensureAuctionSchema(d);
       auctionSlots=(await d.prepare(
         `SELECT item_key AS itemKey,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,
-          bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status
+          bid_count AS bidCount,duration_mode AS durationMode,starts_at AS startsAt,ends_at AS endsAt,status
          FROM market_auctions WHERE listing_id=?`
       ).bind(id).all<AuctionSlotRow>()).results??[];
       const nowMs=Date.now();
@@ -71,20 +71,30 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
       if(quantity+(reserved?.quantity??0)>owned.quantity)throw new HttpError(409,'Some copies are already reserved by another active listing.');
     }
 
-    const newExpiresAt=computeListingExpiration(policy.durationDays);
-
-    await d.prepare(
-      "UPDATE listings SET status='ACTIVE', expires_at=? WHERE id=? AND seller_id=?"
-    ).bind(newExpiresAt,id,p.id).run();
+    let finalExpiresAt=computeListingExpiration(policy.durationDays);
+    let durationHours:number|undefined;
 
     if(listing.type==='WTA'&&auctionSlots.length>0){
       const nowMs=Date.now();
-      const listingExpMs=new Date(`${newExpiresAt.replace(' ','T')}Z`).getTime();
+      const createdMs=listing.createdAt?Date.parse(listing.createdAt.includes('T')?listing.createdAt:`${listing.createdAt.replace(' ','T')}Z`):NaN;
+      const slotEndsAtList:string[]=[];
       for(const slot of auctionSlots){
-        if(Number(slot.bidCount)>0)continue;
+        if(Number(slot.bidCount)>0){
+          slotEndsAtList.push(slot.endsAt);
+          continue;
+        }
         const mode=(slot.durationMode==='ROLLING_48H'||slot.durationMode==='FIXED'?slot.durationMode:'ROLLING_24H') as AuctionDurationMode;
-        const endsAtMs=mode==='FIXED'?listingExpMs:computeInitialAuctionEndsAtMs(mode,nowMs);
+        let fixedHours:number|undefined;
+        if(mode==='FIXED'){
+          const prevStartMs=slot.startsAt?Date.parse(slot.startsAt):createdMs;
+          const prevEndMs=Date.parse(slot.endsAt);
+          if(Number.isFinite(prevStartMs)&&Number.isFinite(prevEndMs)&&prevEndMs>prevStartMs){
+            fixedHours=Math.round((prevEndMs-prevStartMs)/(60*60*1000));
+          }
+        }
+        const endsAtMs=computeInitialAuctionEndsAtMs(mode,nowMs,fixedHours);
         const endsAtIso=new Date(endsAtMs).toISOString();
+        slotEndsAtList.push(endsAtIso);
         await d.prepare(
           `UPDATE market_auctions
            SET status='ACTIVE', starts_at=NULL, winner_order_id=NULL, ends_at=?, updated_at=CURRENT_TIMESTAMP
@@ -115,14 +125,24 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
           }).catch(()=>undefined);
         }
       }
+      const latestEndsAt=slotEndsAtList.sort().at(-1);
+      if(latestEndsAt){
+        finalExpiresAt=latestEndsAt;
+        durationHours=Math.max(1,Math.round((Date.parse(latestEndsAt)-nowMs)/(60*60*1000)));
+      }
     }
+
+    await d.prepare(
+      "UPDATE listings SET status='ACTIVE', expires_at=? WHERE id=? AND seller_id=?"
+    ).bind(finalExpiresAt,id,p.id).run();
 
     return Response.json({
       ok:true,
       id,
       status:'ACTIVE',
-      expiresAt:newExpiresAt,
-      durationDays:policy.durationDays,
+      expiresAt:finalExpiresAt,
+      durationDays:durationHours?Math.max(1,Math.round(durationHours/24)):policy.durationDays,
+      ...(durationHours?{durationHours}:{}),
       tier:policy.tier,
     });
   }catch(e){
