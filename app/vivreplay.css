@@ -4981,7 +4981,9 @@ html[data-theme='dark'] .market-listing-type-badge.is-auction{color:#e87a4d}
 @media(max-width:1024px){.admin-social-split,.admin-social-presets-grid{grid-template-columns:1fr}}
 @media(max-width:680px){.admin-social-format-grid,.admin-social-form-grid,.admin-social-bios-grid{grid-template-columns:1fr}}
 
-.admin-panel{display:grid;gap:14px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-top:18px}
+.admin-health>section,.admin-health>.admin-social-studio,.admin-health>.admin-partners-panel,.admin-health>.admin-panel{margin-top:22px}
+.admin-workbench.is-padded{display:grid;gap:16px;padding:18px}
+.admin-panel{display:grid;gap:14px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
 .admin-panel-head,.admin-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .admin-panel-head h2,.admin-section-head h2{display:flex;align-items:center;gap:8px;margin:0;font-size:16px;font-weight:800;color:var(--ink)}
 .admin-panel-head p,.admin-section-head p{margin:4px 0 0;font-size:12.5px;color:var(--muted);line-height:1.45}

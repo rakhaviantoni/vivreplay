@@ -153,7 +153,7 @@ export function AdminOrdersManager() {
   }, [filtered]);
 
   return (
-    <section className="admin-workbench" style={{ display: 'grid', gap: 16 }}>
+    <section className="admin-workbench is-padded">
       <div className="admin-panel-head">
         <div>
           <h2>
