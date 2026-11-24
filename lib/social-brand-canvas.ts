@@ -520,6 +520,7 @@ export async function renderBrandSocialCanvas(
 export type CommunityAssetId =
   | 'community-hub'
   | 'group-announcements'
+  | 'group-general'
   | 'group-one-piece'
   | 'group-pokemon'
   | 'group-pulls-slabs'
@@ -535,13 +536,14 @@ export const COMMUNITY_ASSET_ITEMS: Array<{
   height: number;
 }> = [
   { id: 'community-hub', label: 'Community Icon', sizeLabel: '512×512', width: 512, height: 512 },
-  { id: 'group-announcements', label: 'Announcements Group', sizeLabel: '512×512', width: 512, height: 512 },
-  { id: 'group-one-piece', label: 'One Piece Market Group', sizeLabel: '512×512', width: 512, height: 512 },
-  { id: 'group-pokemon', label: 'Pokémon Market Group', sizeLabel: '512×512', width: 512, height: 512 },
-  { id: 'group-pulls-slabs', label: 'Pulls & Slabs Group', sizeLabel: '512×512', width: 512, height: 512 },
-  { id: 'group-deck-arena', label: 'Deck & Arena Group', sizeLabel: '512×512', width: 512, height: 512 },
-  { id: 'wa-business-banner', label: 'WA Business Banner', sizeLabel: '1500×500', width: 1500, height: 500 },
-  { id: 'wa-chat-wallpaper', label: 'Chat Theme Wallpaper', sizeLabel: '1080×1920', width: 1080, height: 1920 },
+  { id: 'group-announcements', label: 'Announcements', sizeLabel: '512×512', width: 512, height: 512 },
+  { id: 'group-general', label: 'General & Chat', sizeLabel: '512×512', width: 512, height: 512 },
+  { id: 'group-one-piece', label: 'One Piece Market', sizeLabel: '512×512', width: 512, height: 512 },
+  { id: 'group-pokemon', label: 'Pokémon Market', sizeLabel: '512×512', width: 512, height: 512 },
+  { id: 'group-pulls-slabs', label: 'Pulls, Vault & Grading', sizeLabel: '512×512', width: 512, height: 512 },
+  { id: 'group-deck-arena', label: 'Deck, Arena & Meta', sizeLabel: '512×512', width: 512, height: 512 },
+  { id: 'wa-business-banner', label: 'WA Business Cover', sizeLabel: '1200×675', width: 1200, height: 675 },
+  { id: 'wa-chat-wallpaper', label: 'Chat Wallpaper', sizeLabel: '1080×1920', width: 1080, height: 1920 },
 ];
 
 export async function renderCommunityAssetCanvas(
@@ -606,7 +608,7 @@ export async function renderCommunityAssetCanvas(
       canvas,
       {
         template: 'market',
-        format: 'banner',
+        format: 'og',
         theme,
         locale: 'ID',
         eyebrow: 'VIVREPLAY OFFICIAL',
@@ -668,7 +670,7 @@ export async function renderCommunityAssetCanvas(
     return;
   }
 
-  // 512x512 Square Icon (Community Hub + 5 Topic Groups)
+  // 512x512 Square Icon (Community Hub + Topic Groups)
   const glow = ctx.createRadialGradient(width * 0.5, height * 0.38, 10, width * 0.5, height * 0.38, width * 0.58);
   glow.addColorStop(0, theme === 'light' ? 'rgba(183, 122, 25, 0.14)' : 'rgba(232, 196, 125, 0.15)');
   glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
@@ -680,75 +682,82 @@ export async function renderCommunityAssetCanvas(
   drawRoundedRect(ctx, 18, 18, width - 36, height - 36, 48);
   ctx.stroke();
 
-  // Inner brass accent ring for Community Hub
-  if (assetId === 'community-hub') {
-    ctx.strokeStyle = palette.accent;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(width / 2, 196, 104, 0, Math.PI * 2);
-    ctx.stroke();
+  if (assetId === 'group-one-piece' || assetId === 'group-pokemon') {
+    // Direct game logo without redundant game title text
+    if (compassImg) {
+      ctx.drawImage(compassImg, 44, 42, 46, 46);
+    }
+    const logoImg = assetId === 'group-one-piece' ? opLogoImg : pkmnLogoImg;
+    if (logoImg) {
+      const scale = Math.min(340 / (logoImg.naturalWidth || 1), 130 / (logoImg.naturalHeight || 1));
+      const dw = logoImg.naturalWidth * scale;
+      const dh = logoImg.naturalHeight * scale;
+      ctx.save();
+      if (assetId === 'group-one-piece' && theme === 'dark') ctx.filter = 'invert(1)';
+      ctx.drawImage(logoImg, (width - dw) / 2, 212 - dh / 2, dw, dh);
+      ctx.restore();
+    }
+    const badge = 'MARKET GROUP';
+    ctx.font = '800 16px "Plus Jakarta Sans", sans-serif';
+    const badgeW = ctx.measureText(badge).width + 28;
+    drawEyebrowPill(ctx, badge, (width - badgeW) / 2, 342, 16, palette);
+    return;
   }
 
-  // Center visual per group
   if (assetId === 'group-pulls-slabs') {
+    if (compassImg) {
+      ctx.drawImage(compassImg, 44, 42, 46, 46);
+    }
     drawFannedCards(
       ctx,
       [card0, card1, card2],
       width / 2,
-      198,
-      104,
-      145,
+      178,
+      102,
+      142,
       palette.line,
       palette.cardFallback,
       palette.shadow,
     );
-    if (compassImg) {
-      ctx.drawImage(compassImg, 44, 42, 46, 46);
-    }
-  } else {
-    if (compassImg) {
-      const markSize = assetId === 'community-hub' ? 164 : 138;
-      ctx.drawImage(compassImg, (width - markSize) / 2, assetId === 'community-hub' ? 114 : 76, markSize, markSize);
-    }
-    if (assetId === 'group-one-piece' && opLogoImg) {
-      const scale = Math.min(230 / (opLogoImg.naturalWidth || 1), 54 / (opLogoImg.naturalHeight || 1));
-      const dw = opLogoImg.naturalWidth * scale;
-      const dh = opLogoImg.naturalHeight * scale;
-      ctx.save();
-      if (theme === 'dark') ctx.filter = 'invert(1)';
-      ctx.drawImage(opLogoImg, (width - dw) / 2, 232, dw, dh);
-      ctx.restore();
-    } else if (assetId === 'group-pokemon' && pkmnLogoImg) {
-      const scale = Math.min(230 / (pkmnLogoImg.naturalWidth || 1), 58 / (pkmnLogoImg.naturalHeight || 1));
-      const dw = pkmnLogoImg.naturalWidth * scale;
-      const dh = pkmnLogoImg.naturalHeight * scale;
-      ctx.drawImage(pkmnLogoImg, (width - dw) / 2, 230, dw, dh);
-    }
+    ctx.font = '800 32px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = palette.ink;
+    const title = 'Pulls, Vault & Grading';
+    ctx.fillText(title, (width - ctx.measureText(title).width) / 2, 336);
+
+    const badge = 'COMMUNITY';
+    ctx.font = '800 15px "Plus Jakarta Sans", sans-serif';
+    const badgeW = ctx.measureText(badge).width + 26;
+    drawEyebrowPill(ctx, badge, (width - badgeW) / 2, 366, 15, palette);
+    return;
   }
 
-  const labelMap: Record<Exclude<CommunityAssetId, 'wa-business-banner' | 'wa-chat-wallpaper'>, { title: string; badge: string }> = {
+  // Compass-centered icons (Community Hub, Announcements, General & Chat, Deck, Arena & Meta)
+  if (assetId === 'community-hub') {
+    ctx.strokeStyle = palette.accent;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(width / 2, 178, 98, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (compassImg) {
+    const markSize = 152;
+    ctx.drawImage(compassImg, (width - markSize) / 2, 102, markSize, markSize);
+  }
+
+  const labelMap: Record<'community-hub' | 'group-announcements' | 'group-general' | 'group-deck-arena', { title: string; badge: string }> = {
     'community-hub': { title: 'VivrePlay', badge: 'COMMUNITY' },
     'group-announcements': { title: 'VivrePlay', badge: 'ANNOUNCEMENTS' },
-    'group-one-piece': { title: 'One Piece', badge: 'MARKET GROUP' },
-    'group-pokemon': { title: 'Pokémon TCG', badge: 'MARKET GROUP' },
-    'group-pulls-slabs': { title: 'Pulls & Slabs', badge: 'PRICE CHECK' },
-    'group-deck-arena': { title: 'Deck & Arena', badge: 'META & PLAY' },
+    'group-general': { title: 'General & Chat', badge: 'COLLECTOR LOBBY' },
+    'group-deck-arena': { title: 'Deck, Arena & Meta', badge: 'PLAY & STRATEGY' },
   };
   const meta = labelMap[assetId];
 
-  ctx.font = '800 40px "Plus Jakarta Sans", sans-serif';
+  ctx.font = `800 ${meta.title.length > 14 ? 33 : 40}px "Plus Jakarta Sans", sans-serif`;
   ctx.fillStyle = palette.ink;
   const titleW = ctx.measureText(meta.title).width;
-  ctx.fillText(meta.title, (width - titleW) / 2, 366);
+  ctx.fillText(meta.title, (width - titleW) / 2, 314);
 
   ctx.font = '800 15px "Plus Jakarta Sans", sans-serif';
   const badgePillW = ctx.measureText(meta.badge).width + 26;
-  drawEyebrowPill(
-    ctx,
-    meta.badge,
-    (width - badgePillW) / 2,
-    392,
-    15,
-    palette,
-  );
+  drawEyebrowPill(ctx, meta.badge, (width - badgePillW) / 2, 344, 15, palette);
 }
