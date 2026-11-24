@@ -160,45 +160,44 @@ async def scan_card(
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Card boundary detection failed: {str(e)}")
 
-    # Step 2: Visual feature embedding and similarity search
-    results = matcher.search(primary_card, top_k=top_k, game=game)
+    # Step 2: Visual feature embedding and similarity search (batched when secondary crop exists)
     chosen_source = det_meta.get("detection_source", "direct")
-
     if secondary_card is not None:
-        results_secondary = matcher.search(secondary_card, top_k=top_k, game=game)
+        results, results_secondary = matcher.search_batch([primary_card, secondary_card], top_k=top_k, game=game)
         primary_score = results[0]["score"] if results else 0.0
         secondary_score = results_secondary[0]["score"] if results_secondary else 0.0
         if secondary_score > primary_score:
             results = results_secondary
             chosen_source = det_meta.get("secondary_source", "secondary")
+    else:
+        results = matcher.search(primary_card, top_k=top_k, game=game)
 
-    # Orientation check: if confidence is moderate (< 0.88), check 180°, 90°, and 270° rotations
+    # Orientation check: if confidence is moderate (< 0.88), batch 180°, 90°, and 270° rotations
     current_best_score = results[0]["score"] if results else 0.0
     if current_best_score < 0.88:
         flipped = cv2.rotate(primary_card, cv2.ROTATE_180)
-        results_flipped = matcher.search(flipped, top_k=top_k, game=game)
-        flipped_score = results_flipped[0]["score"] if results_flipped else 0.0
+        rot90 = cv2.resize(cv2.rotate(primary_card, cv2.ROTATE_90_CLOCKWISE), (400, 560), interpolation=cv2.INTER_AREA)
+        rot270 = cv2.resize(cv2.rotate(primary_card, cv2.ROTATE_90_COUNTERCLOCKWISE), (400, 560), interpolation=cv2.INTER_AREA)
+        res_flipped, res90, res270 = matcher.search_batch([flipped, rot90, rot270], top_k=top_k, game=game)
+
+        base_source = chosen_source
+        flipped_score = res_flipped[0]["score"] if res_flipped else 0.0
         if flipped_score > current_best_score + 0.03:
-            results = results_flipped
+            results = res_flipped
             current_best_score = flipped_score
-            chosen_source = f"{chosen_source}_flipped180"
+            chosen_source = f"{base_source}_flipped180"
 
         if current_best_score < 0.88:
-            rot90 = cv2.resize(cv2.rotate(primary_card, cv2.ROTATE_90_CLOCKWISE), (400, 560), interpolation=cv2.INTER_AREA)
-            res90 = matcher.search(rot90, top_k=top_k, game=game)
             score90 = res90[0]["score"] if res90 else 0.0
-            if score90 > current_best_score + 0.04:
+            score270 = res270[0]["score"] if res270 else 0.0
+            if score90 > current_best_score + 0.04 and score90 >= score270:
                 results = res90
                 current_best_score = score90
-                chosen_source = f"{chosen_source}_rot90"
-            else:
-                rot270 = cv2.resize(cv2.rotate(primary_card, cv2.ROTATE_90_COUNTERCLOCKWISE), (400, 560), interpolation=cv2.INTER_AREA)
-                res270 = matcher.search(rot270, top_k=top_k, game=game)
-                score270 = res270[0]["score"] if res270 else 0.0
-                if score270 > current_best_score + 0.04:
-                    results = res270
-                    current_best_score = score270
-                    chosen_source = f"{chosen_source}_rot270"
+                chosen_source = f"{base_source}_rot90"
+            elif score270 > current_best_score + 0.04:
+                results = res270
+                current_best_score = score270
+                chosen_source = f"{base_source}_rot270"
 
     elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
     scan_id = str(uuid.uuid4())

@@ -4,6 +4,7 @@ import {ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
 import {sendMarketEmailOnce} from '@/lib/server/market-notifications';
 import {getProPricing} from '@/lib/market/pro-pricing';
 import {ensureCreditSchema,spendCredits} from '@/lib/server/credits';
+import {getRemainingProBoostCredits} from '@/lib/server/listing-boosts';
 
 type ProfileExpiry={id:string;expiresAt:string};
 type ProOrder={id:string;buyerId:string;status:string};
@@ -101,6 +102,24 @@ export async function POST(request:Request){
   for(const profile of expired.results){
     notificationJobs.push(()=>sendMarketEmailOnce(profile.id,'pro-expired','Market Pro',profile.expiresAt,`expired:${profile.expiresAt}`));
   }
+
+  const nowDate=new Date();
+  const monthEnd=new Date(Date.UTC(nowDate.getUTCFullYear(),nowDate.getUTCMonth()+1,1)).getTime();
+  const daysLeftInMonth=(monthEnd-nowDate.getTime())/(24*60*60*1000);
+  if(daysLeftInMonth<=3){
+    const monthKey=nowDate.toISOString().slice(0,7);
+    const activeProSellers=(await database.prepare(`SELECT p.id,p.pro_billing_period AS period FROM profiles p
+      WHERE p.tier='pro' AND (p.pro_expires_at IS NULL OR p.pro_expires_at>CURRENT_TIMESTAMP)
+        AND EXISTS(SELECT 1 FROM listings l WHERE l.seller_id=p.id AND l.status='ACTIVE')
+      LIMIT 500`).all<{id:string;period:string|null}>()).results;
+    for(const seller of activeProSellers){
+      const remaining=await getRemainingProBoostCredits(database,seller.id,seller.period).catch(()=>0);
+      if(remaining>0){
+        notificationJobs.push(()=>sendMarketEmailOnce(seller.id,'pro-boost-credits-reminder','Market Pro',seller.id,`boost-credits-reminder:${monthKey}`,{itemCount:remaining}));
+      }
+    }
+  }
+
   await deliverInBatches(notificationJobs,job=>job());
   return Response.json({processed:notificationJobs.length},{headers:{'Cache-Control':'no-store'}});
 }

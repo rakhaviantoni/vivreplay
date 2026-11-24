@@ -36,8 +36,27 @@ class CardMatcher:
 
         self.catalog_matrix: Optional[np.ndarray] = None  # Shape: (N, 576)
         self.catalog_metadata: List[Dict[str, Any]] = []
+        self.matrices_by_game: Dict[str, Tuple[np.ndarray, List[Dict[str, Any]]]] = {}
+        self.onnx_session = None
+        self.onnx_input_name: Optional[str] = None
 
+        self._try_load_onnx()
         self.load_index()
+
+    def _try_load_onnx(self) -> None:
+        """Uses ONNX Runtime when exported model + package are present; otherwise falls back to PyTorch."""
+        onnx_path = os.path.join(self.index_dir, "mobilenet_v3_small.onnx")
+        if not os.path.exists(onnx_path):
+            return
+        try:
+            import onnxruntime as ort  # type: ignore
+            self.onnx_session = ort.InferenceSession(onnx_path, providers=["CPUExecutionProvider"])
+            self.onnx_input_name = self.onnx_session.get_inputs()[0].name
+            print(f"[Matcher] Loaded ONNX Runtime model from {onnx_path}")
+        except Exception as exc:
+            self.onnx_session = None
+            self.onnx_input_name = None
+            print(f"[Matcher] ONNX load skipped ({exc}); using PyTorch")
 
     def load_index(self) -> bool:
         """Loads precomputed catalog embeddings and metadata if available."""
@@ -52,6 +71,17 @@ class CardMatcher:
                     if str(item.get("cardNumber", "")).startswith("CT-"):
                         item["cardNumber"] = ""
                 self.catalog_metadata = raw_meta
+
+            # Pre-slice per-game matrices so search() never copies slices per request.
+            self.matrices_by_game = {}
+            for game_key in ("pokemon", "one-piece"):
+                indices = [i for i, m in enumerate(self.catalog_metadata) if m.get("game") == game_key]
+                if indices:
+                    self.matrices_by_game[game_key] = (
+                        np.ascontiguousarray(self.catalog_matrix[indices]),
+                        [self.catalog_metadata[i] for i in indices],
+                    )
+
             print(f"[Matcher] Loaded {len(self.catalog_metadata)} catalog card embeddings from {self.index_dir}")
             return True
         else:
@@ -59,60 +89,56 @@ class CardMatcher:
             return False
 
     @torch.no_grad()
+    def extract_embeddings_batch(self, cards_bgr: List[np.ndarray]) -> np.ndarray:
+        """Computes L2-normalized 576-dim embedding vectors for a batch of BGR card images."""
+        if not cards_bgr:
+            return np.empty((0, 576), dtype=np.float32)
+        tensors = [self.transform(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cards_bgr]
+        batch_tensor = torch.stack(tensors, dim=0)
+        if self.onnx_session is not None and self.onnx_input_name is not None:
+            features = self.onnx_session.run(None, {self.onnx_input_name: batch_tensor.numpy()})[0]
+        else:
+            features = self.model(batch_tensor.to(self.device)).cpu().numpy()
+        norms = np.linalg.norm(features, axis=1, keepdims=True)
+        norms = np.where(norms > 1e-6, norms, 1.0)
+        return (features / norms).astype(np.float32)
+
     def extract_embedding(self, card_bgr: np.ndarray) -> np.ndarray:
         """Computes a normalized 576-dimensional embedding vector from a BGR card image."""
-        card_rgb = cv2.cvtColor(card_bgr, cv2.COLOR_BGR2RGB)
-        tensor = self.transform(card_rgb).unsqueeze(0).to(self.device)
-        features = self.model(tensor).squeeze(0).cpu().numpy()
-        # L2 normalization for cosine similarity via dot product
-        norm = np.linalg.norm(features)
-        if norm > 1e-6:
-            features = features / norm
-        return features
+        return self.extract_embeddings_batch([card_bgr])[0]
+
+    def search_batch(self, query_imgs: List[np.ndarray], top_k: int = 5, game: Optional[str] = None) -> List[List[Dict[str, Any]]]:
+        """Runs a single batched embedding pass + matrix multiply for one or more query images."""
+        if not query_imgs or self.catalog_matrix is None or len(self.catalog_metadata) == 0:
+            return [[] for _ in query_imgs]
+
+        if game in self.matrices_by_game:
+            matrix, metadata = self.matrices_by_game[game]
+        else:
+            matrix, metadata = self.catalog_matrix, self.catalog_metadata
+
+        query_vecs = self.extract_embeddings_batch(query_imgs)  # (B, 576)
+        scores_matrix = np.dot(query_vecs, matrix.T)  # (B, N)
+        k = min(top_k, len(metadata))
+
+        batch_results: List[List[Dict[str, Any]]] = []
+        for row_scores in scores_matrix:
+            top_indices = np.argsort(-row_scores)[:k]
+            results: List[Dict[str, Any]] = []
+            for rank, idx in enumerate(top_indices):
+                score = float(row_scores[idx])
+                results.append({
+                    "card": metadata[idx],
+                    "score": round(score, 4),
+                    "confidence": round(score, 4),
+                    "rank": rank + 1,
+                })
+            batch_results.append(results)
+        return batch_results
 
     def search(self, query_img: np.ndarray, top_k: int = 5, game: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Extracts embedding from query card and finds the closest matching cards.
         Returns top matches sorted by cosine similarity score.
         """
-        if self.catalog_matrix is None or len(self.catalog_metadata) == 0:
-            return []
-
-        query_vec = self.extract_embedding(query_img)  # (576,)
-
-        # Filter by game if specified
-        if game in ("pokemon", "one-piece"):
-            indices = [i for i, m in enumerate(self.catalog_metadata) if m.get("game") == game]
-            if not indices:
-                indices = list(range(len(self.catalog_metadata)))
-            subset_matrix = self.catalog_matrix[indices]
-            scores = np.dot(subset_matrix, query_vec)
-            top_sub_idx = np.argsort(-scores)[:top_k]
-
-            results = []
-            for rank, sub_i in enumerate(top_sub_idx):
-                idx = indices[sub_i]
-                meta = self.catalog_metadata[idx]
-                score = float(scores[sub_i])
-                results.append({
-                    "card": meta,
-                    "score": round(score, 4),
-                    "confidence": round(score, 4),
-                    "rank": rank + 1
-                })
-            return results
-        else:
-            scores = np.dot(self.catalog_matrix, query_vec)
-            top_indices = np.argsort(-scores)[:top_k]
-
-            results = []
-            for rank, idx in enumerate(top_indices):
-                meta = self.catalog_metadata[idx]
-                score = float(scores[idx])
-                results.append({
-                    "card": meta,
-                    "score": round(score, 4),
-                    "confidence": round(score, 4),
-                    "rank": rank + 1
-                })
-            return results
+        return self.search_batch([query_img], top_k=top_k, game=game)[0]
