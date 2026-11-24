@@ -4,22 +4,27 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   CalendarBlankIcon as CalendarBlank,
   CheckIcon as Check,
+  ClockIcon as Clock,
   CopyIcon as Copy,
   DownloadSimpleIcon as DownloadSimple,
   FacebookLogoIcon as FacebookLogo,
+  GlobeIcon as Globe,
   ImageIcon,
   InstagramLogoIcon as InstagramLogo,
+  MoonIcon as Moon,
   PaperPlaneTiltIcon as PaperPlaneTilt,
+  PencilSimpleIcon as PencilSimple,
   PlusIcon as Plus,
   SparkleIcon as Sparkle,
+  SunIcon as Sun,
   ThreadsLogoIcon as ThreadsLogo,
+  TiktokLogoIcon as TiktokLogo,
   TrashIcon as Trash,
   UploadSimpleIcon as UploadSimple,
+  WhatsappLogoIcon as WhatsappLogo,
   XLogoIcon as XLogo,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { renderBrandSocialCanvas } from '@/lib/social-brand-canvas';
 import {
   SOCIAL_ASSET_DIMENSIONS,
@@ -30,6 +35,7 @@ import {
   type SocialAssetLocale,
   type SocialAssetTheme,
   type SocialCampaignPreset,
+  type SocialPlatformKey,
 } from '@/lib/social-brand-kit';
 import type { AdminSocialPostRecord } from '@/lib/server/admin-social';
 
@@ -39,6 +45,16 @@ type ConnectedAccount = {
   username: string;
   displayName?: string | null;
 };
+
+function SocialPlatformIcon({ platform, size = 15 }: { platform: SocialPlatformKey | string; size?: number }) {
+  const key = platform.toLowerCase();
+  if (key === 'instagram') return <InstagramLogo size={size} weight="fill" />;
+  if (key === 'facebook') return <FacebookLogo size={size} weight="fill" />;
+  if (key === 'threads') return <ThreadsLogo size={size} weight="fill" />;
+  if (key === 'tiktok') return <TiktokLogo size={size} weight="fill" />;
+  if (key === 'whatsapp') return <WhatsappLogo size={size} weight="fill" />;
+  return <XLogo size={size} weight="fill" />;
+}
 
 function defaultDateInput(): string {
   const d = new Date();
@@ -165,7 +181,7 @@ export function AdminSocialStudio() {
       const data = (await res.json()) as { url?: string; error?: string };
       if (!res.ok || !data.url) throw new Error(data.error || 'Upload failed');
       setMediaUrls((prev) => [...prev, data.url!]);
-      toast.success('Brand graphic uploaded & attached to post');
+      toast.success('Graphic uploaded and attached');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to attach graphic');
     } finally {
@@ -177,7 +193,7 @@ export function AdminSocialStudio() {
     try {
       const res = await fetch(`/api/market/social/auth-url?platform=${platform}`);
       const data = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || !data.url) throw new Error(data.error || 'Could not start social connection');
+      if (!res.ok || !data.url) throw new Error(data.error || 'Could not start connection');
       window.open(data.url, '_blank', 'noopener,noreferrer');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Connection failed');
@@ -221,7 +237,7 @@ export function AdminSocialStudio() {
       } else {
         toast.success(
           mode === 'publish'
-            ? 'Published to selected social accounts'
+            ? 'Published to selected accounts'
             : mode === 'schedule'
               ? 'Post scheduled'
               : 'Draft saved',
@@ -252,19 +268,16 @@ export function AdminSocialStudio() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* 1. Brand Asset Studio + Post Composer */}
-      <div className="grid gap-6 lg:grid-cols-12">
-        {/* Left: Live Brand Canvas */}
-        <section className="lg:col-span-6 rounded-xl border border-border/70 bg-card p-4 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="admin-social-studio">
+      <div className="admin-social-split">
+        {/* Left: Brand Asset Studio */}
+        <section className="admin-social-panel">
+          <header className="admin-social-panel-head">
             <div>
-              <h2 className="text-base font-bold">Brand Asset Studio</h2>
-              <p className="text-xs text-muted-foreground">
-                Rendered with VivrePlay&apos;s exact compass mark, palette, and typography.
-              </p>
+              <h2>Brand Asset Studio</h2>
+              <p>Rendered with VivrePlay&apos;s compass mark, palette, card showcase, and game logos.</p>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="admin-social-toggle-group">
               {(['EN', 'ID'] as const).map((loc) => (
                 <button
                   key={loc}
@@ -274,172 +287,135 @@ export function AdminSocialStudio() {
                     const match = SOCIAL_CAMPAIGN_PRESETS.find((p) => p.template === assetTemplate);
                     if (match) applyPreset(match, loc);
                   }}
-                  className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${
-                    assetLocale === loc
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border text-muted-foreground'
-                  }`}
+                  className={`admin-social-chip${assetLocale === loc ? ' is-active' : ''}`}
                 >
-                  {loc}
+                  <Globe size={13} />
+                  <span>{loc}</span>
                 </button>
               ))}
-              {(['dark', 'light'] as const).map((th) => (
-                <button
-                  key={th}
-                  type="button"
-                  onClick={() => setAssetTheme(th)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-semibold border capitalize ${
-                    assetTheme === th
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border text-muted-foreground'
-                  }`}
-                >
-                  {th}
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={() => setAssetTheme('dark')}
+                className={`admin-social-chip${assetTheme === 'dark' ? ' is-active' : ''}`}
+              >
+                <Moon size={13} weight="fill" />
+                <span>Dark</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAssetTheme('light')}
+                className={`admin-social-chip${assetTheme === 'light' ? ' is-active' : ''}`}
+              >
+                <Sun size={13} weight="fill" />
+                <span>Light</span>
+              </button>
             </div>
-          </div>
+          </header>
 
-          {/* Format selector */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="admin-social-format-grid">
             {(Object.keys(SOCIAL_ASSET_DIMENSIONS) as SocialAssetFormat[]).map((fmt) => (
               <button
                 key={fmt}
                 type="button"
                 onClick={() => setAssetFormat(fmt)}
-                className={`px-2.5 py-1.5 rounded-lg border text-left text-xs ${
-                  assetFormat === fmt
-                    ? 'border-primary bg-primary/10 font-semibold'
-                    : 'border-border/70 text-muted-foreground'
-                }`}
+                className={`admin-social-format-btn${assetFormat === fmt ? ' is-active' : ''}`}
               >
-                <div className="capitalize">{fmt}</div>
-                <div className="text-[11px] opacity-75">
+                <strong>{fmt}</strong>
+                <span>
                   {SOCIAL_ASSET_DIMENSIONS[fmt].width}×{SOCIAL_ASSET_DIMENSIONS[fmt].height}
-                </div>
+                </span>
               </button>
             ))}
           </div>
 
-          {/* Live Canvas Preview */}
-          <div className="rounded-xl border border-border/70 bg-black/40 p-3 flex items-center justify-center overflow-hidden">
-            <canvas
-              ref={canvasRef}
-              className="max-w-full max-h-[380px] w-auto h-auto rounded-lg shadow-lg"
-            />
+          <div className="admin-social-canvas-stage">
+            <canvas ref={canvasRef} />
           </div>
 
-          {/* Editable Brand Copy */}
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            <label className="text-xs space-y-1">
-              <span className="text-muted-foreground">Eyebrow</span>
-              <input
-                value={eyebrow}
-                onChange={(e) => setEyebrow(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs"
-              />
+          <div className="admin-social-form-grid">
+            <label className="admin-social-field">
+              <span>Eyebrow</span>
+              <input value={eyebrow} onChange={(e) => setEyebrow(e.target.value)} />
             </label>
-            <label className="text-xs space-y-1">
-              <span className="text-muted-foreground">Footer URL</span>
-              <input
-                value={ctaUrl}
-                onChange={(e) => setCtaUrl(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs"
-              />
+            <label className="admin-social-field">
+              <span>Footer URL</span>
+              <input value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} />
             </label>
-            <label className="text-xs space-y-1 sm:col-span-2">
-              <span className="text-muted-foreground">Headline</span>
-              <input
-                value={headline}
-                onChange={(e) => setHeadline(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs"
-              />
+            <label className="admin-social-field is-full">
+              <span>Headline</span>
+              <input value={headline} onChange={(e) => setHeadline(e.target.value)} />
             </label>
-            <label className="text-xs space-y-1 sm:col-span-2">
-              <span className="text-muted-foreground">Subheadline</span>
-              <input
-                value={subheadline}
-                onChange={(e) => setSubheadline(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs"
-              />
+            <label className="admin-social-field is-full">
+              <span>Subheadline</span>
+              <input value={subheadline} onChange={(e) => setSubheadline(e.target.value)} />
             </label>
-            <label className="text-xs space-y-1 sm:col-span-2">
-              <span className="text-muted-foreground">Feature Chips (comma-separated, up to 4)</span>
-              <input
-                value={chipsText}
-                onChange={(e) => setChipsText(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs"
-              />
+            <label className="admin-social-field is-full">
+              <span>Feature Chips (comma-separated, max 4)</span>
+              <input value={chipsText} onChange={(e) => setChipsText(e.target.value)} />
             </label>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+          <div className="admin-social-actions">
+            <label className="admin-social-check">
               <input
                 type="checkbox"
                 checked={showMarketBadge}
                 onChange={(e) => setShowMarketBadge(e.target.checked)}
               />
-              Show &quot;| Market&quot; lockup
+              <span>Show &quot;| Market&quot; lockup</span>
             </label>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={handleDownloadAsset}>
-                <DownloadSimple size={15} className="mr-1.5" />
-                Download PNG
-              </Button>
-              <Button
+            <div className="admin-social-btn-row">
+              <button type="button" className="button secondary" onClick={handleDownloadAsset}>
+                <DownloadSimple size={15} />
+                <span>Download PNG</span>
+              </button>
+              <button
                 type="button"
-                size="sm"
+                className="button"
                 disabled={uploadingAsset}
                 onClick={handleAttachRenderedAsset}
               >
-                <UploadSimple size={15} className="mr-1.5" />
-                {uploadingAsset ? 'Uploading…' : 'Attach to Post'}
-              </Button>
+                <UploadSimple size={15} />
+                <span>{uploadingAsset ? 'Uploading...' : 'Attach to Post'}</span>
+              </button>
             </div>
           </div>
         </section>
 
-        {/* Right: Official Post Composer & Scheduler */}
-        <section className="lg:col-span-6 rounded-xl border border-border/70 bg-card p-4 space-y-4">
-          <div className="flex items-center justify-between gap-2">
+        {/* Right: Post Composer & Scheduler */}
+        <section className="admin-social-panel">
+          <header className="admin-social-panel-head">
             <div>
-              <h2 className="text-base font-bold">Official Post Composer & Scheduler</h2>
-              <p className="text-xs text-muted-foreground">
-                Publish immediately or schedule posts to VivrePlay&apos;s connected social channels.
-              </p>
+              <h2>Official Post Composer & Scheduler</h2>
+              <p>Publish now or schedule posts to VivrePlay&apos;s connected social channels.</p>
             </div>
-            {editingId && (
-              <Badge variant="outline" className="text-xs">
-                Editing saved post
-              </Badge>
-            )}
-          </div>
+            {editingId && <span className="admin-social-status is-scheduled">Editing post</span>}
+          </header>
 
-          {/* Connected Accounts */}
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Connected Accounts</span>
-              <div className="flex flex-wrap gap-1.5">
+          <div className="admin-social-accounts-box">
+            <div className="admin-social-accounts-head">
+              <span>Connected Accounts</span>
+              <div className="admin-social-btn-row">
                 {(['instagram', 'facebook', 'threads', 'twitter'] as const).map((p) => (
                   <button
                     key={p}
                     type="button"
                     onClick={() => handleConnectPlatform(p)}
-                    className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-accent"
+                    className="admin-copy-chip"
                   >
-                    <Plus size={11} />
-                    {p === 'twitter' ? 'X' : p.charAt(0).toUpperCase() + p.slice(1)}
+                    <Plus size={12} />
+                    <SocialPlatformIcon platform={p} size={13} />
+                    <span>{p === 'twitter' ? 'X' : p.charAt(0).toUpperCase() + p.slice(1)}</span>
                   </button>
                 ))}
               </div>
             </div>
             {accounts.length === 0 ? (
-              <p className="text-xs text-muted-foreground rounded-md border border-dashed border-border p-2.5">
-                No official accounts connected yet. Connect Instagram, Facebook, Threads, or X above to enable direct publishing.
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>
+                No official accounts connected yet. Connect a channel above to publish directly.
               </p>
             ) : (
-              <div className="flex flex-wrap gap-2">
+              <div className="admin-social-toggle-group">
                 {accounts.map((acc) => {
                   const selected = selectedAccountIds.includes(acc.id);
                   return (
@@ -451,21 +427,9 @@ export function AdminSocialStudio() {
                           prev.includes(acc.id) ? prev.filter((id) => id !== acc.id) : [...prev, acc.id],
                         )
                       }
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs ${
-                        selected
-                          ? 'border-primary bg-primary/15 font-semibold'
-                          : 'border-border text-muted-foreground'
-                      }`}
+                      className={`admin-social-chip${selected ? ' is-active' : ''}`}
                     >
-                      {acc.platform === 'instagram' ? (
-                        <InstagramLogo size={14} />
-                      ) : acc.platform === 'facebook' ? (
-                        <FacebookLogo size={14} />
-                      ) : acc.platform === 'threads' ? (
-                        <ThreadsLogo size={14} />
-                      ) : (
-                        <XLogo size={14} />
-                      )}
+                      <SocialPlatformIcon platform={acc.platform} size={14} />
                       <span>@{acc.username}</span>
                     </button>
                   );
@@ -474,58 +438,42 @@ export function AdminSocialStudio() {
             )}
           </div>
 
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            <label className="text-xs space-y-1">
-              <span className="text-muted-foreground">Campaign Title</span>
-              <input
-                value={postTitle}
-                onChange={(e) => setPostTitle(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs"
-              />
+          <div className="admin-social-form-grid">
+            <label className="admin-social-field">
+              <span>Campaign Title</span>
+              <input value={postTitle} onChange={(e) => setPostTitle(e.target.value)} />
             </label>
-            <label className="text-xs space-y-1">
-              <span className="text-muted-foreground">Content Pillar</span>
-              <input
-                value={postPillar}
-                onChange={(e) => setPostPillar(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs"
-              />
+            <label className="admin-social-field">
+              <span>Content Pillar</span>
+              <input value={postPillar} onChange={(e) => setPostPillar(e.target.value)} />
+            </label>
+            <label className="admin-social-field is-full">
+              <span>
+                <span>Caption ({assetLocale})</span>
+                <small>{caption.length} chars</small>
+              </span>
+              <textarea rows={7} value={caption} onChange={(e) => setCaption(e.target.value)} />
             </label>
           </div>
 
-          <label className="block text-xs space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Caption ({assetLocale})</span>
-              <span className="text-[11px] text-muted-foreground">{caption.length} chars</span>
-            </div>
-            <textarea
-              rows={7}
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className="w-full rounded-md border border-border bg-background p-2.5 text-xs leading-relaxed"
-            />
-          </label>
-
-          {/* Attached Media */}
-          <div className="space-y-1.5">
-            <span className="text-xs text-muted-foreground">Attached Media ({mediaUrls.length})</span>
+          <div className="admin-social-field">
+            <span>Attached Media ({mediaUrls.length})</span>
             {mediaUrls.length === 0 ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground rounded-md border border-dashed border-border p-2.5">
-                <ImageIcon size={15} />
-                <span>Click &quot;Attach to Post&quot; in the Brand Asset Studio to attach the rendered graphic.</span>
+              <div className="admin-social-media-empty">
+                <ImageIcon size={16} />
+                <span>Click &quot;Attach to Post&quot; in the Brand Asset Studio to attach the rendered PNG.</span>
               </div>
             ) : (
-              <div className="flex flex-wrap gap-2">
+              <div className="admin-social-media-strip">
                 {mediaUrls.map((url, idx) => (
-                  <div key={`${url}-${idx}`} className="relative group rounded-lg border border-border overflow-hidden w-20 h-20">
-                    <img src={url} alt="Attached social asset" className="w-full h-full object-cover" />
+                  <div key={`${url}-${idx}`} className="admin-social-media-thumb">
+                    <img src={url} alt="Attached social graphic" />
                     <button
                       type="button"
                       onClick={() => setMediaUrls((prev) => prev.filter((_, i) => i !== idx))}
-                      className="absolute top-1 right-1 rounded-full bg-black/75 text-white p-1 text-[10px]"
                       aria-label="Remove media"
                     >
-                      <Trash size={11} />
+                      <Trash size={12} />
                     </button>
                   </div>
                 ))}
@@ -533,114 +481,113 @@ export function AdminSocialStudio() {
             )}
           </div>
 
-          {/* Schedule Date & Time */}
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            <label className="text-xs space-y-1">
-              <span className="text-muted-foreground">Schedule Date</span>
+          <div className="admin-social-form-grid">
+            <label className="admin-social-field">
+              <span>Schedule Date</span>
               <input
                 type="date"
                 value={scheduleDate}
                 onChange={(e) => setScheduleDate(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs"
               />
             </label>
-            <label className="text-xs space-y-1">
-              <span className="text-muted-foreground">Schedule Time (WIB)</span>
-              <div className="flex gap-1.5">
-                <input
-                  type="time"
-                  value={scheduleTime}
-                  onChange={(e) => setScheduleTime(e.target.value)}
-                  className="flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs"
-                />
-                {(['09:00', '12:15', '19:00', '20:30'] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setScheduleTime(t)}
-                    className={`px-2 py-1 rounded border text-[11px] ${
-                      scheduleTime === t ? 'border-primary bg-primary/10 font-semibold' : 'border-border text-muted-foreground'
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
+            <label className="admin-social-field">
+              <span>Schedule Time (WIB)</span>
+              <input
+                type="time"
+                value={scheduleTime}
+                onChange={(e) => setScheduleTime(e.target.value)}
+              />
             </label>
           </div>
 
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Button
+          <div className="admin-social-toggle-group">
+            {(['09:00', '12:15', '19:00', '20:30'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setScheduleTime(t)}
+                className={`admin-social-chip${scheduleTime === t ? ' is-active' : ''}`}
+              >
+                <Clock size={12} />
+                <span>{t} WIB</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="admin-social-btn-row">
+            <button
               type="button"
-              variant="outline"
-              size="sm"
+              className="button secondary"
               disabled={savingMode !== null}
               onClick={() => handleSubmitPost('draft')}
             >
-              {savingMode === 'draft' ? 'Saving…' : 'Save Draft'}
-            </Button>
-            <Button
+              <PencilSimple size={15} />
+              <span>{savingMode === 'draft' ? 'Saving...' : 'Save Draft'}</span>
+            </button>
+            <button
               type="button"
-              variant="secondary"
-              size="sm"
+              className="button secondary"
               disabled={savingMode !== null}
               onClick={() => handleSubmitPost('schedule')}
             >
-              <CalendarBlank size={15} className="mr-1.5" />
-              {savingMode === 'schedule' ? 'Scheduling…' : 'Schedule Post'}
-            </Button>
-            <Button
+              <CalendarBlank size={15} />
+              <span>{savingMode === 'schedule' ? 'Scheduling...' : 'Schedule Post'}</span>
+            </button>
+            <button
               type="button"
-              size="sm"
+              className="button"
               disabled={savingMode !== null || selectedAccountIds.length === 0}
               onClick={() => handleSubmitPost('publish')}
             >
-              <PaperPlaneTilt size={15} className="mr-1.5" />
-              {savingMode === 'publish' ? 'Publishing…' : 'Publish Now'}
-            </Button>
+              <PaperPlaneTilt size={15} />
+              <span>{savingMode === 'publish' ? 'Publishing...' : 'Publish Now'}</span>
+            </button>
           </div>
         </section>
       </div>
 
-      {/* 2. Weekly Strategy Presets */}
-      <section className="rounded-xl border border-border/70 bg-card p-4 space-y-3">
-        <div>
-          <h2 className="text-base font-bold">Weekly Content Strategy & Ready Campaigns ({assetLocale})</h2>
-          <p className="text-xs text-muted-foreground">
-            Load any campaign into the Studio to render its matching graphic, edit copy, and schedule it.
-          </p>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {/* Weekly Strategy Presets */}
+      <section className="admin-social-panel">
+        <header className="admin-social-panel-head">
+          <div>
+            <h2>Weekly Content Strategy & Ready Campaigns ({assetLocale})</h2>
+            <p>Load any campaign into the Studio to render its matching graphic and schedule it.</p>
+          </div>
+        </header>
+        <div className="admin-social-presets-grid">
           {SOCIAL_CAMPAIGN_PRESETS.map((preset) => {
             const title = assetLocale === 'ID' ? preset.titleID : preset.titleEN;
             const text = assetLocale === 'ID' ? preset.captionID : preset.captionEN;
             return (
-              <article
-                key={preset.id}
-                className="rounded-lg border border-border/70 bg-background/50 p-3 flex flex-col justify-between gap-3"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-2 text-[11px]">
-                    <Badge variant="outline">{preset.dayLabel}</Badge>
-                    <span className="text-muted-foreground">{preset.recommendedTime} WIB</span>
+              <article key={preset.id} className="admin-social-preset-card">
+                <div className="admin-social-preset-top">
+                  <span className="admin-social-status">{preset.dayLabel}</span>
+                  <div className="admin-social-platform-row">
+                    {preset.platforms.map((p) => (
+                      <SocialPlatformIcon key={p} platform={p} size={14} />
+                    ))}
+                    <span style={{ fontSize: 11 }}>{preset.recommendedTime} WIB</span>
                   </div>
-                  <h3 className="text-sm font-bold">{title}</h3>
-                  <p className="text-xs text-muted-foreground line-clamp-4 whitespace-pre-line">{text}</p>
                 </div>
-                <div className="flex items-center justify-between gap-2 pt-1">
-                  <Button
+                <h3>{title}</h3>
+                <p>{text}</p>
+                <div className="admin-social-btn-row">
+                  <button
                     type="button"
-                    size="sm"
-                    variant="outline"
+                    className="button secondary"
                     onClick={() => handleCopy(preset.id, text)}
                   >
-                    {copiedId === preset.id ? <Check size={13} className="mr-1" /> : <Copy size={13} className="mr-1" />}
-                    Copy
-                  </Button>
-                  <Button type="button" size="sm" onClick={() => applyPreset(preset, assetLocale)}>
-                    <Sparkle size={13} className="mr-1" />
-                    Load into Studio
-                  </Button>
+                    {copiedId === preset.id ? <Check size={14} /> : <Copy size={14} />}
+                    <span>Copy</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={() => applyPreset(preset, assetLocale)}
+                  >
+                    <Sparkle size={14} />
+                    <span>Load into Studio</span>
+                  </button>
                 </div>
               </article>
             );
@@ -648,55 +595,44 @@ export function AdminSocialStudio() {
         </div>
       </section>
 
-      {/* 3. Scheduled & Published Queue */}
-      <section className="rounded-xl border border-border/70 bg-card p-4 space-y-3">
-        <h2 className="text-base font-bold">Scheduled & Published Queue ({posts.length})</h2>
+      {/* Scheduled & Published Queue */}
+      <section className="admin-social-panel">
+        <header className="admin-social-panel-head">
+          <div>
+            <h2>Scheduled & Published Queue ({posts.length})</h2>
+            <p>Manage queued, draft, and published posts for VivrePlay.</p>
+          </div>
+        </header>
         {posts.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--muted)' }}>
             No scheduled or saved posts yet. Load a campaign above and click Schedule Post or Save Draft.
           </p>
         ) : (
-          <div className="space-y-2">
+          <div className="admin-social-queue">
             {posts.map((post) => (
-              <div
-                key={post.id}
-                className="rounded-lg border border-border/70 bg-background/50 p-3 flex flex-wrap items-start justify-between gap-3"
-              >
-                <div className="space-y-1 min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge
-                      variant={
-                        post.status === 'PUBLISHED'
-                          ? 'default'
-                          : post.status === 'FAILED'
-                            ? 'destructive'
-                            : 'outline'
-                      }
-                    >
+              <div key={post.id} className="admin-social-queue-row">
+                <div className="admin-social-queue-meta">
+                  <div className="admin-social-queue-head">
+                    <span className={`admin-social-status is-${post.status.toLowerCase()}`}>
                       {post.status}
-                    </Badge>
-                    <strong className="text-sm">{post.title}</strong>
-                    <span className="text-xs text-muted-foreground">
-                      {post.pillar} · {post.locale}
+                    </span>
+                    <strong>{post.title}</strong>
+                    <span>
+                      {post.pillar} ({post.locale})
                     </span>
                     {post.scheduledAt && (
-                      <span className="text-xs text-muted-foreground">
-                        Scheduled: {new Date(post.scheduledAt).toLocaleString()}
-                      </span>
+                      <span>{new Date(post.scheduledAt).toLocaleString()}</span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">
-                    {post.caption}
-                  </p>
+                  <p className="admin-social-queue-caption">{post.caption}</p>
                   {post.errorMessage && (
-                    <p className="text-xs text-destructive">{post.errorMessage}</p>
+                    <p style={{ margin: 0, fontSize: 12, color: '#c93d3d' }}>{post.errorMessage}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
+                <div className="admin-social-btn-row">
+                  <button
                     type="button"
-                    size="sm"
-                    variant="outline"
+                    className="button secondary"
                     onClick={() => {
                       setEditingId(post.id);
                       setPostTitle(post.title);
@@ -712,16 +648,17 @@ export function AdminSocialStudio() {
                       toast.success('Loaded into composer');
                     }}
                   >
-                    Edit
-                  </Button>
-                  <Button
+                    <PencilSimple size={14} />
+                    <span>Edit</span>
+                  </button>
+                  <button
                     type="button"
-                    size="sm"
-                    variant="ghost"
+                    className="button ghost"
                     onClick={() => handleDeletePost(post.id)}
+                    aria-label="Delete post"
                   >
-                    <Trash size={14} />
-                  </Button>
+                    <Trash size={15} />
+                  </button>
                 </div>
               </div>
             ))}
@@ -729,60 +666,52 @@ export function AdminSocialStudio() {
         )}
       </section>
 
-      {/* 4. Official Bios & WhatsApp Copy Kit */}
-      <section className="rounded-xl border border-border/70 bg-card p-4 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* Official Bios & WhatsApp Copy Kit */}
+      <section className="admin-social-panel">
+        <header className="admin-social-panel-head">
           <div>
-            <h2 className="text-base font-bold">Official Bios, WhatsApp & Profile Descriptions</h2>
-            <p className="text-xs text-muted-foreground">
-              Clean collector-focused copy for Instagram, Threads, X, TikTok, WhatsApp Business, and Community groups.
-            </p>
+            <h2>Official Bios, WhatsApp & Profile Descriptions</h2>
+            <p>Collector-focused copy for Instagram, Threads, X, TikTok, WhatsApp Business, and Community groups.</p>
           </div>
-          <div className="flex gap-1.5">
+          <div className="admin-social-toggle-group">
             {(['EN', 'ID'] as const).map((loc) => (
               <button
                 key={loc}
                 type="button"
                 onClick={() => setBioLocale(loc)}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${
-                  bioLocale === loc
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'border-border text-muted-foreground'
-                }`}
+                className={`admin-social-chip${bioLocale === loc ? ' is-active' : ''}`}
               >
-                {loc}
+                <Globe size={13} />
+                <span>{loc}</span>
               </button>
             ))}
           </div>
-        </div>
+        </header>
 
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="admin-social-bios-grid">
           {SOCIAL_BIOS_AND_DESCRIPTIONS.map((item) => {
             const text = bioLocale === 'ID' ? item.textID : item.textEN;
             return (
-              <div key={item.id} className="rounded-lg border border-border/70 bg-background/50 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <h3 className="text-xs font-bold">{item.channel}</h3>
-                    <span className="text-[11px] text-muted-foreground">{item.limitNote}</span>
+              <div key={item.id} className="admin-social-bio-card">
+                <div className="admin-social-bio-head">
+                  <div className="admin-social-bio-title">
+                    <SocialPlatformIcon platform={item.platform} size={18} />
+                    <div>
+                      <strong>{item.channel}</strong>
+                      <small>{item.limitNote}</small>
+                    </div>
                   </div>
-                  <Button
+                  <button
                     type="button"
-                    size="sm"
-                    variant="outline"
+                    className="button secondary"
+                    style={{ minHeight: 32, padding: '0 10px', fontSize: 12 }}
                     onClick={() => handleCopy(`bio-${item.id}-${bioLocale}`, text)}
                   >
-                    {copiedId === `bio-${item.id}-${bioLocale}` ? (
-                      <Check size={13} className="mr-1" />
-                    ) : (
-                      <Copy size={13} className="mr-1" />
-                    )}
-                    Copy
-                  </Button>
+                    {copiedId === `bio-${item.id}-${bioLocale}` ? <Check size={13} /> : <Copy size={13} />}
+                    <span>Copy</span>
+                  </button>
                 </div>
-                <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-sans leading-relaxed">
-                  {text}
-                </pre>
+                <pre>{text}</pre>
               </div>
             );
           })}

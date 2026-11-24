@@ -9,6 +9,14 @@ export type SocialAssetTemplateId =
   | 'pro'
   | 'arena';
 
+export type SocialPlatformKey =
+  | 'instagram'
+  | 'threads'
+  | 'twitter'
+  | 'tiktok'
+  | 'whatsapp'
+  | 'facebook';
+
 export interface SocialAssetConfig {
   template: SocialAssetTemplateId;
   format: SocialAssetFormat;
@@ -24,6 +32,7 @@ export interface SocialAssetConfig {
 
 export interface SocialBioEntry {
   id: string;
+  platform: SocialPlatformKey;
   channel: string;
   limitNote: string;
   textEN: string;
@@ -35,7 +44,7 @@ export interface SocialCampaignPreset {
   dayLabel: string;
   pillar: string;
   recommendedTime: string;
-  platforms: string[];
+  platforms: SocialPlatformKey[];
   template: SocialAssetTemplateId;
   defaultFormat: SocialAssetFormat;
   titleEN: string;
@@ -50,15 +59,16 @@ export const SOCIAL_ASSET_DIMENSIONS: Record<
   SocialAssetFormat,
   { width: number; height: number; labelEN: string; labelID: string }
 > = {
-  square: { width: 1080, height: 1080, labelEN: 'Square Post (1080×1080)', labelID: 'Feed Persegi (1080×1080)' },
-  story: { width: 1080, height: 1920, labelEN: 'Story / Reels / WA Status (1080×1920)', labelID: 'Story / Reels / Status WA (1080×1920)' },
-  banner: { width: 1500, height: 500, labelEN: 'X / Header Banner (1500×500)', labelID: 'Banner X / Header (1500×500)' },
-  og: { width: 1200, height: 630, labelEN: 'Link Preview (1200×630)', labelID: 'Preview Link (1200×630)' },
+  square: { width: 1080, height: 1080, labelEN: 'Square (1080×1080)', labelID: 'Persegi (1080×1080)' },
+  story: { width: 1080, height: 1920, labelEN: 'Story (1080×1920)', labelID: 'Story (1080×1920)' },
+  banner: { width: 1500, height: 500, labelEN: 'Banner (1500×500)', labelID: 'Banner (1500×500)' },
+  og: { width: 1200, height: 630, labelEN: 'Link Card (1200×630)', labelID: 'Link Card (1200×630)' },
 };
 
 export const SOCIAL_BIOS_AND_DESCRIPTIONS: SocialBioEntry[] = [
   {
     id: 'ig-threads',
+    platform: 'instagram',
     channel: 'Instagram & Threads (@vivreplay)',
     limitNote: '150 chars max',
     textEN: `One Piece & Pokémon TCG Hub\nScan cards, manage your Vault, test decks & trade safely with live auctions.\nvivreplay.com/market`,
@@ -66,13 +76,15 @@ export const SOCIAL_BIOS_AND_DESCRIPTIONS: SocialBioEntry[] = [
   },
   {
     id: 'x-twitter',
+    platform: 'twitter',
     channel: 'X / Twitter (@vivreplay)',
     limitNote: '160 chars max',
-    textEN: `Built for One Piece & Pokémon TCG collectors. Instant camera card scanner, digital Vault, deck simulator, and a collector Market with live auctions.`,
+    textEN: `Built for One Piece & Pokémon TCG collectors. Camera card scanner, digital Vault, deck simulator, and a collector Market with live auctions.`,
     textID: `Platform kolektor One Piece & Pokémon TCG. Scan kartu dari kamera, Vault koleksi, deck builder, dan Market jual beli dengan lelang live.`,
   },
   {
     id: 'tiktok',
+    platform: 'tiktok',
     channel: 'TikTok (@vivreplay)',
     limitNote: '80 chars max',
     textEN: `Scan, Vault & Trade One Piece + Pokémon TCG\nvivreplay.com/market`,
@@ -80,31 +92,34 @@ export const SOCIAL_BIOS_AND_DESCRIPTIONS: SocialBioEntry[] = [
   },
   {
     id: 'whatsapp-business',
+    platform: 'whatsapp',
     channel: 'WhatsApp Business Profile',
-    limitNote: 'Short profile description',
-    textEN: `VivrePlay — One Piece & Pokémon TCG collector platform. Scan cards, track your Vault, and buy or sell raw singles, graded slabs, and sealed boxes safely at vivreplay.com/market.`,
-    textID: `VivrePlay — Platform kolektor One Piece & Pokémon TCG. Scan kartu, rapikan koleksi di Vault, dan jual beli kartu raw, graded slab, hingga box tersegel di vivreplay.com/id/market.`,
+    limitNote: 'Profile description',
+    textEN: `VivrePlay: One Piece & Pokémon TCG collector platform. Scan cards, track your Vault, and buy or sell raw singles, graded slabs, and sealed boxes at vivreplay.com/market.`,
+    textID: `VivrePlay: Platform kolektor One Piece & Pokémon TCG. Scan kartu, rapikan koleksi di Vault, dan jual beli kartu raw, graded slab, hingga box tersegel di vivreplay.com/id/market.`,
   },
   {
     id: 'whatsapp-community',
-    channel: 'WhatsApp Community / Group Description',
-    limitNote: 'Group info & pinned welcome',
-    textEN: `Welcome to the VivrePlay Collector Community.\n\nShare pulls, discuss One Piece & Pokémon meta decks, and post your Market listings or live auctions.\n\n• Browse & list cards: https://vivreplay.com/market\n• Scan & track your Vault: https://vivreplay.com/vault\n• Build & test decks: https://vivreplay.com/decks/builder\n\nPlease keep trades respectful and complete all payments inside VivrePlay Market so both buyer and seller stay protected.`,
-    textID: `Selamat datang di Komunitas Kolektor VivrePlay.\n\nTempat berbagi hasil pull, diskusi deck One Piece & Pokémon, serta share listing jual beli maupun lelang live.\n\n• Cari & pasang listing: https://vivreplay.com/id/market\n• Scan & rapikan Vault: https://vivreplay.com/id/vault\n• Rakit & uji deck: https://vivreplay.com/id/decks/builder\n\nJaga diskusi tetap kondusif dan selesaikan transaksi melalui VivrePlay Market agar pembeli dan penjual sama-sama aman.`,
+    platform: 'whatsapp',
+    channel: 'WhatsApp Community / Group',
+    limitNote: 'Group description',
+    textEN: `Welcome to the VivrePlay Collector Community.\n\nShare pulls, discuss One Piece & Pokémon decks, and post your Market listings or live auctions.\n\nBrowse & list cards: https://vivreplay.com/market\nScan & track your Vault: https://vivreplay.com/vault\nBuild & test decks: https://vivreplay.com/decks/builder\n\nKeep trades respectful and complete all payments inside VivrePlay Market so both buyer and seller stay protected.`,
+    textID: `Selamat datang di Komunitas Kolektor VivrePlay.\n\nTempat berbagi hasil pull, diskusi deck One Piece & Pokémon, serta share listing jual beli maupun lelang live.\n\nCari & pasang listing: https://vivreplay.com/id/market\nScan & rapikan Vault: https://vivreplay.com/id/vault\nRakit & uji deck: https://vivreplay.com/id/decks/builder\n\nJaga diskusi tetap kondusif dan selesaikan transaksi melalui VivrePlay Market agar pembeli dan penjual sama-sama aman.`,
   },
   {
     id: 'fb-youtube-discord',
-    channel: 'Facebook Page / YouTube / Discord About',
-    limitNote: 'Full overview',
-    textEN: `VivrePlay brings everything One Piece Card Game and Pokémon TCG collectors need into one clean place.\n\n• Instant Card Scanner: Point your camera at any card to identify the exact set, rarity, and printing.\n• Digital Vault: Track raw singles, graded slabs, alternate arts, and collection value.\n• VivrePlay Market: Buy, sell, or run live auctions with anti-snipe protection, integrated courier shipping, and 48-hour buyer inspection.\n• Deck Builder & Arena: Build lists, check matchups, and practice games online.\n\nStart free at https://vivreplay.com`,
-    textID: `VivrePlay menyatukan semua kebutuhan kolektor dan pemain One Piece Card Game serta Pokémon TCG dalam satu tempat.\n\n• Scan Kartu Instan: Arahkan kamera ke kartu untuk mengenali set, rarity, dan cetakannya.\n• Vault Koleksi: Catat kartu raw, graded slab, varian alt-art, dan pantau koleksi Anda.\n• VivrePlay Market: Beli, jual, atau adakan lelang live dengan fitur anti-snipe, cek ongkir & resi otomatis, serta masa inspeksi pembeli 48 jam.\n• Deck Builder & Arena: Rakit deck, cek meta, dan latihan main langsung secara online.\n\nMulai gratis di https://vivreplay.com/id`,
+    platform: 'facebook',
+    channel: 'Facebook Page / YouTube / Discord',
+    limitNote: 'Full about section',
+    textEN: `VivrePlay brings everything One Piece Card Game and Pokémon TCG collectors need into one clean place.\n\nInstant Card Scanner: Point your camera at any card to identify the exact set, rarity, and printing.\nDigital Vault: Track raw singles, graded slabs, alternate arts, and collection value.\nVivrePlay Market: Buy, sell, or run live auctions with anti-snipe protection, integrated courier shipping, and 48-hour buyer inspection.\nDeck Builder & Arena: Build lists, check matchups, and practice games online.\n\nStart free at https://vivreplay.com`,
+    textID: `VivrePlay menyatukan semua kebutuhan kolektor dan pemain One Piece Card Game serta Pokémon TCG dalam satu tempat.\n\nScan Kartu Instan: Arahkan kamera ke kartu untuk mengenali set, rarity, dan cetakannya.\nVault Koleksi: Catat kartu raw, graded slab, varian alt-art, dan pantau koleksi Anda.\nVivrePlay Market: Beli, jual, atau adakan lelang live dengan fitur anti-snipe, cek ongkir & resi otomatis, serta masa inspeksi pembeli 48 jam.\nDeck Builder & Arena: Rakit deck, cek meta, dan latihan main langsung secara online.\n\nMulai gratis di https://vivreplay.com/id`,
   },
 ];
 
 export const SOCIAL_CAMPAIGN_PRESETS: SocialCampaignPreset[] = [
   {
     id: 'launch-reveal',
-    dayLabel: 'Mon · Launch',
+    dayLabel: 'Mon, Launch',
     pillar: 'Platform Reveal',
     recommendedTime: '19:00',
     platforms: ['instagram', 'threads', 'facebook', 'twitter'],
@@ -112,8 +127,8 @@ export const SOCIAL_CAMPAIGN_PRESETS: SocialCampaignPreset[] = [
     defaultFormat: 'square',
     titleEN: 'VivrePlay Platform Reveal',
     titleID: 'Perkenalan Platform VivrePlay',
-    captionEN: `Buying, selling, and tracking TCG shouldn't live across five messy group chats and spreadsheets.\n\nMeet VivrePlay — built for One Piece & Pokémon TCG collectors:\n• Scan cards straight from your phone camera\n• Organize raw singles & graded slabs in your Vault\n• Buy, sell, or run live auctions with integrated shipping\n• Build and test decks online\n\nStart free at vivreplay.com/market`,
-    captionID: `Koleksi dan jual beli kartu TCG nggak perlu lagi tersebar di banyak chat grup dan spreadsheet.\n\nKenalan dengan VivrePlay — platform untuk kolektor One Piece & Pokémon TCG:\n• Scan kartu langsung dari kamera HP\n• Rapikan kartu raw & graded slab di Vault\n• Beli, jual, atau buka lelang live dengan ongkir terintegrasi\n• Rakit dan uji coba deck secara online\n\nMulai gratis di vivreplay.com/id/market`,
+    captionEN: `Buying, selling, and tracking TCG shouldn't live across five messy group chats and spreadsheets.\n\nMeet VivrePlay, built for One Piece & Pokémon TCG collectors:\n- Scan cards straight from your phone camera\n- Organize raw singles & graded slabs in your Vault\n- Buy, sell, or run live auctions with integrated shipping\n- Build and test decks online\n\nStart free at vivreplay.com/market`,
+    captionID: `Koleksi dan jual beli kartu TCG nggak perlu lagi tersebar di banyak chat grup dan spreadsheet.\n\nKenalan dengan VivrePlay, platform untuk kolektor One Piece & Pokémon TCG:\n- Scan kartu langsung dari kamera HP\n- Rapikan kartu raw & graded slab di Vault\n- Beli, jual, atau buka lelang live dengan ongkir terintegrasi\n- Rakit dan uji coba deck secara online\n\nMulai gratis di vivreplay.com/id/market`,
     assetEN: {
       template: 'launch',
       eyebrow: 'ONE PIECE & POKÉMON TCG',
@@ -135,7 +150,7 @@ export const SOCIAL_CAMPAIGN_PRESETS: SocialCampaignPreset[] = [
   },
   {
     id: 'scanner-vault-flow',
-    dayLabel: 'Tue · Feature',
+    dayLabel: 'Tue, Feature',
     pillar: 'Scanner & Vault',
     recommendedTime: '12:15',
     platforms: ['instagram', 'threads', 'tiktok'],
@@ -159,14 +174,14 @@ export const SOCIAL_CAMPAIGN_PRESETS: SocialCampaignPreset[] = [
       eyebrow: 'SCAN KARTU INSTAN',
       headline: 'Arahkan Kamera. Scan. Langsung Tayang.',
       subheadline: 'Kenali cetakan Inggris, Jepang & Indonesia otomatis dan simpan langsung ke Vault Anda.',
-      chips: ['Kartu EN / JP / ID', 'Raw & Graded Slab', 'Jual dalam 1 Klik'],
+      chips: ['Kartu EN / JP / ID', 'Raw & Graded Slab', 'Jual 1 Klik'],
       ctaUrl: 'vivreplay.com/id/vault',
       showMarketBadge: false,
     },
   },
   {
     id: 'live-auctions',
-    dayLabel: 'Wed · Market',
+    dayLabel: 'Wed, Market',
     pillar: 'Live Auctions',
     recommendedTime: '20:30',
     platforms: ['instagram', 'twitter', 'threads', 'facebook'],
@@ -197,7 +212,7 @@ export const SOCIAL_CAMPAIGN_PRESETS: SocialCampaignPreset[] = [
   },
   {
     id: 'market-trust',
-    dayLabel: 'Thu · Trust',
+    dayLabel: 'Thu, Trust',
     pillar: 'Buyer & Seller Protection',
     recommendedTime: '19:00',
     platforms: ['instagram', 'facebook', 'threads'],
@@ -228,7 +243,7 @@ export const SOCIAL_CAMPAIGN_PRESETS: SocialCampaignPreset[] = [
   },
   {
     id: 'market-pro',
-    dayLabel: 'Fri · Pro',
+    dayLabel: 'Fri, Pro',
     pillar: 'Market Pro',
     recommendedTime: '20:30',
     platforms: ['instagram', 'twitter', 'threads'],
@@ -236,8 +251,8 @@ export const SOCIAL_CAMPAIGN_PRESETS: SocialCampaignPreset[] = [
     defaultFormat: 'square',
     titleEN: 'Market Pro Benefits',
     titleID: 'Keuntungan Market Pro',
-    captionEN: `Selling regularly? Upgrade to Market Pro:\n• 0.75% service fee (instead of 1.75%)\n• Up to 500 active listings & 30-day lifespan\n• Monthly Spotlight boost credits & shipping vouchers\n• Scheduled social auto-posts for your listings\n\nSee plans at vivreplay.com/market`,
-    captionID: `Rutin jualan kartu? Upgrade ke Market Pro:\n• Biaya layanan 0,75% (lebih hemat dari 1,75%)\n• Hingga 500 listing aktif dengan durasi 30 hari\n• Kredit Sorotan bulanan & voucher ongkir\n• Jadwal auto-post ke media sosial untuk setiap listing\n\nLihat detail paket di vivreplay.com/id/market`,
+    captionEN: `Selling regularly? Upgrade to Market Pro:\n- 0.75% service fee (instead of 1.75%)\n- Up to 500 active listings & 30-day lifespan\n- Monthly Spotlight boost credits & shipping vouchers\n- Scheduled social auto-posts for your listings\n\nSee plans at vivreplay.com/market`,
+    captionID: `Rutin jualan kartu? Upgrade ke Market Pro:\n- Biaya layanan 0,75% (lebih hemat dari 1,75%)\n- Hingga 500 listing aktif dengan durasi 30 hari\n- Kredit Sorotan bulanan & voucher ongkir\n- Jadwal auto-post ke media sosial untuk setiap listing\n\nLihat detail paket di vivreplay.com/id/market`,
     assetEN: {
       template: 'pro',
       eyebrow: 'MARKET PRO',
@@ -259,7 +274,7 @@ export const SOCIAL_CAMPAIGN_PRESETS: SocialCampaignPreset[] = [
   },
   {
     id: 'deck-arena',
-    dayLabel: 'Sat · Play',
+    dayLabel: 'Sat, Play',
     pillar: 'Decks & Arena',
     recommendedTime: '15:00',
     platforms: ['twitter', 'instagram', 'threads'],
