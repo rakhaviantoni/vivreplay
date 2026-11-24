@@ -209,6 +209,31 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
             );
           })}
         </div>
+        {!isPro&&(()=>{
+          const basePlan=LISTING_BOOST_PLANS[boostPlan];
+          const proMonthlyPrice=getBoostPlanAmount(boostPlan,true,false);
+          const proAnnualPrice=getBoostPlanAmount(boostPlan,true,true);
+          const monthlySave=basePlan.amount-proMonthlyPrice;
+          const annualSave=basePlan.amount-proAnnualPrice;
+          return (
+            <div className="market-boost-pro-upsell">
+              <div>
+                <strong>{id?`Hemat hingga ${money(annualSave,'IDR')} dengan Market Pro`:`Save up to ${money(annualSave,'IDR')} on this boost with Market Pro`}</strong>
+                <small>{id?`Bayar ${money(proMonthlyPrice,'IDR')} (hemat ${money(monthlySave,'IDR')} / 50%) di Pro Bulanan atau ${money(proAnnualPrice,'IDR')} (hemat 60%) di Pro Tahunan — plus 2–4 sorotan 3 hari gratis tiap bulan!`:`Pay ${money(proMonthlyPrice,'IDR')} (save ${money(monthlySave,'IDR')} / 50%) on Pro Monthly or ${money(proAnnualPrice,'IDR')} (60% off) on Pro Annual — plus 2–4 free 3-day boosts every month!`}</small>
+              </div>
+              <button
+                type="button"
+                className="button secondary"
+                onClick={()=>{
+                  setBoostTarget(null);
+                  window.dispatchEvent(new CustomEvent('vivreplay:open-market-pro'));
+                }}
+              >
+                {id?'Upgrade Pro':'Get Market Pro'}
+              </button>
+            </div>
+          );
+        })()}
         <div className="market-boost-wallet-summary">
           <span>{id?'Saldo Kredit VivrePlay':'VivrePlay Credits'}</span>
           <strong>{money(creditBalance,'IDR')}</strong>

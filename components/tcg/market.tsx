@@ -710,6 +710,22 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
   const [busy,setBusy]=useState(false);
   const [saveError,setSaveError]=useState('');
   const [locale,setLocale]=useState<'EN'|'ID'>(useRouteLocale());
+  const [visitorCountry,setVisitorCountry]=useState<string|null>(locale==='ID'?'ID':null);
+  useEffect(()=>{
+    if(modalOnly)return;
+    if(locale==='ID'){setVisitorCountry('ID');setTradeScopeFilter('all');return;}
+    let cancelled=false;
+    fetch('/api/visitor-region',{cache:'no-store'})
+      .then(res=>res.ok?res.json() as Promise<{country?:string}>:null)
+      .then(data=>{
+        if(cancelled||!data)return;
+        const country=String(data.country??'').trim().toUpperCase()||'ID';
+        setVisitorCountry(country);
+        if(country==='ID')setTradeScopeFilter('all');
+      })
+      .catch(()=>{});
+    return()=>{cancelled=true;};
+  },[locale,modalOnly]);
   const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|'saved'|null>(()=>{if(modalOnly)return null;const activity=searchParams.get('activity');return activity==='offers'||activity==='orders'||activity==='listings'||activity==='saved'?activity:null});
   const [quickPanel,setQuickPanel]=useState<'profile'|'vault'|'wishlist'|null>(()=>!modalOnly&&['delivery','payouts'].includes(searchParams.get('profile')??'')?'profile':null);
   const [activityCounts,setActivityCounts]=useState({listings:0,offers:0,orders:0});
@@ -1772,33 +1788,37 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                 </button>
               </div>
               <div className="market-feed-filters">
-                <label className="market-feed-filter-control">
-                  <Picker
-                    label={locale === 'ID' ? 'Wilayah' : 'Region'}
-                    leadingIcon={<Globe size={16} weight="regular" />}
-                    value={tradeScopeFilter}
-                    onChange={v => { captureFeedPositions(); triggerFeedMotion(); setTradeScopeFilter(v as typeof tradeScopeFilter); }}
-                    options={[
-                      { value: 'all', label: locale === 'ID' ? 'Semua wilayah' : 'All regions' },
-                      { value: 'ID_ONLY', label: locale === 'ID' ? 'Indonesia' : 'Indonesia' },
-                      { value: 'GLOBAL', label: locale === 'ID' ? 'Internasional' : 'International' },
-                    ]}
-                  />
-                </label>
-                <label className="market-feed-filter-control">
-                  <Picker
-                    label={locale === 'ID' ? 'Bahasa listing' : 'Listing language'}
-                    leadingIcon={<Translate size={16} weight="regular" />}
-                    value={lang}
-                    onChange={v => changeLanguage(v as typeof lang)}
-                    options={[
-                      { value: 'all', label: locale === 'ID' ? 'Semua bahasa' : 'All languages' },
-                      { value: 'EN', label: 'EN' },
-                      ...(gameSlug==='pokemon'?[{value:'ID',label:'ID'}]:[]),
-                      { value: 'JP', label: 'JP' },
-                    ]}
-                  />
-                </label>
+                {Boolean(visitorCountry&&visitorCountry!=='ID')&&(
+                  <label className="market-feed-filter-control">
+                    <Picker
+                      label={locale === 'ID' ? 'Wilayah' : 'Region'}
+                      leadingIcon={<Globe size={16} weight="regular" />}
+                      value={tradeScopeFilter}
+                      onChange={v => { captureFeedPositions(); triggerFeedMotion(); setTradeScopeFilter(v as typeof tradeScopeFilter); }}
+                      options={[
+                        { value: 'all', label: locale === 'ID' ? 'Semua wilayah' : 'All regions' },
+                        { value: 'ID_ONLY', label: locale === 'ID' ? 'Indonesia' : 'Indonesia' },
+                        { value: 'GLOBAL', label: locale === 'ID' ? 'Internasional' : 'International' },
+                      ]}
+                    />
+                  </label>
+                )}
+                {includeTcg&&(includeOnePiece||includePokemon)&&(
+                  <label className="market-feed-filter-control">
+                    <Picker
+                      label={locale === 'ID' ? 'Bahasa listing' : 'Listing language'}
+                      leadingIcon={<Translate size={16} weight="regular" />}
+                      value={lang}
+                      onChange={v => changeLanguage(v as typeof lang)}
+                      options={[
+                        { value: 'all', label: locale === 'ID' ? 'Semua bahasa' : 'All languages' },
+                        { value: 'EN', label: 'EN' },
+                        ...(gameSlug==='pokemon'?[{value:'ID',label:'ID'}]:[]),
+                        { value: 'JP', label: 'JP' },
+                      ]}
+                    />
+                  </label>
+                )}
                 <label className="market-feed-filter-control">
                   <Picker
                     label={locale === 'ID' ? 'Urutan listing' : 'Sort listings'}

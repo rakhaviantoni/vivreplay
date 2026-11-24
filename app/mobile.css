@@ -1194,9 +1194,9 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   }
   .market-feed-list.is-list .market-feed-status,
   .market-feed-list.is-list .market-feed-price { position: static !important; display: flex !important; min-width: 0 !important; width: auto !important; margin: 0 !important; }
-  .market-feed-list.is-list .market-feed-status { justify-content: flex-start !important; }
-  .market-feed-list.is-list .market-feed-status b { padding: 4px 7px !important; font-size: 9px !important; }
-  .market-feed-list.is-list .market-feed-price { margin-left: auto !important; text-align: right !important; }
+  .market-feed-list.is-list .market-feed-status { flex-direction: row !important; flex-wrap: wrap !important; align-items: center !important; justify-content: flex-start !important; gap: 4px 5px !important; }
+  .market-feed-list.is-list .market-feed-status b { padding: 3px 7px !important; font-size: 9px !important; }
+  .market-feed-list.is-list .market-feed-price { flex-direction: column !important; align-items: flex-end !important; margin-left: auto !important; text-align: right !important; }
   .market-feed-list.is-list .market-feed-price strong { font-size: 12px !important; white-space: nowrap; }
   .market-feed-list.is-list .market-feed-entry.has-row-action .market-feed-row-actions { position: relative !important; top: auto !important; right: auto !important; z-index: 5 !important; grid-column: 3 / 5 !important; grid-row: 1 !important; align-self: start !important; justify-self: end !important; display: flex !important; align-items: center !important; justify-content: flex-end !important; gap: 4px !important; width: auto !important; padding: 0 !important; transform: none !important; }
   .market-feed-list.is-list .market-feed-entry.has-row-action:not(.has-cart-action) .market-feed-row-actions { grid-column: 4 / 5 !important; grid-row: 1 !important; }
@@ -5906,9 +5906,10 @@ html[data-theme='dark'] .market-game-switch.market-scope-switch .market-scope-pi
   }
   .market-feed-list.is-list .market-feed-row.is-wta .market-feed-status {
     display: flex !important;
+    flex-direction: row !important;
     flex-wrap: wrap !important;
     align-items: center !important;
-    gap: 5px 6px !important;
+    gap: 4px 5px !important;
     min-width: 0 !important;
   }
   .market-feed-list.is-list .market-feed-row.is-wta .market-feed-price {
@@ -5938,6 +5939,7 @@ html[data-theme='dark'] .market-game-switch.market-scope-switch .market-scope-pi
   }
   .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-status {
     display: flex !important;
+    flex-direction: row !important;
     flex-wrap: wrap !important;
     align-items: center !important;
     justify-content: flex-start !important;

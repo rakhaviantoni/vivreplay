@@ -77,6 +77,12 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
   const t=(en:string,id:string)=>isId?id:en;
   const route=(path:string)=>isId?`/id${path}`:path;
 
+  useEffect(()=>{
+    const handler=()=>setOpen(true);
+    window.addEventListener('vivreplay:open-market-pro',handler);
+    return()=>window.removeEventListener('vivreplay:open-market-pro',handler);
+  },[]);
+
   const openPayment=async(orderId:string,createInstrument:boolean)=>{
     setPaymentViewLoading(true);setError('');setPaymentView(null);
     try{
