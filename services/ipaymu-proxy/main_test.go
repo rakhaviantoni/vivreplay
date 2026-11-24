@@ -84,6 +84,16 @@ func TestEgressSuccessAndReplayProtection(t *testing.T) {
 	if replay.Code != http.StatusConflict {
 		t.Fatalf("expected 409 on replay, got %d", replay.Code)
 	}
+
+	metricsReq := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	metricsRec := httptest.NewRecorder()
+	srv.routes().ServeHTTP(metricsRec, metricsReq)
+	if metricsRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 from /metrics, got %d", metricsRec.Code)
+	}
+	if !strings.Contains(metricsRec.Body.String(), `"upstream_ok":1`) || !strings.Contains(metricsRec.Body.String(), `"replay_blocks":1`) {
+		t.Fatalf("unexpected metrics output: %s", metricsRec.Body.String())
+	}
 }
 
 func TestEgressRejectsInvalidSignatureAndDisallowedRoute(t *testing.T) {

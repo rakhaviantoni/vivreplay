@@ -5893,3 +5893,146 @@ html[data-theme='dark'] .market-game-switch.market-scope-switch .market-scope-pi
   .market-game-switch.market-scope-switch .market-scope-picker > .market-scope-toggle { padding-inline:12px!important; }
 }
 @media(prefers-reduced-motion:reduce){.market-scope-toggle,.market-scope-menu-toggle,.market-scope-menu-toggle>svg{transition:none!important;}}
+
+/* Mobile polish: WTA auction feed trade block, social publish status bar, and auction bidding panel */
+@media (max-width: 760px) {
+  /* Auction (WTA) in feed list view: allow status badges to wrap cleanly and align price cleanly */
+  .market-feed-list.is-list .market-feed-row.is-wta .market-feed-trade {
+    flex-wrap: wrap !important;
+    align-items: flex-end !important;
+    gap: 6px 10px !important;
+    padding-top: 6px !important;
+  }
+  .market-feed-list.is-list .market-feed-row.is-wta .market-feed-status {
+    flex: 1 1 165px !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 4px 6px !important;
+    min-width: 0 !important;
+  }
+  .market-feed-list.is-list .market-feed-row.is-wta .market-feed-price {
+    flex: 0 0 auto !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    margin-left: auto !important;
+    text-align: right !important;
+  }
+  .market-feed-list .market-feed-row.is-wta .market-feed-bin-inline {
+    display: block !important;
+    font-size: 11px !important;
+    font-weight: 650 !important;
+    color: var(--muted) !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Auction (WTA) in feed 2-column grid view: stack status chips above price so neither is crushed */
+  .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-trade {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+  }
+  .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-status {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+  .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-price {
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    margin-left: 0 !important;
+    text-align: left !important;
+  }
+  .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-price strong {
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Listing Owner Social Status Bar & Detail Modal */
+  .market-listing-social-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    margin: 0 0 14px !important;
+    padding: 12px !important;
+  }
+  .market-listing-social-bar-left {
+    gap: 8px !important;
+  }
+  .market-listing-social-pills {
+    width: 100% !important;
+  }
+  .market-listing-social-pill {
+    min-height: 32px !important;
+  }
+  .market-listing-social-bar-actions {
+    width: 100% !important;
+    justify-content: space-between !important;
+    padding-top: 8px !important;
+    border-top: 1px dashed color-mix(in srgb, var(--line) 75%, transparent) !important;
+  }
+  .market-listing-social-detail-btn {
+    min-height: 36px !important;
+    padding: 6px 12px !important;
+  }
+  .market-listing-social-manage-link {
+    min-height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+  .social-post-detail-backdrop {
+    padding: 12px !important;
+  }
+  .social-post-detail-modal {
+    max-height: 90dvh !important;
+    padding: 16px !important;
+    border-radius: 14px !important;
+  }
+
+  /* WTA Auction Panel */
+  .market-auction-panel {
+    gap: 12px !important;
+    margin: 14px 0 !important;
+    padding: 14px !important;
+  }
+  .market-auction-stats {
+    gap: 10px !important;
+    padding: 10px 12px !important;
+  }
+  .market-auction-stats strong {
+    font-size: 17px !important;
+    overflow-wrap: anywhere !important;
+  }
+  .market-auction-quick-bids button {
+    min-height: 36px !important;
+    padding: 0 12px !important;
+  }
+  .market-auction-bid-row {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  .market-auction-bid-row .button {
+    width: 100% !important;
+    min-height: 44px !important;
+    justify-content: center !important;
+  }
+  .market-auction-buyout-row,
+  .market-auction-winner-banner {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .market-auction-buyout-row .button,
+  .market-auction-winner-banner .button {
+    width: 100% !important;
+    min-height: 42px !important;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .market-auction-stats {
+    grid-template-columns: 1fr !important;
+  }
+}
