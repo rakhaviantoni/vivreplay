@@ -24,12 +24,13 @@ import { ProviderOperations } from '@/components/admin/provider-operations';
 import { PokemonCatalogStatus } from '@/components/admin/pokemon-catalog-status';
 import { AdminLoadingSkeleton } from '@/components/admin/admin-loading-skeleton';
 import { AdminSocialStudio } from '@/components/admin/admin-social-studio';
+import { AdminOrdersManager } from '@/components/admin/admin-orders-manager';
 
 type Health={generatedAt:string;summary:{identities:number;printings:number;sets:number;storedSmall:number;missingImages:number;missingCards:number;unrepresentedSets:number};missingImages:Array<{id:string;code:string;name:string;setCode:string;language:string;variant:string;reason:string}>;missingCards:Array<{code:string;name:string}>;sets:Array<{setCode:string;setName:string;total:number;stored:number;sourceMissing:number}>;unrepresentedSets:Array<{setCode:string;setName:string;kind:string}>};
 type CoachRequest={id:string;actor_email:string|null;actor_subject:string|null;ip_address:string|null;user_agent:string|null;locale:string;model:string;question:string;leader_code:string|null;deck_size:number;candidate_count:number;response_text:string|null;status:string;error_code:string|null;duration_ms:number;created_at:string};
 const number=new Intl.NumberFormat('en-US');
 
-type Section='overview'|'customers'|'catalog'|'policy'|'payments'|'marketplace'|'partners'|'feedback'|'traffic'|'social'|'payouts'|'disputes'|'operations';
+type Section='overview'|'customers'|'catalog'|'policy'|'payments'|'marketplace'|'orders'|'partners'|'feedback'|'traffic'|'social'|'payouts'|'disputes'|'operations';
 export function AdminDashboard({initialSection='overview'}:{initialSection?:Section}){
   const section=initialSection;
   const [data,setData]=useState<Health|null>(null);
@@ -68,14 +69,14 @@ export function AdminDashboard({initialSection='overview'}:{initialSection?:Sect
       <header className="admin-health-heading">
         <div>
           <p className="eyebrow">OPERATIONS & CONTROL</p>
-          <h1>{section === 'overview' ? 'Dashboard' : section === 'customers' ? 'Customers' : section === 'catalog' ? 'Catalog health' : section === 'policy' ? 'Market Policy' : section === 'payments' ? 'Payment methods' : section === 'marketplace' ? 'Listings & sellers' : section === 'traffic' ? 'Campaign attribution' : section === 'social' ? 'Social media studio' : section==='payouts'?'Payouts':section==='disputes'?'Order reports':section==='operations'?'Payments and delivery':'Feedback inbox'}</h1>
+          <h1>{section === 'overview' ? 'Dashboard' : section === 'customers' ? 'Customers' : section === 'catalog' ? 'Catalog health' : section === 'policy' ? 'Market Policy' : section === 'payments' ? 'Payment methods' : section === 'marketplace' ? 'Listings & sellers' : section === 'orders' ? 'Orders & delivery' : section === 'traffic' ? 'Campaign attribution' : section === 'social' ? 'Social media studio' : section==='payouts'?'Payouts':section==='disputes'?'Order reports':section==='operations'?'Payments and delivery':'Feedback inbox'}</h1>
           <p>
             {section === 'overview'
               ? 'Accounts, paid orders, and sales activity.'
               : section === 'customers' ? 'Search accounts and check membership details.'
               : section === 'catalog'
               ? catalogGame==='pokemon'?'Pokémon card printings and image status.':'One Piece card printings, image status, and set coverage.'
-              : section === 'policy' ? 'Dynamic listing lifespans, seller quotas, and retention rules.' : section === 'payments' ? 'Choose which iPaymu payment channels buyers can use for Market orders and Pro.' : section === 'marketplace' ? 'Recent Market listings and the sellers behind them.' : section === 'traffic' ? 'UTM campaigns, landing pages, and referrals to VivrePlay.' : section === 'social' ? 'Create brand-consistent social graphics, schedule posts, and copy official EN/ID bios.' : section==='payouts'?'Review seller withdrawal requests and record transfers.':section==='disputes'?'Review buyer evidence, seller responses, and order outcomes.':section==='operations'?'Provider balances, payments, and shipment status.':'Card data reports, product feedback, and bug reports.'}
+              : section === 'policy' ? 'Dynamic listing lifespans, seller quotas, and retention rules.' : section === 'payments' ? 'Choose which iPaymu payment channels buyers can use for Market orders and Pro.' : section === 'marketplace' ? 'Recent Market listings and the sellers behind them.' : section === 'orders' ? 'Filter all Market orders by courier, shipping stage, dispatch speed, and delivery transit time.' : section === 'traffic' ? 'UTM campaigns, landing pages, and referrals to VivrePlay.' : section === 'social' ? 'Create brand-consistent social graphics, schedule posts, and copy official EN/ID bios.' : section==='payouts'?'Review seller withdrawal requests and record transfers.':section==='disputes'?'Review buyer evidence, seller responses, and order outcomes.':section==='operations'?'Provider balances, payments, and shipment status.':'Card data reports, product feedback, and bug reports.'}
           </p>
         </div>
 
@@ -97,6 +98,8 @@ export function AdminDashboard({initialSection='overview'}:{initialSection?:Sect
           <MarketplaceManager />
           <AdminSocialTestersPanel />
         </>
+      ) : section === 'orders' ? (
+        <AdminOrdersManager />
       ) : section === 'partners' ? (
         <AdminPartnersPanel />
       ) : section === 'feedback' ? (

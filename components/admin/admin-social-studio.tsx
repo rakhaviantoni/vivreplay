@@ -1,8 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CalendarBlankIcon as CalendarBlank,
+  CaretLeftIcon as CaretLeft,
+  CaretRightIcon as CaretRight,
   CheckIcon as Check,
   ClockIcon as Clock,
   CopyIcon as Copy,
@@ -14,7 +16,7 @@ import {
   MoonIcon as Moon,
   PaperPlaneTiltIcon as PaperPlaneTilt,
   PencilSimpleIcon as PencilSimple,
-  PlusIcon as Plus,
+  ShuffleIcon as Shuffle,
   SparkleIcon as Sparkle,
   SunIcon as Sun,
   ThreadsLogoIcon as ThreadsLogo,
@@ -25,6 +27,7 @@ import {
   XLogoIcon as XLogo,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
+import { cardPrintingImageUrl } from '@/components/tcg/card-art';
 import { renderBrandSocialCanvas } from '@/lib/social-brand-canvas';
 import {
   SOCIAL_ASSET_DIMENSIONS,
@@ -46,6 +49,17 @@ type ConnectedAccount = {
   displayName?: string | null;
 };
 
+type CatalogCardRow = {
+  id: string;
+  set_code?: string | null;
+  language?: string | null;
+  printing_code?: string | null;
+  card_image_url?: string | null;
+  tcg_card_assets?: Array<{ kind?: string; object_key?: string }>;
+};
+
+const CONNECTABLE_PLATFORMS = ['instagram', 'facebook', 'threads', 'twitter'] as const;
+
 function SocialPlatformIcon({ platform, size = 15 }: { platform: SocialPlatformKey | string; size?: number }) {
   const key = platform.toLowerCase();
   if (key === 'instagram') return <InstagramLogo size={size} weight="fill" />;
@@ -60,6 +74,14 @@ function defaultDateInput(): string {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   return d.toISOString().slice(0, 10);
+}
+
+function toLocalDateKey(value: string | Date): string {
+  const d = typeof value === 'string' ? new Date(value) : value;
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function AdminSocialStudio() {
@@ -77,6 +99,9 @@ export function AdminSocialStudio() {
   const [ctaUrl, setCtaUrl] = useState(firstPreset.assetEN.ctaUrl);
   const [showMarketBadge, setShowMarketBadge] = useState(firstPreset.assetEN.showMarketBadge);
 
+  const [cardPool, setCardPool] = useState<{ op: string[]; pkmn: string[] }>({ op: [], pkmn: [] });
+  const [cardOffset, setCardOffset] = useState(0);
+
   const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [postTitle, setPostTitle] = useState(firstPreset.titleEN);
   const [postPillar, setPostPillar] = useState(firstPreset.pillar);
@@ -85,6 +110,11 @@ export function AdminSocialStudio() {
   const [scheduleDate, setScheduleDate] = useState(defaultDateInput);
   const [scheduleTime, setScheduleTime] = useState(firstPreset.recommendedTime);
 
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [posts, setPosts] = useState<AdminSocialPostRecord[]>([]);
@@ -92,6 +122,15 @@ export function AdminSocialStudio() {
   const [savingMode, setSavingMode] = useState<'draft' | 'schedule' | 'publish' | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [bioLocale, setBioLocale] = useState<'EN' | 'ID'>('EN');
+
+  const activeCardUrls = useMemo(() => {
+    const urls: string[] = [];
+    if (cardPool.op.length) urls.push(cardPool.op[cardOffset % cardPool.op.length]);
+    if (cardPool.pkmn.length) urls.push(cardPool.pkmn[cardOffset % cardPool.pkmn.length]);
+    if (cardPool.op.length > 1) urls.push(cardPool.op[(cardOffset + 1) % cardPool.op.length]);
+    else if (cardPool.pkmn.length > 1) urls.push(cardPool.pkmn[(cardOffset + 1) % cardPool.pkmn.length]);
+    return urls;
+  }, [cardPool, cardOffset]);
 
   const assetConfig: SocialAssetConfig = {
     template: assetTemplate,
@@ -113,8 +152,43 @@ export function AdminSocialStudio() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    void renderBrandSocialCanvas(canvas, assetConfig);
+    void renderBrandSocialCanvas(canvas, assetConfig, activeCardUrls);
   });
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([
+      fetch('/api/cards/catalog?language=EN&limit=12', { cache: 'force-cache' })
+        .then((r) => (r.ok ? (r.json() as Promise<{ cards?: CatalogCardRow[] }>) : { cards: [] }))
+        .catch(() => ({ cards: [] })),
+      fetch('/api/cards/catalog?game=pokemon&language=EN&limit=12', { cache: 'force-cache' })
+        .then((r) => (r.ok ? (r.json() as Promise<{ cards?: CatalogCardRow[] }>) : { cards: [] }))
+        .catch(() => ({ cards: [] })),
+    ]).then(([opRes, pkmnRes]) => {
+      if (!active) return;
+      const toUrls = (rows: CatalogCardRow[] | undefined, gameSlug: 'one-piece' | 'pokemon') =>
+        (rows ?? [])
+          .map((row) =>
+            cardPrintingImageUrl({
+              id: row.id,
+              setCode: row.set_code,
+              language: row.language ?? 'EN',
+              printingCode: row.printing_code,
+              imageUrl: row.card_image_url,
+              assetPath: row.tcg_card_assets?.find((a) => a.kind === 'small')?.object_key ?? null,
+              gameSlug,
+            }),
+          )
+          .filter((u): u is string => Boolean(u));
+      setCardPool({
+        op: toUrls(opRes.cards, 'one-piece'),
+        pkmn: toUrls(pkmnRes.cards, 'pokemon'),
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const loadData = useCallback(async () => {
     const [accRes, postsRes] = await Promise.all([
@@ -137,6 +211,48 @@ export function AdminSocialStudio() {
     void loadData();
   }, [loadData]);
 
+  const connectedPlatforms = useMemo(
+    () => new Set(accounts.map((a) => a.platform.toLowerCase())),
+    [accounts],
+  );
+  const unconnectedPlatforms = useMemo(
+    () => CONNECTABLE_PLATFORMS.filter((p) => !connectedPlatforms.has(p)),
+    [connectedPlatforms],
+  );
+
+  const postsByDay = useMemo(() => {
+    const map = new Map<string, AdminSocialPostRecord[]>();
+    for (const post of posts) {
+      const dateStr = post.scheduledAt || post.publishedAt || post.createdAt;
+      if (!dateStr) continue;
+      const key = toLocalDateKey(dateStr);
+      const list = map.get(key) ?? [];
+      list.push(post);
+      map.set(key, list);
+    }
+    return map;
+  }, [posts]);
+
+  const calendarDays = useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const first = new Date(year, month, 1);
+    const startOffset = (first.getDay() + 6) % 7; // Monday start
+    const start = new Date(year, month, 1 - startOffset);
+    const cells: Array<{ date: Date; key: string; outside: boolean }> = [];
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      cells.push({
+        date: d,
+        key: toLocalDateKey(d),
+        outside: d.getMonth() !== month,
+      });
+    }
+    return cells;
+  }, [calendarMonth]);
+
+  const todayKey = toLocalDateKey(new Date());
+
   const applyPreset = (preset: SocialCampaignPreset, nextLocale: SocialAssetLocale = assetLocale) => {
     const asset = nextLocale === 'ID' ? preset.assetID : preset.assetEN;
     setEditingId(undefined);
@@ -154,6 +270,21 @@ export function AdminSocialStudio() {
     setCaption(nextLocale === 'ID' ? preset.captionID : preset.captionEN);
     setScheduleTime(preset.recommendedTime);
     toast.success(`Loaded "${nextLocale === 'ID' ? preset.titleID : preset.titleEN}"`);
+  };
+
+  const loadSavedPost = (post: AdminSocialPostRecord) => {
+    setEditingId(post.id);
+    setPostTitle(post.title);
+    setPostPillar(post.pillar);
+    setAssetLocale(post.locale);
+    setCaption(post.caption);
+    setMediaUrls(post.mediaUrls);
+    if (post.scheduledAt) {
+      const dt = new Date(post.scheduledAt);
+      setScheduleDate(toLocalDateKey(dt));
+      setScheduleTime(`${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`);
+    }
+    toast.success('Loaded into composer');
   };
 
   const handleDownloadAsset = () => {
@@ -275,9 +406,18 @@ export function AdminSocialStudio() {
           <header className="admin-social-panel-head">
             <div>
               <h2>Brand Asset Studio</h2>
-              <p>Rendered with VivrePlay&apos;s compass mark, palette, card showcase, and game logos.</p>
+              <p>Uses VivrePlay&apos;s compass mark, scope switcher game logos, and live OPTCG &amp; Pokémon cards.</p>
             </div>
             <div className="admin-social-toggle-group">
+              <button
+                type="button"
+                onClick={() => setCardOffset((n) => n + 1)}
+                className="admin-social-chip"
+                title="Shuffle One Piece & Pokémon card art"
+              >
+                <Shuffle size={13} />
+                <span>Cards</span>
+              </button>
               {(['EN', 'ID'] as const).map((loc) => (
                 <button
                   key={loc}
@@ -386,7 +526,7 @@ export function AdminSocialStudio() {
         <section className="admin-social-panel">
           <header className="admin-social-panel-head">
             <div>
-              <h2>Official Post Composer & Scheduler</h2>
+              <h2>Official Post Composer &amp; Scheduler</h2>
               <p>Publish now or schedule posts to VivrePlay&apos;s connected social channels.</p>
             </div>
             {editingId && <span className="admin-social-status is-scheduled">Editing post</span>}
@@ -395,25 +535,25 @@ export function AdminSocialStudio() {
           <div className="admin-social-accounts-box">
             <div className="admin-social-accounts-head">
               <span>Connected Accounts</span>
-              <div className="admin-social-btn-row">
-                {(['instagram', 'facebook', 'threads', 'twitter'] as const).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => handleConnectPlatform(p)}
-                    className="admin-copy-chip"
-                  >
-                    <Plus size={12} />
-                    <SocialPlatformIcon platform={p} size={13} />
-                    <span>{p === 'twitter' ? 'X' : p.charAt(0).toUpperCase() + p.slice(1)}</span>
-                  </button>
-                ))}
-              </div>
+              {unconnectedPlatforms.length > 0 && (
+                <div className="admin-social-btn-row">
+                  {unconnectedPlatforms.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => handleConnectPlatform(p)}
+                      className="admin-icon-btn"
+                      title={`Connect ${p === 'twitter' ? 'X' : p}`}
+                      aria-label={`Connect ${p === 'twitter' ? 'X' : p}`}
+                    >
+                      <SocialPlatformIcon platform={p} size={16} />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {accounts.length === 0 ? (
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>
-                No official accounts connected yet. Connect a channel above to publish directly.
-              </p>
+              <p className="admin-muted">No official accounts connected yet. Click a platform icon above to connect.</p>
             ) : (
               <div className="admin-social-toggle-group">
                 {accounts.map((acc) => {
@@ -428,6 +568,7 @@ export function AdminSocialStudio() {
                         )
                       }
                       className={`admin-social-chip${selected ? ' is-active' : ''}`}
+                      title={`${acc.platform} @${acc.username}`}
                     >
                       <SocialPlatformIcon platform={acc.platform} size={14} />
                       <span>@{acc.username}</span>
@@ -546,11 +687,95 @@ export function AdminSocialStudio() {
         </section>
       </div>
 
+      {/* Calendar View */}
+      <section className="admin-social-panel admin-social-calendar">
+        <header className="admin-social-panel-head">
+          <div>
+            <h2>
+              <CalendarBlank size={17} />
+              <span>
+                Content Calendar ({new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(calendarMonth)})
+              </span>
+            </h2>
+            <p>Click a date to set the schedule target, or click any post pill to edit it in the composer.</p>
+          </div>
+          <div className="admin-social-toggle-group">
+            <span className="admin-social-status is-scheduled">Scheduled</span>
+            <span className="admin-social-status is-published">Published</span>
+            <span className="admin-social-status">Draft</span>
+            <span className="admin-social-status is-failed">Failed</span>
+            <button
+              type="button"
+              className="admin-icon-btn"
+              onClick={() => setCalendarMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+              aria-label="Previous month"
+            >
+              <CaretLeft size={15} />
+            </button>
+            <button
+              type="button"
+              className="admin-social-chip"
+              onClick={() => setCalendarMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              className="admin-icon-btn"
+              onClick={() => setCalendarMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+              aria-label="Next month"
+            >
+              <CaretRight size={15} />
+            </button>
+          </div>
+        </header>
+
+        <div className="admin-social-cal-grid">
+          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((dow) => (
+            <div key={dow} className="admin-social-cal-dow">
+              {dow}
+            </div>
+          ))}
+          {calendarDays.map((cell) => {
+            const dayPosts = postsByDay.get(cell.key) ?? [];
+            return (
+              <div
+                key={cell.key}
+                onClick={() => setScheduleDate(cell.key)}
+                className={`admin-social-cal-cell${cell.outside ? ' is-outside' : ''}${
+                  cell.key === todayKey ? ' is-today' : ''
+                }${cell.key === scheduleDate ? ' is-selected' : ''}`}
+              >
+                <div className="admin-social-cal-day">
+                  <span>{cell.date.getDate()}</span>
+                  {dayPosts.length > 0 && <small>{dayPosts.length}</small>}
+                </div>
+                {dayPosts.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      loadSavedPost(p);
+                    }}
+                    className={`admin-social-cal-item is-${p.status.toLowerCase()}`}
+                    title={`${p.status}: ${p.title}`}
+                  >
+                    {p.platforms[0] && <SocialPlatformIcon platform={p.platforms[0]} size={11} />}
+                    <span>{p.title}</span>
+                  </button>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       {/* Weekly Strategy Presets */}
       <section className="admin-social-panel">
         <header className="admin-social-panel-head">
           <div>
-            <h2>Weekly Content Strategy & Ready Campaigns ({assetLocale})</h2>
+            <h2>Weekly Content Strategy &amp; Ready Campaigns ({assetLocale})</h2>
             <p>Load any campaign into the Studio to render its matching graphic and schedule it.</p>
           </div>
         </header>
@@ -599,14 +824,15 @@ export function AdminSocialStudio() {
       <section className="admin-social-panel">
         <header className="admin-social-panel-head">
           <div>
-            <h2>Scheduled & Published Queue ({posts.length})</h2>
+            <h2>Scheduled &amp; Published Queue ({posts.length})</h2>
             <p>Manage queued, draft, and published posts for VivrePlay.</p>
           </div>
         </header>
         {posts.length === 0 ? (
-          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--muted)' }}>
-            No scheduled or saved posts yet. Load a campaign above and click Schedule Post or Save Draft.
-          </p>
+          <div className="admin-empty-box">
+            <CalendarBlank size={16} />
+            <span>No scheduled or saved posts yet. Load a campaign above and click Schedule Post or Save Draft.</span>
+          </div>
         ) : (
           <div className="admin-social-queue">
             {posts.map((post) => (
@@ -620,9 +846,7 @@ export function AdminSocialStudio() {
                     <span>
                       {post.pillar} ({post.locale})
                     </span>
-                    {post.scheduledAt && (
-                      <span>{new Date(post.scheduledAt).toLocaleString()}</span>
-                    )}
+                    {post.scheduledAt && <span>{new Date(post.scheduledAt).toLocaleString()}</span>}
                   </div>
                   <p className="admin-social-queue-caption">{post.caption}</p>
                   {post.errorMessage && (
@@ -633,20 +857,7 @@ export function AdminSocialStudio() {
                   <button
                     type="button"
                     className="button secondary"
-                    onClick={() => {
-                      setEditingId(post.id);
-                      setPostTitle(post.title);
-                      setPostPillar(post.pillar);
-                      setAssetLocale(post.locale);
-                      setCaption(post.caption);
-                      setMediaUrls(post.mediaUrls);
-                      if (post.scheduledAt) {
-                        const dt = new Date(post.scheduledAt);
-                        setScheduleDate(dt.toISOString().slice(0, 10));
-                        setScheduleTime(dt.toISOString().slice(11, 16));
-                      }
-                      toast.success('Loaded into composer');
-                    }}
+                    onClick={() => loadSavedPost(post)}
                   >
                     <PencilSimple size={14} />
                     <span>Edit</span>
@@ -670,7 +881,7 @@ export function AdminSocialStudio() {
       <section className="admin-social-panel">
         <header className="admin-social-panel-head">
           <div>
-            <h2>Official Bios, WhatsApp & Profile Descriptions</h2>
+            <h2>Official Bios, WhatsApp &amp; Profile Descriptions</h2>
             <p>Collector-focused copy for Instagram, Threads, X, TikTok, WhatsApp Business, and Community groups.</p>
           </div>
           <div className="admin-social-toggle-group">

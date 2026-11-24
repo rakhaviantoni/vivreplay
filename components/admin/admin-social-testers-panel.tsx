@@ -1,7 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Check, Copy, Share2 } from 'lucide-react';
+import {
+  ArrowsClockwiseIcon as ArrowsClockwise,
+  CheckIcon as Check,
+  CopyIcon as Copy,
+  ShareNetworkIcon as ShareNetwork,
+} from '@phosphor-icons/react';
 import type { SocialTesterRequestRecord, SocialTesterRequestStatus } from '@/lib/server/postforme';
 
 export function AdminSocialTestersPanel() {
@@ -54,21 +59,26 @@ export function AdminSocialTestersPanel() {
       <div className="admin-panel-head">
         <div>
           <h2>
-            <Share2 size={16} /> Social Auto-Post Tester Requests
+            <ShareNetwork size={17} />
+            <span>Social Auto-Post Tester Requests</span>
           </h2>
           <p>
             Users requesting early access to Instagram, Facebook Page, or Threads auto-publishing. Add their handle in Meta App Dashboard, then mark Invited.
           </p>
         </div>
-        <button type="button" className="admin-btn-secondary" onClick={() => void load()}>
-          Refresh
+        <button type="button" className="button secondary" onClick={() => void load()} disabled={loading}>
+          <ArrowsClockwise size={15} className={loading ? 'spin' : ''} />
+          <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
         </button>
       </div>
 
       {loading ? (
         <p className="admin-muted">Loading tester requests...</p>
       ) : requests.length === 0 ? (
-        <p className="admin-muted">No tester access requests submitted yet.</p>
+        <div className="admin-empty-box">
+          <ShareNetwork size={16} />
+          <span>No tester access requests submitted yet.</span>
+        </div>
       ) : (
         <div className="admin-social-testers-list">
           {requests.map((req) => (
@@ -77,7 +87,7 @@ export function AdminSocialTestersPanel() {
                 <div className="admin-social-tester-title">
                   <strong>{req.displayName || req.username}</strong>
                   <span>@{req.username}</span>
-                  <span className={`profile-tester-status is-${req.status.toLowerCase()}`}>{req.status}</span>
+                  <span className={`admin-social-status is-${req.status.toLowerCase()}`}>{req.status}</span>
                 </div>
                 <div className="admin-social-tester-handles">
                   {req.instagramHandle && (
@@ -120,7 +130,7 @@ export function AdminSocialTestersPanel() {
               <div className="admin-social-tester-actions">
                 <button
                   type="button"
-                  className="admin-btn-secondary"
+                  className="button secondary"
                   disabled={updatingId === req.id || req.status === 'INVITED'}
                   onClick={() => void updateStatus(req.id, 'INVITED')}
                 >
@@ -128,15 +138,15 @@ export function AdminSocialTestersPanel() {
                 </button>
                 <button
                   type="button"
-                  className="admin-btn-secondary"
+                  className="button"
                   disabled={updatingId === req.id || req.status === 'APPROVED'}
                   onClick={() => void updateStatus(req.id, 'APPROVED')}
                 >
-                  Approve
+                  Mark Approved
                 </button>
                 <button
                   type="button"
-                  className="admin-btn-secondary"
+                  className="button ghost"
                   disabled={updatingId === req.id || req.status === 'DECLINED'}
                   onClick={() => void updateStatus(req.id, 'DECLINED')}
                 >

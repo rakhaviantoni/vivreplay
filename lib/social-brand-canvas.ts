@@ -116,6 +116,7 @@ function drawFannedCards(
 export async function renderBrandSocialCanvas(
   canvas: HTMLCanvasElement,
   config: SocialAssetConfig,
+  cardImageUrls: string[] = [],
 ): Promise<void> {
   const { width, height } = SOCIAL_ASSET_DIMENSIONS[config.format];
   canvas.width = width;
@@ -196,13 +197,14 @@ export async function renderBrandSocialCanvas(
   drawRoundedRect(ctx, inset, inset, width - inset * 2, height - inset * 2, 14);
   ctx.stroke();
 
+  const cardSrcs = cardImageUrls.filter(Boolean).slice(0, 3);
   const [compassImg, opLogoImg, pkmnLogoImg, card0, card1, card2] = await Promise.all([
     loadCanvasImage('/brand/vivreplay-compass.png'),
     loadCanvasImage(GAME_LOGOS['one-piece']),
     loadCanvasImage(GAME_LOGOS.pokemon),
-    loadCanvasImage('/art/card-0.webp'),
-    loadCanvasImage('/art/card-1.webp'),
-    loadCanvasImage('/art/card-2.webp'),
+    cardSrcs[0] ? loadCanvasImage(cardSrcs[0]) : Promise.resolve(null),
+    cardSrcs[1] ? loadCanvasImage(cardSrcs[1]) : Promise.resolve(null),
+    cardSrcs[2] ? loadCanvasImage(cardSrcs[2]) : Promise.resolve(null),
   ]);
 
   const pad = config.format === 'banner' ? 52 : config.format === 'og' ? 56 : 68;

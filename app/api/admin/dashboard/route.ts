@@ -3,8 +3,9 @@ import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 
 type DailyRow={day:string;accounts:number;orders:number;volume:number};
 type CustomerRow={id:string;username:string|null;display_name:string;tier:string;pro_expires_at:string|null;created_at:string;email:string|null};
+type OverviewQueue={awaitingShipment:number;openDisputes:number;pendingPayouts:number;pendingPartners:number;activeListings:number};
 const marketPaidStatuses="'PAID','SHIPPED','RECEIVED','COMPLETED','FULFILLED'";
-let overviewCache:{expiresAt:number;data:{generatedAt:string;accounts:number;proAccounts:number;daily:DailyRow[]}}|null=null;
+let overviewCache:{expiresAt:number;data:{generatedAt:string;accounts:number;proAccounts:number;daily:DailyRow[];queue:OverviewQueue}}|null=null;
 
 export async function GET(request:Request){
   if(!await isCurrentUserAdmin())return Response.json({error:'Admin access is required.'},{status:403});
@@ -49,7 +50,7 @@ export async function GET(request:Request){
     if(overviewCache&&overviewCache.expiresAt>Date.now())return Response.json(overviewCache.data,{headers:{'Cache-Control':'private, no-store'}});
     const now=new Date();
     const start=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-29)).toISOString();
-    const [accounts,proAccounts,accountRows,orderRows]=await Promise.all([
+    const [accounts,proAccounts,accountRows,orderRows,awaitingShipment,openDisputes,pendingPayouts,pendingPartners,activeListings]=await Promise.all([
       d.prepare('SELECT COUNT(*) AS total FROM user').first<{total:number}>(),
       d.prepare("SELECT COUNT(*) AS total FROM profiles WHERE tier='pro' AND (pro_expires_at IS NULL OR pro_expires_at>CURRENT_TIMESTAMP)").first<{total:number}>(),
       d.prepare(`SELECT substr(createdAt,1,10) AS day,COUNT(*) AS accounts
@@ -57,6 +58,11 @@ export async function GET(request:Request){
       d.prepare(`SELECT substr(created_at,1,10) AS day,COUNT(*) AS orders,SUM(subtotal) AS volume
         FROM checkout_orders WHERE kind='MARKET' AND status IN (${marketPaidStatuses}) AND created_at>=?
         GROUP BY substr(created_at,1,10)`).bind(start).all<{day:string;orders:number;volume:number|null}>(),
+      d.prepare("SELECT COUNT(*) AS total FROM checkout_orders WHERE kind='MARKET' AND status='PAID' AND dispatched_at IS NULL").first<{total:number}>().catch(()=>({total:0})),
+      d.prepare("SELECT COUNT(*) AS total FROM market_order_disputes WHERE status IN ('OPEN','SELLER_RESPONDED','ESCALATED')").first<{total:number}>().catch(()=>({total:0})),
+      d.prepare("SELECT COUNT(*) AS total FROM seller_payout_requests WHERE status='PENDING'").first<{total:number}>().catch(()=>({total:0})),
+      d.prepare("SELECT COUNT(*) AS total FROM partner_requests WHERE status='PENDING'").first<{total:number}>().catch(()=>({total:0})),
+      d.prepare("SELECT COUNT(*) AS total FROM listings WHERE status='ACTIVE' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP)").first<{total:number}>().catch(()=>({total:0})),
     ]);
     const daily=new Map<string,DailyRow>();
     for(let offset=0;offset<30;offset++){
@@ -65,7 +71,19 @@ export async function GET(request:Request){
     }
     for(const row of accountRows.results){const day=daily.get(row.day);if(day)day.accounts=row.accounts;}
     for(const row of orderRows.results){const day=daily.get(row.day);if(day){day.orders=row.orders;day.volume=row.volume??0;}}
-    const data={generatedAt:now.toISOString(),accounts:accounts?.total??0,proAccounts:proAccounts?.total??0,daily:[...daily.values()]};
+    const data={
+      generatedAt:now.toISOString(),
+      accounts:accounts?.total??0,
+      proAccounts:proAccounts?.total??0,
+      daily:[...daily.values()],
+      queue:{
+        awaitingShipment:awaitingShipment?.total??0,
+        openDisputes:openDisputes?.total??0,
+        pendingPayouts:pendingPayouts?.total??0,
+        pendingPartners:pendingPartners?.total??0,
+        activeListings:activeListings?.total??0,
+      },
+    };
     overviewCache={data,expiresAt:Date.now()+60_000};
     return Response.json(data,{headers:{'Cache-Control':'private, no-store'}});
   }catch(error){

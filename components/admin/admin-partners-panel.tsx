@@ -1,7 +1,7 @@
 'use client';
 
 import {useCallback,useEffect,useState} from 'react';
-import {CheckCircleIcon as Check,XCircleIcon as Reject,WhatsappLogoIcon as WhatsApp} from '@phosphor-icons/react';
+import {ArrowsClockwiseIcon as Refresh,CheckCircleIcon as Check,HandshakeIcon as Handshake,XCircleIcon as Reject,WhatsappLogoIcon as WhatsApp} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 
 interface PartnerRequestRow{
@@ -73,14 +73,15 @@ export function AdminPartnersPanel(){
     <section className="admin-partners-panel">
       <div className="admin-section-head">
         <div>
-          <h2>Partner &amp; Social Early-Access Applications</h2>
-          <p>AI pre-screened partner, consignment, and social auto-post early-access submissions.</p>
+          <h2><Handshake size={17} /><span>Partner &amp; Social Early-Access Applications</span></h2>
+          <p>Review partner, consignment, and social auto-post early-access submissions.</p>
         </div>
         <button type="button" className="button secondary" onClick={()=>void load()} disabled={loading}>
-          {loading?'Refreshing...':'Refresh'}
+          <Refresh size={15} className={loading?'spin':''}/>
+          <span>{loading?'Refreshing...':'Refresh'}</span>
         </button>
       </div>
-      {loading&&!rows.length?<p>Loading partner applications...</p>:!rows.length?<p>No partner applications yet.</p>:(
+      {loading&&!rows.length?<p className="admin-muted">Loading partner applications...</p>:!rows.length?<div className="admin-empty-box"><Handshake size={16}/><span>No partner applications yet.</span></div>:(
         <div className="admin-partner-grid">
           {rows.map(row=>{
             let connected:Array<{platform:string;handle:string}>=[];

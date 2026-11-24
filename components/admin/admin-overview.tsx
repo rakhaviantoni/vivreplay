@@ -1,11 +1,13 @@
 'use client';
 
+import Link from 'next/link';
 import {useCallback,useEffect,useState} from 'react';
-import {ArrowClockwiseIcon as Refresh,ChartLineUpIcon as Trend,UsersThreeIcon as Users,CrownSimpleIcon as Crown,ShoppingBagOpenIcon as Orders} from '@phosphor-icons/react';
+import {ArrowClockwiseIcon as Refresh,ArrowRightIcon as ArrowRight,ChartLineUpIcon as Trend,UsersThreeIcon as Users,CrownSimpleIcon as Crown,ShoppingBagOpenIcon as Orders} from '@phosphor-icons/react';
 import {AdminLoadingSkeleton} from '@/components/admin/admin-loading-skeleton';
 
 type Day={day:string;accounts:number;orders:number;volume:number};
-type Data={generatedAt:string;accounts:number;proAccounts:number;daily:Day[]};
+type Queue={awaitingShipment:number;openDisputes:number;pendingPayouts:number;pendingPartners:number;activeListings:number};
+type Data={generatedAt:string;accounts:number;proAccounts:number;daily:Day[];queue?:Queue};
 const count=new Intl.NumberFormat('en-US');
 const money=new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0});
 
@@ -44,14 +46,35 @@ export function AdminOverview(){
     {error&&<p className="admin-error" role="alert">{error}</p>}
     {loading&&!data?<AdminLoadingSkeleton variant="dashboard"/>:data&&<>
       <div className="admin-overview-stats">
-        <article><span><Users size={16}/>Accounts</span><strong>{count.format(data.accounts)}</strong><small>All collector accounts</small></article>
+        <article><span><Users size={16}/>Accounts</span><strong>{count.format(data.accounts)}</strong><small>{count.format(data.queue?.activeListings??0)} active listings</small></article>
         <article><span><Crown size={16}/>Market Pro</span><strong>{count.format(data.proAccounts)}</strong><small>Active memberships</small></article>
         <article><span><Orders size={16}/>Paid orders</span><strong>{count.format(days.reduce((sum,day)=>sum+day.orders,0))}</strong><small>Market orders, last 30 days</small></article>
         <article><span><Trend size={16}/>Card sales</span><strong>{money.format(days.reduce((sum,day)=>sum+day.volume,0))}</strong><small>Card subtotal, last 30 days</small></article>
       </div>
+      {data.queue&&(
+        <div className="admin-overview-actions">
+          <Link href="/admin?section=orders" className="admin-overview-action-card">
+            <div><span>Awaiting dispatch</span><strong>{count.format(data.queue.awaitingShipment)}</strong></div>
+            <ArrowRight size={16}/>
+          </Link>
+          <Link href="/admin?section=disputes" className="admin-overview-action-card">
+            <div><span>Open order reports</span><strong>{count.format(data.queue.openDisputes)}</strong></div>
+            <ArrowRight size={16}/>
+          </Link>
+          <Link href="/admin?section=payouts" className="admin-overview-action-card">
+            <div><span>Pending payouts</span><strong>{count.format(data.queue.pendingPayouts)}</strong></div>
+            <ArrowRight size={16}/>
+          </Link>
+          <Link href="/admin?section=partners" className="admin-overview-action-card">
+            <div><span>Partner applications</span><strong>{count.format(data.queue.pendingPartners)}</strong></div>
+            <ArrowRight size={16}/>
+          </Link>
+        </div>
+      )}
       <div className="admin-overview-charts">
         <TrendChart title="New accounts" caption="Accounts created per day" values={days.map(day=>day.accounts)} dates={days.map(day=>day.day)} color="#aa6a13"/>
         <TrendChart title="Paid orders" caption="Completed payments per day" values={days.map(day=>day.orders)} dates={days.map(day=>day.day)} color="#34775a"/>
+        <TrendChart title="Card sales volume" caption="Daily paid order subtotal" values={days.map(day=>day.volume)} dates={days.map(day=>day.day)} color="#2563eb" formatter={money.format}/>
       </div>
       <p className="admin-overview-updated">Updated {new Intl.DateTimeFormat('en',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Jakarta'}).format(new Date(data.generatedAt))} WIB</p>
     </>}
