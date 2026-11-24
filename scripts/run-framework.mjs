@@ -240,7 +240,7 @@ var fetch_handler_default = {
       console.error("Scheduled Market notifications are not configured");
       return;
     }
-    const paths = ["/api/cron/market-orders", "/api/cron/pro-membership"];
+    const paths = ["/api/cron/market-orders", "/api/cron/pro-membership", "/api/cron/social-posts"];
     const work = Promise.all(paths.map(async (path) => {
       const request = new Request("https://vivreplay.com" + path, {
         method: "POST",
