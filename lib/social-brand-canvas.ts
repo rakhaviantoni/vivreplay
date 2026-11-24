@@ -75,16 +75,16 @@ function drawFannedCards(
   cardW: number,
   cardH: number,
   borderColor: string,
+  fallbackBg: string,
   shadowColor: string,
 ) {
   const specs = [
-    { img: cards[0], angle: -0.14, dx: -cardW * 0.42, dy: cardH * 0.04, scale: 0.92 },
-    { img: cards[2], angle: 0.14, dx: cardW * 0.42, dy: cardH * 0.05, scale: 0.92 },
+    { img: cards[0], angle: -0.15, dx: -cardW * 0.44, dy: cardH * 0.05, scale: 0.9 },
+    { img: cards[2], angle: 0.15, dx: cardW * 0.44, dy: cardH * 0.05, scale: 0.9 },
     { img: cards[1], angle: 0, dx: 0, dy: -cardH * 0.03, scale: 1 },
   ];
 
   for (const spec of specs) {
-    if (!spec.img) continue;
     const w = cardW * spec.scale;
     const h = cardH * spec.scale;
     ctx.save();
@@ -92,25 +92,89 @@ function drawFannedCards(
     ctx.rotate(spec.angle);
 
     ctx.shadowColor = shadowColor;
-    ctx.shadowBlur = 28;
-    ctx.shadowOffsetY = 12;
-    ctx.fillStyle = '#0d1218';
-    drawRoundedRect(ctx, -w / 2, -h / 2, w, h, 14);
+    ctx.shadowBlur = 24;
+    ctx.shadowOffsetY = 10;
+    ctx.fillStyle = fallbackBg;
+    drawRoundedRect(ctx, -w / 2, -h / 2, w, h, 12);
     ctx.fill();
 
     ctx.shadowColor = 'transparent';
-    ctx.save();
-    drawRoundedRect(ctx, -w / 2, -h / 2, w, h, 14);
-    ctx.clip();
-    ctx.drawImage(spec.img, -w / 2, -h / 2, w, h);
-    ctx.restore();
+    if (spec.img) {
+      ctx.save();
+      drawRoundedRect(ctx, -w / 2, -h / 2, w, h, 12);
+      ctx.clip();
+      ctx.drawImage(spec.img, -w / 2, -h / 2, w, h);
+      ctx.restore();
+    }
 
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 2;
-    drawRoundedRect(ctx, -w / 2, -h / 2, w, h, 14);
+    drawRoundedRect(ctx, -w / 2, -h / 2, w, h, 12);
     ctx.stroke();
     ctx.restore();
   }
+}
+
+function drawChipGrid(
+  ctx: CanvasRenderingContext2D,
+  chips: string[],
+  startX: number,
+  startY: number,
+  maxW: number,
+  chipH: number,
+  fontSize: number,
+  gap: number,
+  palette: { badgeBg: string; line: string; ink: string },
+) {
+  ctx.font = `700 ${fontSize}px "Plus Jakarta Sans", sans-serif`;
+  let cx = startX;
+  let cy = startY;
+  for (const chip of chips) {
+    const cw = Math.min(maxW, ctx.measureText(chip).width + 30);
+    if (cx > startX && cx + cw > startX + maxW) {
+      cx = startX;
+      cy += chipH + gap;
+    }
+    ctx.fillStyle = palette.badgeBg;
+    drawRoundedRect(ctx, cx, cy, cw, chipH, chipH / 2);
+    ctx.fill();
+    ctx.strokeStyle = palette.line;
+    ctx.lineWidth = 1.25;
+    drawRoundedRect(ctx, cx, cy, cw, chipH, chipH / 2);
+    ctx.stroke();
+
+    ctx.fillStyle = palette.ink;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(chip, cx + 15, cy + chipH / 2);
+    ctx.textBaseline = 'alphabetic';
+    cx += cw + gap;
+  }
+}
+
+function drawEyebrowPill(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  fontSize: number,
+  palette: { accentSoft: string; accent: string },
+): number {
+  ctx.font = `800 ${fontSize}px "Plus Jakarta Sans", sans-serif`;
+  const upper = text.toUpperCase();
+  const pillH = fontSize + 18;
+  const pillW = ctx.measureText(upper).width + 26;
+  ctx.fillStyle = palette.accentSoft;
+  drawRoundedRect(ctx, x, y, pillW, pillH, pillH / 2);
+  ctx.fill();
+  ctx.strokeStyle = palette.accent;
+  ctx.lineWidth = 1;
+  drawRoundedRect(ctx, x, y, pillW, pillH, pillH / 2);
+  ctx.stroke();
+  ctx.fillStyle = palette.accent;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(upper, x + 13, y + pillH / 2);
+  ctx.textBaseline = 'alphabetic';
+  return pillH;
 }
 
 export async function renderBrandSocialCanvas(
@@ -139,13 +203,14 @@ export async function renderBrandSocialCanvas(
           bgMid: '#eee7d9',
           bgEnd: '#e8dfcf',
           panel: '#fffaf0',
-          panelSoft: 'rgba(255, 250, 240, 0.88)',
+          panelSoft: 'rgba(255, 250, 240, 0.9)',
           line: '#d8cbb5',
           ink: '#28251f',
           muted: '#716a5e',
           accent: '#b77a19',
           accentSoft: 'rgba(183, 122, 25, 0.12)',
           badgeBg: '#fffaf0',
+          cardFallback: '#e8dfcf',
           shadow: 'rgba(49, 38, 19, 0.22)',
         }
       : {
@@ -153,17 +218,18 @@ export async function renderBrandSocialCanvas(
           bgMid: '#131922',
           bgEnd: '#171f2b',
           panel: '#10161f',
-          panelSoft: 'rgba(16, 22, 31, 0.86)',
+          panelSoft: 'rgba(16, 22, 31, 0.88)',
           line: '#273344',
           ink: '#f6f2ea',
           muted: '#aab4c2',
           accent: '#e8c47d',
           accentSoft: 'rgba(232, 196, 125, 0.12)',
           badgeBg: '#1d242d',
-          shadow: 'rgba(0, 0, 0, 0.52)',
+          cardFallback: '#17202c',
+          shadow: 'rgba(0, 0, 0, 0.5)',
         };
 
-  // Exact VivrePlay share background gradient
+  // Exact VivrePlay gradient background
   const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
   bgGrad.addColorStop(0, palette.bgStart);
   bgGrad.addColorStop(0.5, palette.bgMid);
@@ -171,7 +237,6 @@ export async function renderBrandSocialCanvas(
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, width, height);
 
-  // Subtle brass radial glow matching VivrePlay hero surfaces
   const glow = ctx.createRadialGradient(
     width * 0.82,
     height * 0.2,
@@ -190,8 +255,7 @@ export async function renderBrandSocialCanvas(
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, width, height);
 
-  // Outer frame border matching share.tsx
-  const inset = config.format === 'banner' ? 16 : 22;
+  const inset = config.format === 'banner' ? 14 : 20;
   ctx.strokeStyle = palette.line;
   ctx.lineWidth = 1.5;
   drawRoundedRect(ctx, inset, inset, width - inset * 2, height - inset * 2, 14);
@@ -207,18 +271,18 @@ export async function renderBrandSocialCanvas(
     cardSrcs[2] ? loadCanvasImage(cardSrcs[2]) : Promise.resolve(null),
   ]);
 
-  const pad = config.format === 'banner' ? 52 : config.format === 'og' ? 56 : 68;
+  const pad = config.format === 'banner' ? 48 : config.format === 'og' ? 52 : 60;
   const contentWidth = width - pad * 2;
 
-  // Header brand lockup matching navbar & footer: [Compass] VivrePlay | Market
-  const brandSize = config.format === 'banner' ? 40 : config.format === 'story' ? 52 : 44;
-  const headerY = config.format === 'banner' ? 40 : config.format === 'story' ? 70 : 58;
+  // Header brand lockup: [Compass] VivrePlay | Market
+  const brandSize = config.format === 'banner' ? 38 : config.format === 'story' ? 50 : 42;
+  const headerY = config.format === 'banner' ? 36 : config.format === 'story' ? 66 : 54;
 
   if (compassImg) {
     ctx.drawImage(compassImg, pad, headerY, brandSize, brandSize);
   }
   let brandCursorX = pad + brandSize + 14;
-  ctx.font = `800 ${config.format === 'banner' ? 23 : 27}px "Plus Jakarta Sans", sans-serif`;
+  ctx.font = `800 ${config.format === 'banner' ? 22 : 26}px "Plus Jakarta Sans", sans-serif`;
   ctx.fillStyle = palette.ink;
   ctx.textBaseline = 'middle';
   ctx.fillText('VivrePlay', brandCursorX, headerY + brandSize / 2);
@@ -228,13 +292,13 @@ export async function renderBrandSocialCanvas(
     ctx.fillStyle = palette.line;
     ctx.fillRect(brandCursorX, headerY + 8, 1.5, brandSize - 16);
     brandCursorX += 14;
-    ctx.font = `700 ${config.format === 'banner' ? 19 : 22}px "Plus Jakarta Sans", sans-serif`;
+    ctx.font = `700 ${config.format === 'banner' ? 18 : 21}px "Plus Jakarta Sans", sans-serif`;
     ctx.fillStyle = palette.accent;
     ctx.fillText('Market', brandCursorX, headerY + brandSize / 2);
   }
 
-  // Right-side game logos (exact same logos as Game Scope Switcher)
-  const logoMaxH = config.format === 'banner' ? 28 : 34;
+  // Right-side game logos (same as Game Scope Switcher)
+  const logoMaxH = config.format === 'banner' ? 28 : 32;
   let rightX = width - pad;
   if (pkmnLogoImg) {
     const scale = logoMaxH / (pkmnLogoImg.naturalHeight || pkmnLogoImg.height || 1);
@@ -254,237 +318,154 @@ export async function renderBrandSocialCanvas(
     ctx.drawImage(opLogoImg, rightX, headerY + (brandSize - logoMaxH) / 2, drawW, logoMaxH);
     ctx.restore();
   }
-
   ctx.textBaseline = 'alphabetic';
 
-  if (config.format === 'banner') {
-    // Horizontal 1500x500 banner with fanned cards on the right
-    const panelY = 110;
-    const panelH = height - panelY - 40;
-    ctx.fillStyle = palette.panelSoft;
-    drawRoundedRect(ctx, pad, panelY, contentWidth, panelH, 16);
-    ctx.fill();
-    ctx.strokeStyle = palette.line;
-    ctx.lineWidth = 1.25;
-    drawRoundedRect(ctx, pad, panelY, contentWidth, panelH, 16);
-    ctx.stroke();
-
-    const innerX = pad + 40;
-    const copyW = contentWidth * 0.56;
-    let y = panelY + 52;
-
-    ctx.font = '800 13px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = palette.accent;
-    ctx.fillText(config.eyebrow.toUpperCase(), innerX, y);
-    y += 46;
-
-    ctx.font = '800 42px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = palette.ink;
-    for (const line of wrapLines(ctx, config.headline, copyW, 2)) {
-      ctx.fillText(line, innerX, y);
-      y += 50;
-    }
-
-    y += 4;
-    ctx.font = '500 19px "Manrope", sans-serif';
-    ctx.fillStyle = palette.muted;
-    for (const line of wrapLines(ctx, config.subheadline, copyW, 2)) {
-      ctx.fillText(line, innerX, y);
-      y += 27;
-    }
-
-    ctx.font = '700 17px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = palette.accent;
-    ctx.fillText(config.ctaUrl, innerX, panelY + panelH - 28);
-
-    drawFannedCards(
-      ctx,
-      [card0, card1, card2],
-      pad + contentWidth * 0.8,
-      panelY + panelH * 0.52,
-      142,
-      198,
-      palette.line,
-      palette.shadow,
-    );
-    return;
-  }
-
-  if (config.format === 'og') {
-    // 1200x630 split editorial layout: copy left, fanned cards right
-    const panelY = headerY + brandSize + 26;
-    const panelH = height - panelY - 70;
-    ctx.fillStyle = palette.panelSoft;
-    drawRoundedRect(ctx, pad, panelY, contentWidth, panelH, 18);
-    ctx.fill();
-    ctx.strokeStyle = palette.line;
-    ctx.lineWidth = 1.5;
-    drawRoundedRect(ctx, pad, panelY, contentWidth, panelH, 18);
-    ctx.stroke();
-
-    const innerX = pad + 42;
-    const copyW = contentWidth * 0.56;
-    let y = panelY + 54;
-
-    ctx.font = '800 13px "Plus Jakarta Sans", sans-serif';
-    const eyebrowText = config.eyebrow.toUpperCase();
-    const eyebrowW = ctx.measureText(eyebrowText).width + 26;
-    ctx.fillStyle = palette.accentSoft;
-    drawRoundedRect(ctx, innerX, y - 21, eyebrowW, 32, 16);
-    ctx.fill();
-    ctx.strokeStyle = palette.accent;
-    ctx.lineWidth = 1;
-    drawRoundedRect(ctx, innerX, y - 21, eyebrowW, 32, 16);
-    ctx.stroke();
-    ctx.fillStyle = palette.accent;
-    ctx.fillText(eyebrowText, innerX + 13, y);
-    y += 54;
-
-    ctx.font = '800 42px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = palette.ink;
-    for (const line of wrapLines(ctx, config.headline, copyW, 3)) {
-      ctx.fillText(line, innerX, y);
-      y += 50;
-    }
-
-    y += 10;
-    ctx.font = '500 20px "Manrope", sans-serif';
-    ctx.fillStyle = palette.muted;
-    for (const line of wrapLines(ctx, config.subheadline, copyW, 3)) {
-      ctx.fillText(line, innerX, y);
-      y += 29;
-    }
-
-    drawFannedCards(
-      ctx,
-      [card0, card1, card2],
-      pad + contentWidth * 0.8,
-      panelY + panelH * 0.5,
-      178,
-      248,
-      palette.line,
-      palette.shadow,
-    );
-
-    const footerY = height - 34;
-    ctx.font = '700 18px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = palette.accent;
-    ctx.fillText(config.ctaUrl, pad, footerY);
-    ctx.font = '600 15px "Manrope", sans-serif';
-    ctx.fillStyle = palette.muted;
-    const tag = 'One Piece & Pokémon TCG';
-    ctx.fillText(tag, width - pad - ctx.measureText(tag).width, footerY);
-    return;
-  }
-
-  // Square (1080x1080) & Story (1080x1920)
+  const isBanner = config.format === 'banner';
+  const isOg = config.format === 'og';
   const isStory = config.format === 'story';
-  const panelY = headerY + brandSize + (isStory ? 54 : 38);
-  const footerReserve = isStory ? 116 : 86;
+
+  const panelY = headerY + brandSize + (isBanner ? 22 : isOg ? 24 : isStory ? 44 : 34);
+  const footerReserve = isBanner ? 34 : isOg ? 64 : isStory ? 104 : 78;
   const panelH = height - panelY - footerReserve;
 
   ctx.fillStyle = palette.panelSoft;
-  drawRoundedRect(ctx, pad, panelY, contentWidth, panelH, 20);
+  drawRoundedRect(ctx, pad, panelY, contentWidth, panelH, 18);
   ctx.fill();
   ctx.strokeStyle = palette.line;
   ctx.lineWidth = 1.5;
-  drawRoundedRect(ctx, pad, panelY, contentWidth, panelH, 20);
+  drawRoundedRect(ctx, pad, panelY, contentWidth, panelH, 18);
   ctx.stroke();
 
-  const innerPad = 52;
-  const innerX = pad + innerPad;
-  const innerW = contentWidth - innerPad * 2;
-  let y = panelY + (isStory ? 96 : 68);
+  if (isBanner || isOg || config.format === 'square') {
+    // Clean 2-column editorial layout: Left = Copy + Chips, Right = Fanned OPTCG & Pokemon cards
+    const innerPad = isBanner ? 34 : isOg ? 40 : 48;
+    const innerX = pad + innerPad;
+    const leftW = contentWidth * (config.format === 'square' ? 0.54 : 0.56) - innerPad;
+    let y = panelY + (isBanner ? 30 : isOg ? 40 : 54);
 
-  // Eyebrow pill
-  ctx.font = `800 ${isStory ? 15 : 14}px "Plus Jakarta Sans", sans-serif`;
-  const eyebrowText = config.eyebrow.toUpperCase();
-  const eyebrowW = ctx.measureText(eyebrowText).width + 28;
-  ctx.fillStyle = palette.accentSoft;
-  drawRoundedRect(ctx, innerX, y - 22, eyebrowW, 34, 17);
-  ctx.fill();
-  ctx.strokeStyle = palette.accent;
-  ctx.lineWidth = 1;
-  drawRoundedRect(ctx, innerX, y - 22, eyebrowW, 34, 17);
-  ctx.stroke();
-  ctx.fillStyle = palette.accent;
-  ctx.fillText(eyebrowText, innerX + 14, y);
-  y += isStory ? 74 : 58;
+    const pillH = drawEyebrowPill(
+      ctx,
+      config.eyebrow,
+      innerX,
+      y,
+      isBanner ? 12 : 13,
+      palette,
+    );
+    y += pillH + (isBanner ? 26 : isOg ? 34 : 44);
 
-  // Headline
-  const headSize = isStory ? 62 : 48;
-  const headLH = isStory ? 74 : 58;
-  ctx.font = `800 ${headSize}px "Plus Jakarta Sans", sans-serif`;
-  ctx.fillStyle = palette.ink;
-  for (const line of wrapLines(ctx, config.headline, innerW, 3)) {
-    ctx.fillText(line, innerX, y);
-    y += headLH;
-  }
-
-  y += isStory ? 20 : 12;
-
-  // Subheadline
-  const subSize = isStory ? 28 : 22;
-  const subLH = isStory ? 40 : 32;
-  ctx.font = `500 ${subSize}px "Manrope", sans-serif`;
-  ctx.fillStyle = palette.muted;
-  for (const line of wrapLines(ctx, config.subheadline, innerW, 3)) {
-    ctx.fillText(line, innerX, y);
-    y += subLH;
-  }
-
-  // Fanned TCG Cards showcase in center-bottom of panel
-  const cardShowcaseY = isStory
-    ? panelY + panelH * 0.62
-    : panelY + panelH * 0.66;
-  drawFannedCards(
-    ctx,
-    [card0, card1, card2],
-    width / 2,
-    cardShowcaseY,
-    isStory ? 250 : 176,
-    isStory ? 348 : 246,
-    palette.line,
-    palette.shadow,
-  );
-
-  // Feature chips along bottom edge of panel
-  const chipH = isStory ? 50 : 42;
-  const chipFontSize = isStory ? 19 : 16;
-  ctx.font = `700 ${chipFontSize}px "Plus Jakarta Sans", sans-serif`;
-  let chipX = innerX;
-  let chipY = panelY + panelH - innerPad - chipH;
-  if (isStory && config.chips.length > 2) {
-    chipY -= chipH + 12;
-  }
-  for (const chip of config.chips) {
-    const chipW = ctx.measureText(chip).width + 32;
-    if (chipX + chipW > innerX + innerW) {
-      chipX = innerX;
-      chipY += chipH + 12;
-    }
-    ctx.fillStyle = palette.badgeBg;
-    drawRoundedRect(ctx, chipX, chipY, chipW, chipH, chipH / 2);
-    ctx.fill();
-    ctx.strokeStyle = palette.line;
-    ctx.lineWidth = 1.25;
-    drawRoundedRect(ctx, chipX, chipY, chipW, chipH, chipH / 2);
-    ctx.stroke();
+    const headSize = isBanner ? 38 : isOg ? 40 : 50;
+    const headLH = isBanner ? 46 : isOg ? 48 : 60;
+    ctx.font = `800 ${headSize}px "Plus Jakarta Sans", sans-serif`;
     ctx.fillStyle = palette.ink;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(chip, chipX + 16, chipY + chipH / 2);
-    ctx.textBaseline = 'alphabetic';
-    chipX += chipW + 12;
+    const hLines = wrapLines(ctx, config.headline, leftW, isBanner ? 2 : 3);
+    for (const line of hLines) {
+      ctx.fillText(line, innerX, y);
+      y += headLH;
+    }
+
+    y += isBanner ? 6 : 14;
+    const subSize = isBanner ? 18 : isOg ? 19 : 22;
+    const subLH = isBanner ? 26 : isOg ? 28 : 32;
+    ctx.font = `500 ${subSize}px "Manrope", sans-serif`;
+    ctx.fillStyle = palette.muted;
+    const sLines = wrapLines(ctx, config.subheadline, leftW, isBanner ? 2 : 4);
+    for (const line of sLines) {
+      ctx.fillText(line, innerX, y);
+      y += subLH;
+    }
+
+    if (!isBanner && config.chips.length > 0) {
+      const chipH = isOg ? 38 : 42;
+      const chipY = panelY + panelH - innerPad - (config.chips.length > 2 ? chipH * 2 + 12 : chipH);
+      drawChipGrid(
+        ctx,
+        config.chips,
+        innerX,
+        Math.max(y + 18, chipY),
+        leftW,
+        chipH,
+        isOg ? 14 : 15,
+        10,
+        palette,
+      );
+    }
+
+    const cardW = isBanner ? 132 : isOg ? 168 : 210;
+    const cardH = Math.round(cardW * 1.39);
+    const cardCenterX = pad + contentWidth * (config.format === 'square' ? 0.77 : 0.79);
+    const cardCenterY = panelY + panelH * 0.5;
+    drawFannedCards(
+      ctx,
+      [card0, card1, card2],
+      cardCenterX,
+      cardCenterY,
+      cardW,
+      cardH,
+      palette.line,
+      palette.cardFallback,
+      palette.shadow,
+    );
+  } else {
+    // Story (1080x1920): 3-zone vertical stack with generous breathing room
+    const innerPad = 52;
+    const innerX = pad + innerPad;
+    const innerW = contentWidth - innerPad * 2;
+    let y = panelY + 64;
+
+    const pillH = drawEyebrowPill(ctx, config.eyebrow, innerX, y, 15, palette);
+    y += pillH + 54;
+
+    ctx.font = '800 62px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = palette.ink;
+    for (const line of wrapLines(ctx, config.headline, innerW, 3)) {
+      ctx.fillText(line, innerX, y);
+      y += 74;
+    }
+
+    y += 18;
+    ctx.font = '500 28px "Manrope", sans-serif';
+    ctx.fillStyle = palette.muted;
+    for (const line of wrapLines(ctx, config.subheadline, innerW, 3)) {
+      ctx.fillText(line, innerX, y);
+      y += 40;
+    }
+
+    const chipH = 50;
+    const chipsTop = panelY + panelH - innerPad - (config.chips.length > 2 ? chipH * 2 + 14 : chipH);
+    const showcaseTop = y + 36;
+    const showcaseCenterY = (showcaseTop + chipsTop) / 2;
+
+    drawFannedCards(
+      ctx,
+      [card0, card1, card2],
+      width / 2,
+      showcaseCenterY,
+      252,
+      350,
+      palette.line,
+      palette.cardFallback,
+      palette.shadow,
+    );
+
+    if (config.chips.length > 0) {
+      drawChipGrid(ctx, config.chips, innerX, chipsTop, innerW, chipH, 19, 12, palette);
+    }
   }
 
   // Footer CTA bar
-  const footerY = height - (isStory ? 56 : 42);
-  ctx.font = `700 ${isStory ? 24 : 20}px "Plus Jakarta Sans", sans-serif`;
-  ctx.fillStyle = palette.accent;
-  ctx.fillText(config.ctaUrl, pad, footerY);
+  if (!isBanner) {
+    const footerY = height - (isStory ? 50 : isOg ? 30 : 38);
+    ctx.font = `700 ${isStory ? 23 : isOg ? 17 : 19}px "Plus Jakarta Sans", sans-serif`;
+    ctx.fillStyle = palette.accent;
+    ctx.fillText(config.ctaUrl, pad, footerY);
 
-  const tagline = 'One Piece & Pokémon TCG';
-  ctx.font = `600 ${isStory ? 18 : 16}px "Manrope", sans-serif`;
-  ctx.fillStyle = palette.muted;
-  ctx.fillText(tagline, width - pad - ctx.measureText(tagline).width, footerY);
+    const tagline = 'One Piece & Pokémon TCG';
+    ctx.font = `600 ${isStory ? 18 : 15}px "Manrope", sans-serif`;
+    ctx.fillStyle = palette.muted;
+    ctx.fillText(tagline, width - pad - ctx.measureText(tagline).width, footerY);
+  } else {
+    ctx.font = '700 16px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = palette.accent;
+    ctx.fillText(config.ctaUrl, pad + 34, panelY + panelH - 22);
+  }
 }

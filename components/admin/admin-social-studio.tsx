@@ -452,6 +452,19 @@ export function AdminSocialStudio() {
             </div>
           </header>
 
+          <div className="admin-social-toggle-group">
+            {SOCIAL_CAMPAIGN_PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => applyPreset(preset, assetLocale)}
+                className={`admin-social-chip${assetTemplate === preset.template ? ' is-active' : ''}`}
+              >
+                <span>{preset.template.charAt(0).toUpperCase() + preset.template.slice(1)}</span>
+              </button>
+            ))}
+          </div>
+
           <div className="admin-social-format-grid">
             {(Object.keys(SOCIAL_ASSET_DIMENSIONS) as SocialAssetFormat[]).map((fmt) => (
               <button
