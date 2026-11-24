@@ -59,9 +59,9 @@ export async function GET(request:Request){
         FROM checkout_orders WHERE kind='MARKET' AND status IN (${marketPaidStatuses}) AND created_at>=?
         GROUP BY substr(created_at,1,10)`).bind(start).all<{day:string;orders:number;volume:number|null}>(),
       d.prepare("SELECT COUNT(*) AS total FROM checkout_orders WHERE kind='MARKET' AND status='PAID' AND dispatched_at IS NULL").first<{total:number}>().catch(()=>({total:0})),
-      d.prepare("SELECT COUNT(*) AS total FROM market_order_disputes WHERE status IN ('OPEN','SELLER_RESPONDED','ESCALATED')").first<{total:number}>().catch(()=>({total:0})),
-      d.prepare("SELECT COUNT(*) AS total FROM seller_payout_requests WHERE status='PENDING'").first<{total:number}>().catch(()=>({total:0})),
-      d.prepare("SELECT COUNT(*) AS total FROM partner_requests WHERE status='PENDING'").first<{total:number}>().catch(()=>({total:0})),
+      d.prepare("SELECT COUNT(*) AS total FROM market_disputes WHERE status IN ('OPEN','UNDER_REVIEW')").first<{total:number}>().catch(()=>({total:0})),
+      d.prepare("SELECT COUNT(*) AS total FROM seller_payout_requests WHERE status IN ('REQUESTED','PROCESSING')").first<{total:number}>().catch(()=>({total:0})),
+      d.prepare("SELECT COUNT(*) AS total FROM market_partner_requests WHERE status='PENDING'").first<{total:number}>().catch(()=>({total:0})),
       d.prepare("SELECT COUNT(*) AS total FROM listings WHERE status='ACTIVE' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP)").first<{total:number}>().catch(()=>({total:0})),
     ]);
     const daily=new Map<string,DailyRow>();

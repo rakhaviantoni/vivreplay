@@ -55,6 +55,13 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM checkout_orders WHERE id=? AND buyer_id=? AND status='SHIPPED' AND ((delivered_at IS NOT NULL AND delivered_at>=datetime('now','-48 hours')) OR json_extract(details,'$.shippingMethod')='manual'))`).bind(disputeId,id,profile.id,order.sellerId,reason,JSON.stringify(affectedItems),requestedResolution,JSON.stringify(evidence),id,profile.id).run();
     if(!saved.meta.changes)throw new HttpError(409,'This order changed while the report was being sent. Refresh and try again.');
     await sendMarketEmail(order.sellerId,'order-dispute-opened',order.title||'Market order',id);
+    const { notifyAdminsPush } = await import('@/lib/server/admin-push');
+    await notifyAdminsPush({
+      title: 'Order Report Opened',
+      body: `${order.title || 'Market order'}: ${reason}`,
+      url: '/admin?section=disputes',
+      tag: `admin-dispute-${id}`,
+    });
     return Response.json({ok:true,id:disputeId,status:'OPEN'},{status:201,headers:{'Cache-Control':'private, no-store'}});
   }catch(error){if(keys.length)await Promise.all(keys.map(key=>env.CARD_IMAGES?.delete(key).catch(()=>undefined)));return errorResponse(error)}
 }

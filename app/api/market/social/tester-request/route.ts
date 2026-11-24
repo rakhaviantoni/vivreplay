@@ -66,6 +66,13 @@ export async function POST(request: NextRequest) {
       platforms,
       notes: body?.notes ?? null,
     });
+    const { notifyAdminsPush } = await import('@/lib/server/admin-push');
+    await notifyAdminsPush({
+      title: 'Social Tester Request',
+      body: `@${profile.username ?? profile.display_name ?? 'seller'} requested ${platforms.join(', ')} access`,
+      url: '/admin?section=marketplace',
+      tag: 'admin-social-tester',
+    });
     return NextResponse.json({ request: saved });
   } catch (error) {
     return NextResponse.json(

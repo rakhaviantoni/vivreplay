@@ -520,6 +520,15 @@ export async function sendMarketEmail(profileId:string,event:Event,listingTitle:
     details={...details,...overrideDetails,region:recipient.region||'ID',timezone:recipient.timezone||'Asia/Jakarta'};
     const displayTitle=event.startsWith('order-')?details.listingTitle??listingTitle:listingTitle;
     await deliverPush(profileId,event,displayTitle,threadId,recipient.locale??'en',details);
+    if(event==='order-paid'){
+      const { notifyAdminsPush } = await import('@/lib/server/admin-push');
+      await notifyAdminsPush({
+        title: 'New Paid Market Order',
+        body: displayTitle,
+        url: '/admin?section=orders',
+        tag: `admin-${event}-${threadId}`,
+      });
+    }
     await sendRenderedMarketEmail(recipient.email,event,displayTitle,threadId,recipient.locale??'en',undefined,details);
     return true;
   }catch(error){console.error('market_email_delivery_failed',error instanceof Error?error.message:'unknown error');return false}

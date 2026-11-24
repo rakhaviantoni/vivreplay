@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import {usePathname,useRouter} from 'next/navigation';
-import {ArrowSquareOutIcon as ExternalLink,ChartLineUpIcon as Overview,UsersThreeIcon as Customers,HandshakeIcon as Partners,HeartbeatIcon as Catalog,StorefrontIcon as Market,PackageIcon as Orders,SlidersHorizontalIcon as Policy,CreditCardIcon as PaymentMethods,WarningCircleIcon as Feedback,ChartLineUpIcon as Traffic,WalletIcon as Payouts,ScalesIcon as Reports,EnvelopeSimpleIcon as Emails,MegaphoneIcon as SocialMedia,SignOutIcon as SignOut,MagnifyingGlassIcon as Search,SidebarSimpleIcon as SidebarToggle,XIcon as Clear,ActivityIcon as Operations} from '@phosphor-icons/react';
+import {ArrowSquareOutIcon as ExternalLink,BellIcon as Bell,BellRingingIcon as BellRinging,ChartLineUpIcon as Overview,UsersThreeIcon as Customers,HandshakeIcon as Partners,HeartbeatIcon as Catalog,StorefrontIcon as Market,PackageIcon as Orders,SlidersHorizontalIcon as Policy,CreditCardIcon as PaymentMethods,WarningCircleIcon as Feedback,ChartLineUpIcon as Traffic,WalletIcon as Payouts,ScalesIcon as Reports,EnvelopeSimpleIcon as Emails,MegaphoneIcon as SocialMedia,SignOutIcon as SignOut,MagnifyingGlassIcon as Search,SidebarSimpleIcon as SidebarToggle,XIcon as Clear,ActivityIcon as Operations} from '@phosphor-icons/react';
 import {useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
+import {toast} from 'sonner';
 import {VivreMark} from '@/components/tcg/brand-assets';
 
 type AdminSection='overview'|'customers'|'catalog'|'marketplace'|'orders'|'partners'|'policy'|'payments'|'feedback'|'traffic'|'social'|'payouts'|'disputes'|'operations'|'emails';
@@ -19,7 +20,57 @@ export function AdminWorkspace({active,children}:{active:AdminSection;children:R
   const router=useRouter();
   const [collapsed,setCollapsed]=useState(false);
   const [query,setQuery]=useState('');
+  const [pushReady,setPushReady]=useState(false);
+  const [pushEnabled,setPushEnabled]=useState(false);
+  const [pushBusy,setPushBusy]=useState(false);
   const searchRef=useRef<HTMLInputElement>(null);
+  useEffect(()=>{
+    if(typeof window==='undefined'||!('serviceWorker'in navigator)||!('PushManager'in window))return;
+    let active=true;
+    void (async()=>{
+      const [reg,metaRes]=await Promise.all([
+        navigator.serviceWorker.register('/sw.js').catch(()=>null),
+        fetch('/api/admin/push',{cache:'no-store'}).then(r=>r.ok?r.json() as Promise<{enabled?:boolean}>:null).catch(()=>null),
+      ]);
+      if(!active||!metaRes?.enabled||!reg)return;
+      setPushReady(true);
+      const existing=await reg.pushManager.getSubscription().catch(()=>null);
+      if(active)setPushEnabled(Boolean(existing));
+    })();
+    return()=>{active=false};
+  },[]);
+  const toggleAdminPush=async()=>{
+    if(!pushReady||pushBusy)return;
+    setPushBusy(true);
+    try{
+      const reg=await navigator.serviceWorker.register('/sw.js');
+      const existing=await reg.pushManager.getSubscription();
+      if(existing){
+        await fetch('/api/admin/push',{method:'DELETE',headers:{'content-type':'application/json'},body:JSON.stringify({endpoint:existing.endpoint})});
+        await existing.unsubscribe().catch(()=>undefined);
+        setPushEnabled(false);
+        toast.success('Admin push alerts disabled');
+        return;
+      }
+      const perm=await Notification.requestPermission();
+      if(perm!=='granted'){toast.error('Allow notifications in your browser settings first.');return;}
+      const meta=await fetch('/api/admin/push',{cache:'no-store'}).then(r=>r.json() as Promise<{publicKey?:string}>);
+      if(!meta.publicKey)throw new Error('Push key missing.');
+      const b64=meta.publicKey.replace(/-/g,'+').replace(/_/g,'/');
+      const raw=atob(b64+'='.repeat((4-b64.length%4)%4));
+      const keyBytes=Uint8Array.from(raw,c=>c.charCodeAt(0));
+      const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:keyBytes});
+      const json=sub.toJSON();
+      const res=await fetch('/api/admin/push',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({endpoint:sub.endpoint,expirationTime:sub.expirationTime??null,keys:json.keys})});
+      if(!res.ok)throw new Error('Failed to save push subscription.');
+      setPushEnabled(true);
+      toast.success('Admin push alerts enabled on this device');
+    }catch(err){
+      toast.error(err instanceof Error?err.message:'Could not toggle push alerts');
+    }finally{
+      setPushBusy(false);
+    }
+  };
   useEffect(()=>{try{setCollapsed(localStorage.getItem('vivreplay-admin-sidebar')==='collapsed')}catch{}},[]);
   useEffect(()=>{try{localStorage.setItem('vivreplay-admin-sidebar',collapsed?'collapsed':'expanded')}catch{}},[collapsed]);
   useEffect(()=>{
@@ -49,6 +100,7 @@ export function AdminWorkspace({active,children}:{active:AdminSection;children:R
         {filteredGroups.length===0&&<p className="admin-workspace-search-empty">No matching pages</p>}
       </nav>
       <footer className="admin-workspace-sidebar-footer">
+        {pushReady&&<button type="button" className="admin-workspace-nav-link" disabled={pushBusy} onClick={()=>void toggleAdminPush()} title={collapsed?(pushEnabled?'Push alerts on':'Enable push alerts'):undefined}>{pushEnabled?<BellRinging size={17}/>:<Bell size={17}/>}<span>{pushBusy?'Saving...':pushEnabled?'Alerts on':'Enable alerts'}</span></button>}
         <Link href="/market" className="admin-workspace-nav-link" title={collapsed?'View Market':undefined}><ExternalLink size={17}/><span>View Market</span></Link>
         <button type="button" className="admin-workspace-nav-link" title={collapsed?'Sign out':undefined} onClick={async()=>{await fetch('/api/admin/session',{method:'DELETE'});router.push('/admin')}}><SignOut size={17}/><span>Sign out</span></button>
       </footer>

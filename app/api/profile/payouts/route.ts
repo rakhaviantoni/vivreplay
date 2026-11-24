@@ -3,6 +3,7 @@ import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
 import {fetchMarketPolicies} from '@/lib/market/policy';
 import {splitSellerEarnings,type SellerSettlementOrder} from '@/lib/market/payout-settlement';
 import {emailPayoutRequest} from '@/lib/server/admin-notifications';
+import {notifyAdminsPush} from '@/lib/server/admin-push';
 
 const requestSchema=z.object({bankAccountId:z.string().uuid(),amount:z.number().int().min(1000).max(100000000000)});
 async function balances(ownerId:string,commissionPercent:number,sellerFeeMinimum:number){
@@ -46,7 +47,11 @@ export async function POST(request:Request){
       if(input.amount>balance.available)throw new HttpError(409,'The withdrawal amount exceeds your available balance.');
       throw new HttpError(409,'You already have a withdrawal request being processed.');
     }
-    await emailPayoutRequest({requestId:payoutRequestId,seller:String(profile.display_name??profile.username??'A seller'),amount:input.amount,currency:'IDR'}).catch(error=>console.error('admin_payout_email_failed',{requestId:payoutRequestId,error:error instanceof Error?error.message:'unknown error'}));
+    const sellerName=String(profile.display_name??profile.username??'A seller');
+    await Promise.all([
+      emailPayoutRequest({requestId:payoutRequestId,seller:sellerName,amount:input.amount,currency:'IDR'}).catch(error=>console.error('admin_payout_email_failed',{requestId:payoutRequestId,error:error instanceof Error?error.message:'unknown error'})),
+      notifyAdminsPush({title:'New Payout Request',body:`${sellerName} requested IDR ${input.amount.toLocaleString('id-ID')}`,url:'/admin?section=payouts',tag:`admin-payout-${payoutRequestId}`}),
+    ]);
     return Response.json({ok:true},{status:201,headers:{'Cache-Control':'no-store'}});
   }catch(error){return errorResponse(error)}
 }

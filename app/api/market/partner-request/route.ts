@@ -70,6 +70,13 @@ export async function POST(request:Request){
     if(viewer?.id){
       await sendMarketEmail(viewer.id,'partner-application-received',shopName,id).catch(()=>{});
     }
+    const { notifyAdminsPush } = await import('@/lib/server/admin-push');
+    await notifyAdminsPush({
+      title: 'New Partner Application',
+      body: `${shopName} (${input.socialHandle}) applied for ${input.requestType}`,
+      url: '/admin?section=partners',
+      tag: `admin-partner-${id}`,
+    });
 
     return Response.json({id,ok:true},{status:201});
   }catch(error){
