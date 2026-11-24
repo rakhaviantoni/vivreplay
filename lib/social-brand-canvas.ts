@@ -8,7 +8,7 @@ function loadCanvasImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
+    img.onload = () => resolve(img.naturalWidth > 0 ? img : null);
     img.onerror = () => resolve(null);
     img.src = src;
   });
@@ -78,10 +78,15 @@ function drawFannedCards(
   fallbackBg: string,
   shadowColor: string,
 ) {
+  const valid = cards.filter((c): c is HTMLImageElement => Boolean(c));
+  const c0 = valid[0] ?? null;
+  const c1 = valid[1] ?? c0;
+  const c2 = valid[2] ?? c0;
+
   const specs = [
-    { img: cards[0], angle: -0.15, dx: -cardW * 0.44, dy: cardH * 0.05, scale: 0.9 },
-    { img: cards[2], angle: 0.15, dx: cardW * 0.44, dy: cardH * 0.05, scale: 0.9 },
-    { img: cards[1], angle: 0, dx: 0, dy: -cardH * 0.03, scale: 1 },
+    { img: c0, angle: -0.14, dx: -cardW * 0.44, dy: cardH * 0.05, scale: 0.9 },
+    { img: c2, angle: 0.14, dx: cardW * 0.44, dy: cardH * 0.05, scale: 0.9 },
+    { img: c1, angle: 0, dx: 0, dy: -cardH * 0.03, scale: 1 },
   ];
 
   for (const spec of specs) {
@@ -113,6 +118,29 @@ function drawFannedCards(
     ctx.stroke();
     ctx.restore();
   }
+}
+
+function measureChipGridHeight(
+  ctx: CanvasRenderingContext2D,
+  chips: string[],
+  maxW: number,
+  chipH: number,
+  fontSize: number,
+  gap: number,
+): number {
+  if (!chips.length) return 0;
+  ctx.font = `700 ${fontSize}px "Plus Jakarta Sans", sans-serif`;
+  let cx = 0;
+  let rows = 1;
+  for (const chip of chips) {
+    const cw = Math.min(maxW, ctx.measureText(chip).width + 30);
+    if (cx > 0 && cx + cw > maxW) {
+      cx = 0;
+      rows++;
+    }
+    cx += cw + gap;
+  }
+  return rows * chipH + (rows - 1) * gap;
 }
 
 function drawChipGrid(
@@ -229,7 +257,6 @@ export async function renderBrandSocialCanvas(
           shadow: 'rgba(0, 0, 0, 0.5)',
         };
 
-  // Exact VivrePlay gradient background
   const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
   bgGrad.addColorStop(0, palette.bgStart);
   bgGrad.addColorStop(0.5, palette.bgMid);
@@ -297,7 +324,6 @@ export async function renderBrandSocialCanvas(
     ctx.fillText('Market', brandCursorX, headerY + brandSize / 2);
   }
 
-  // Right-side game logos (same as Game Scope Switcher)
   const logoMaxH = config.format === 'banner' ? 28 : 32;
   let rightX = width - pad;
   if (pkmnLogoImg) {
@@ -324,7 +350,7 @@ export async function renderBrandSocialCanvas(
   const isOg = config.format === 'og';
   const isStory = config.format === 'story';
 
-  const panelY = headerY + brandSize + (isBanner ? 22 : isOg ? 24 : isStory ? 44 : 34);
+  const panelY = headerY + brandSize + (isBanner ? 20 : isOg ? 24 : isStory ? 40 : 32);
   const footerReserve = isBanner ? 34 : isOg ? 64 : isStory ? 104 : 78;
   const panelH = height - panelY - footerReserve;
 
@@ -337,62 +363,77 @@ export async function renderBrandSocialCanvas(
   ctx.stroke();
 
   if (isBanner || isOg || config.format === 'square') {
-    // Clean 2-column editorial layout: Left = Copy + Chips, Right = Fanned OPTCG & Pokemon cards
-    const innerPad = isBanner ? 34 : isOg ? 40 : 48;
+    const innerPad = isBanner ? 32 : isOg ? 40 : 48;
     const innerX = pad + innerPad;
-    const leftW = contentWidth * (config.format === 'square' ? 0.54 : 0.56) - innerPad;
-    let y = panelY + (isBanner ? 30 : isOg ? 40 : 54);
+    const leftW = contentWidth * (config.format === 'square' ? 0.54 : 0.57) - innerPad;
 
-    const pillH = drawEyebrowPill(
-      ctx,
-      config.eyebrow,
-      innerX,
-      y,
-      isBanner ? 12 : 13,
-      palette,
-    );
-    y += pillH + (isBanner ? 26 : isOg ? 34 : 44);
+    const pillFontSize = isBanner ? 12 : 13;
+    const pillH = pillFontSize + 18;
+    const pillGap = isBanner ? 20 : isOg ? 26 : 32;
 
-    const headSize = isBanner ? 38 : isOg ? 40 : 50;
-    const headLH = isBanner ? 46 : isOg ? 48 : 60;
+    const headSize = isBanner ? 36 : isOg ? 40 : 48;
+    const headLH = isBanner ? 44 : isOg ? 48 : 58;
+    ctx.font = `800 ${headSize}px "Plus Jakarta Sans", sans-serif`;
+    const hLines = wrapLines(ctx, config.headline, leftW, isBanner ? 2 : 3);
+
+    const subSize = isBanner ? 17 : isOg ? 19 : 22;
+    const subLH = isBanner ? 24 : isOg ? 28 : 32;
+    ctx.font = `500 ${subSize}px "Manrope", sans-serif`;
+    const sLines = wrapLines(ctx, config.subheadline, leftW, isBanner ? 2 : 4);
+
+    const visibleChips = isBanner ? config.chips.slice(0, 3) : config.chips;
+    const chipH = isBanner ? 32 : isOg ? 38 : 42;
+    const chipFont = isBanner ? 13 : isOg ? 14 : 15;
+    const chipGap = isBanner ? 8 : 10;
+    const chipsH = measureChipGridHeight(ctx, visibleChips, leftW, chipH, chipFont, chipGap);
+    const chipsTopGap = isBanner ? 18 : 28;
+
+    const blockH =
+      pillH +
+      pillGap +
+      hLines.length * headLH +
+      (isBanner ? 8 : 14) +
+      sLines.length * subLH +
+      (visibleChips.length ? chipsTopGap + chipsH : 0);
+
+    // Vertically center the entire left content stack inside the panel
+    let y = panelY + Math.max(innerPad, Math.round((panelH - blockH) / 2));
+
+    drawEyebrowPill(ctx, config.eyebrow, innerX, y, pillFontSize, palette);
+    y += pillH + pillGap + Math.round(headSize * 0.8);
+
     ctx.font = `800 ${headSize}px "Plus Jakarta Sans", sans-serif`;
     ctx.fillStyle = palette.ink;
-    const hLines = wrapLines(ctx, config.headline, leftW, isBanner ? 2 : 3);
     for (const line of hLines) {
       ctx.fillText(line, innerX, y);
       y += headLH;
     }
 
-    y += isBanner ? 6 : 14;
-    const subSize = isBanner ? 18 : isOg ? 19 : 22;
-    const subLH = isBanner ? 26 : isOg ? 28 : 32;
+    y += isBanner ? 6 : 12;
     ctx.font = `500 ${subSize}px "Manrope", sans-serif`;
     ctx.fillStyle = palette.muted;
-    const sLines = wrapLines(ctx, config.subheadline, leftW, isBanner ? 2 : 4);
     for (const line of sLines) {
       ctx.fillText(line, innerX, y);
       y += subLH;
     }
 
-    if (!isBanner && config.chips.length > 0) {
-      const chipH = isOg ? 38 : 42;
-      const chipY = panelY + panelH - innerPad - (config.chips.length > 2 ? chipH * 2 + 12 : chipH);
+    if (visibleChips.length > 0) {
       drawChipGrid(
         ctx,
-        config.chips,
+        visibleChips,
         innerX,
-        Math.max(y + 18, chipY),
+        y + (isBanner ? 10 : 18),
         leftW,
         chipH,
-        isOg ? 14 : 15,
-        10,
+        chipFont,
+        chipGap,
         palette,
       );
     }
 
-    const cardW = isBanner ? 132 : isOg ? 168 : 210;
+    const cardW = isBanner ? 128 : isOg ? 168 : 212;
     const cardH = Math.round(cardW * 1.39);
-    const cardCenterX = pad + contentWidth * (config.format === 'square' ? 0.77 : 0.79);
+    const cardCenterX = pad + contentWidth * (config.format === 'square' ? 0.78 : 0.8);
     const cardCenterY = panelY + panelH * 0.5;
     drawFannedCards(
       ctx,
@@ -406,23 +447,25 @@ export async function renderBrandSocialCanvas(
       palette.shadow,
     );
   } else {
-    // Story (1080x1920): 3-zone vertical stack with generous breathing room
+    // Story (1080x1920): balanced vertical stack with tight, intentional spacing
     const innerPad = 52;
     const innerX = pad + innerPad;
     const innerW = contentWidth - innerPad * 2;
-    let y = panelY + 64;
+    let y = panelY + 60;
 
     const pillH = drawEyebrowPill(ctx, config.eyebrow, innerX, y, 15, palette);
-    y += pillH + 54;
+    const headSize = 60;
+    const headLH = 72;
+    y += pillH + 34 + Math.round(headSize * 0.8);
 
-    ctx.font = '800 62px "Plus Jakarta Sans", sans-serif';
+    ctx.font = `800 ${headSize}px "Plus Jakarta Sans", sans-serif`;
     ctx.fillStyle = palette.ink;
     for (const line of wrapLines(ctx, config.headline, innerW, 3)) {
       ctx.fillText(line, innerX, y);
-      y += 74;
+      y += headLH;
     }
 
-    y += 18;
+    y += 14;
     ctx.font = '500 28px "Manrope", sans-serif';
     ctx.fillStyle = palette.muted;
     for (const line of wrapLines(ctx, config.subheadline, innerW, 3)) {
@@ -431,17 +474,21 @@ export async function renderBrandSocialCanvas(
     }
 
     const chipH = 50;
-    const chipsTop = panelY + panelH - innerPad - (config.chips.length > 2 ? chipH * 2 + 14 : chipH);
-    const showcaseTop = y + 36;
-    const showcaseCenterY = (showcaseTop + chipsTop) / 2;
+    const chipsH = measureChipGridHeight(ctx, config.chips, innerW, chipH, 19, 12);
+    const chipsTop = panelY + panelH - innerPad - chipsH;
+    const showcaseTop = y + 20;
+    const showcaseAvailH = Math.max(360, chipsTop - showcaseTop - 20);
+    const cardH = Math.min(440, Math.round(showcaseAvailH * 0.82));
+    const cardW = Math.round(cardH / 1.39);
+    const showcaseCenterY = showcaseTop + (chipsTop - showcaseTop) / 2;
 
     drawFannedCards(
       ctx,
       [card0, card1, card2],
       width / 2,
       showcaseCenterY,
-      252,
-      350,
+      cardW,
+      cardH,
       palette.line,
       palette.cardFallback,
       palette.shadow,
@@ -452,7 +499,6 @@ export async function renderBrandSocialCanvas(
     }
   }
 
-  // Footer CTA bar
   if (!isBanner) {
     const footerY = height - (isStory ? 50 : isOg ? 30 : 38);
     ctx.font = `700 ${isStory ? 23 : isOg ? 17 : 19}px "Plus Jakarta Sans", sans-serif`;
@@ -464,8 +510,9 @@ export async function renderBrandSocialCanvas(
     ctx.fillStyle = palette.muted;
     ctx.fillText(tagline, width - pad - ctx.measureText(tagline).width, footerY);
   } else {
-    ctx.font = '700 16px "Plus Jakarta Sans", sans-serif';
+    ctx.font = '700 15px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = palette.accent;
-    ctx.fillText(config.ctaUrl, pad + 34, panelY + panelH - 22);
+    const urlW = ctx.measureText(config.ctaUrl).width;
+    ctx.fillText(config.ctaUrl, width - pad - urlW, height - 12);
   }
 }

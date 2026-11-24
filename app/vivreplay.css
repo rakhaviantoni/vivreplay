@@ -5025,3 +5025,7 @@ html[data-theme='dark'] .market-listing-type-badge.is-auction{color:#e87a4d}
 .admin-overview-action-card strong{display:block;font-size:18px;font-weight:800;margin-top:2px}
 @media(max-width:1024px){.admin-orders-filters,.admin-orders-kpis,.admin-overview-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){.admin-social-cal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-social-cal-dow{display:none}.admin-orders-filters,.admin-orders-kpis,.admin-overview-actions{grid-template-columns:1fr}}
+
+.admin-social-switch{display:inline-flex;align-items:center;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--surface-raised);cursor:pointer;gap:2px}
+.admin-social-switch span{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:700;color:var(--muted);transition:background .15s,color .15s}
+.admin-social-switch span.is-on{background:var(--accent);color:#14171c}

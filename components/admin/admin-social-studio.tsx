@@ -157,15 +157,30 @@ export function AdminSocialStudio() {
 
   useEffect(() => {
     let active = true;
+    const verifyUrls = async (candidates: string[]) => {
+      const checks = await Promise.all(
+        candidates.map(
+          (url) =>
+            new Promise<string | null>((resolve) => {
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.onload = () => resolve(img.naturalWidth > 0 ? url : null);
+              img.onerror = () => resolve(null);
+              img.src = url;
+            }),
+        ),
+      );
+      return checks.filter((u): u is string => Boolean(u));
+    };
+
     void Promise.all([
-      fetch('/api/cards/catalog?language=EN&limit=12', { cache: 'force-cache' })
+      fetch('/api/cards/catalog?language=EN&q=Luffy&limit=10', { cache: 'force-cache' })
         .then((r) => (r.ok ? (r.json() as Promise<{ cards?: CatalogCardRow[] }>) : { cards: [] }))
         .catch(() => ({ cards: [] })),
-      fetch('/api/cards/catalog?game=pokemon&language=EN&limit=12', { cache: 'force-cache' })
+      fetch('/api/cards/catalog?game=pokemon&language=EN&q=Charizard&limit=10', { cache: 'force-cache' })
         .then((r) => (r.ok ? (r.json() as Promise<{ cards?: CatalogCardRow[] }>) : { cards: [] }))
         .catch(() => ({ cards: [] })),
-    ]).then(([opRes, pkmnRes]) => {
-      if (!active) return;
+    ]).then(async ([opRes, pkmnRes]) => {
       const toUrls = (rows: CatalogCardRow[] | undefined, gameSlug: 'one-piece' | 'pokemon') =>
         (rows ?? [])
           .map((row) =>
@@ -180,10 +195,13 @@ export function AdminSocialStudio() {
             }),
           )
           .filter((u): u is string => Boolean(u));
-      setCardPool({
-        op: toUrls(opRes.cards, 'one-piece'),
-        pkmn: toUrls(pkmnRes.cards, 'pokemon'),
-      });
+
+      const [opUrls, pkmnUrls] = await Promise.all([
+        verifyUrls(toUrls(opRes.cards, 'one-piece')),
+        verifyUrls(toUrls(pkmnRes.cards, 'pokemon')),
+      ]);
+      if (!active) return;
+      setCardPool({ op: opUrls, pkmn: pkmnUrls });
     });
     return () => {
       active = false;
@@ -418,36 +436,38 @@ export function AdminSocialStudio() {
                 <Shuffle size={13} />
                 <span>Cards</span>
               </button>
-              {(['EN', 'ID'] as const).map((loc) => (
-                <button
-                  key={loc}
-                  type="button"
-                  onClick={() => {
-                    setAssetLocale(loc);
-                    const match = SOCIAL_CAMPAIGN_PRESETS.find((p) => p.template === assetTemplate);
-                    if (match) applyPreset(match, loc);
-                  }}
-                  className={`admin-social-chip${assetLocale === loc ? ' is-active' : ''}`}
-                >
-                  <Globe size={13} />
-                  <span>{loc}</span>
-                </button>
-              ))}
               <button
                 type="button"
-                onClick={() => setAssetTheme('dark')}
-                className={`admin-social-chip${assetTheme === 'dark' ? ' is-active' : ''}`}
+                role="switch"
+                aria-checked={assetLocale === 'ID'}
+                onClick={() => {
+                  const next = assetLocale === 'EN' ? 'ID' : 'EN';
+                  setAssetLocale(next);
+                  const match = SOCIAL_CAMPAIGN_PRESETS.find((p) => p.template === assetTemplate);
+                  if (match) applyPreset(match, next);
+                }}
+                className="admin-social-switch"
+                title="Toggle EN / ID"
               >
-                <Moon size={13} weight="fill" />
-                <span>Dark</span>
+                <span className={assetLocale === 'EN' ? 'is-on' : ''}>
+                  <Globe size={12} /> EN
+                </span>
+                <span className={assetLocale === 'ID' ? 'is-on' : ''}>ID</span>
               </button>
               <button
                 type="button"
-                onClick={() => setAssetTheme('light')}
-                className={`admin-social-chip${assetTheme === 'light' ? ' is-active' : ''}`}
+                role="switch"
+                aria-checked={assetTheme === 'light'}
+                onClick={() => setAssetTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+                className="admin-social-switch"
+                title="Toggle Dark / Light"
               >
-                <Sun size={13} weight="fill" />
-                <span>Light</span>
+                <span className={assetTheme === 'dark' ? 'is-on' : ''}>
+                  <Moon size={12} weight="fill" /> Dark
+                </span>
+                <span className={assetTheme === 'light' ? 'is-on' : ''}>
+                  <Sun size={12} weight="fill" /> Light
+                </span>
               </button>
             </div>
           </header>
@@ -897,19 +917,19 @@ export function AdminSocialStudio() {
             <h2>Official Bios, WhatsApp &amp; Profile Descriptions</h2>
             <p>Collector-focused copy for Instagram, Threads, X, TikTok, WhatsApp Business, and Community groups.</p>
           </div>
-          <div className="admin-social-toggle-group">
-            {(['EN', 'ID'] as const).map((loc) => (
-              <button
-                key={loc}
-                type="button"
-                onClick={() => setBioLocale(loc)}
-                className={`admin-social-chip${bioLocale === loc ? ' is-active' : ''}`}
-              >
-                <Globe size={13} />
-                <span>{loc}</span>
-              </button>
-            ))}
-          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={bioLocale === 'ID'}
+            onClick={() => setBioLocale((l) => (l === 'EN' ? 'ID' : 'EN'))}
+            className="admin-social-switch"
+            title="Toggle EN / ID"
+          >
+            <span className={bioLocale === 'EN' ? 'is-on' : ''}>
+              <Globe size={12} /> EN
+            </span>
+            <span className={bioLocale === 'ID' ? 'is-on' : ''}>ID</span>
+          </button>
         </header>
 
         <div className="admin-social-bios-grid">
