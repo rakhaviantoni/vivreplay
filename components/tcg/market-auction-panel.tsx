@@ -402,7 +402,7 @@ export function MarketAuctionPanel({
                 {editStartMode==='scheduled'&&(
                   <label>
                     <span>{locale==='ID'?'Tanggal & jam mulai':'Scheduled start'}</span>
-                    <input type="datetime-local" value={editStartsAt} onChange={e=>setEditStartsAt(e.target.value)} required/>
+                    <input type="datetime-local" step="1" value={editStartsAt} onChange={e=>setEditStartsAt(e.target.value)} required/>
                   </label>
                 )}
               </>

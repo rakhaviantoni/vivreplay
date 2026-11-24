@@ -393,7 +393,7 @@ export function ListingsTab({language,timeZone='Asia/Jakarta',gameSlug='one-piec
                   {editStartMode==='scheduled'&&(
                     <label>
                       <span>{id?'Tanggal & jam mulai':'Scheduled start'}</span>
-                      <input type="datetime-local" value={editStartsAt} onChange={e=>setEditStartsAt(e.target.value)} required/>
+                      <input type="datetime-local" step="1" value={editStartsAt} onChange={e=>setEditStartsAt(e.target.value)} required/>
                     </label>
                   )}
                 </>

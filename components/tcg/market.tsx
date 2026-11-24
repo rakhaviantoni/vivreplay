@@ -2355,6 +2355,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                               <span>{locale==='ID'?'Tanggal & jam berakhir':'End date & time'}</span>
                               <input
                                 type="datetime-local"
+                                step="1"
                                 value={auctionFixedEndsAt}
                                 onChange={event=>setAuctionFixedEndsAt(event.target.value)}
                                 required
@@ -2636,6 +2637,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                             <span>{locale==='ID'?'Tanggal & jam berakhir':'End date & time'}</span>
                             <input
                               type="datetime-local"
+                              step="1"
                               value={auctionFixedEndsAt}
                               onChange={event=>setAuctionFixedEndsAt(event.target.value)}
                               required
@@ -2665,6 +2667,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                           <span>{locale==='ID'?'Tanggal & jam mulai':'Scheduled start date & time'}</span>
                           <input
                             type="datetime-local"
+                            step="1"
                             value={auctionStartsAt}
                             onChange={event=>setAuctionStartsAt(event.target.value)}
                             required
