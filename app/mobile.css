@@ -1347,7 +1347,7 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-listing-detail .market-listing-facts>div:nth-child(n+3){border-top:1px solid var(--line)}
   .market-listing-detail .market-listing-facts dt{gap:5px;font-size:9px}
   .market-listing-detail .market-listing-facts dd{margin-top:4px;font-size:13px;line-height:1.25;white-space:normal;overflow-wrap:anywhere}
-  .market-listing-detail .market-expired-banner,.market-listing-detail .market-listing-seller-toolbar,.market-listing-detail .market-listing-cards{grid-column:1/-1;min-width:0}
+  .market-listing-detail .market-expired-banner,.market-listing-detail .market-listing-seller-toolbar,.market-listing-detail .market-listing-social-bar,.market-listing-detail .market-auction-panel,.market-listing-detail .market-listing-cards{grid-column:1/-1!important;width:100%!important;min-width:0!important;box-sizing:border-box!important}
   .market-listing-detail .market-expired-banner{margin:10px 0 0;padding:11px 13px;gap:10px}
   .market-listing-detail .market-expired-banner-icon{width:26px;height:26px}
   .market-listing-detail .market-expired-banner strong{font-size:12px}
@@ -5977,13 +5977,16 @@ html[data-theme='dark'] .market-game-switch.market-scope-switch .market-scope-pi
     line-height: 1.25 !important;
   }
 
-  /* 2. Listing Owner Social Status Bar (Card-style compact bar on mobile) */
+  /* 2. Listing Owner Social Status Bar (Full-width card bar on mobile) */
   .market-listing-social-bar {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) !important;
     gap: 10px !important;
-    margin: 0 0 14px !important;
-    padding: 12px !important;
+    margin: 4px 0 8px !important;
+    padding: 12px 14px !important;
     border-radius: 12px !important;
   }
   .market-listing-social-bar-left {
@@ -6061,10 +6064,13 @@ html[data-theme='dark'] .market-game-switch.market-scope-switch .market-scope-pi
     justify-content: center !important;
   }
 
-  /* 3. WTA Auction Panel (Live Bidding Sheet UX on Mobile) */
+  /* 3. WTA Auction Panel (Full-width Live Bidding UX on Mobile) */
   .market-auction-panel {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
     gap: 12px !important;
-    margin: 14px 0 !important;
+    margin: 6px 0 10px !important;
     padding: 14px !important;
     border-radius: 14px !important;
   }
