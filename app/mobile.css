@@ -5894,119 +5894,218 @@ html[data-theme='dark'] .market-game-switch.market-scope-switch .market-scope-pi
 }
 @media(prefers-reduced-motion:reduce){.market-scope-toggle,.market-scope-menu-toggle,.market-scope-menu-toggle>svg{transition:none!important;}}
 
-/* Mobile polish: WTA auction feed trade block, social publish status bar, and auction bidding panel */
+/* Mobile UI/UX Restructure: WTA auction feed trade block, social bar + sheet modal, and auction panel */
 @media (max-width: 760px) {
-  /* Auction (WTA) in feed list view: allow status badges to wrap cleanly and align price cleanly */
+  /* 1. Feed List View: Auction (WTA) 2-row trade footer */
   .market-feed-list.is-list .market-feed-row.is-wta .market-feed-trade {
-    flex-wrap: wrap !important;
-    align-items: flex-end !important;
-    gap: 6px 10px !important;
-    padding-top: 6px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 8px 12px !important;
+    padding-top: 8px !important;
   }
   .market-feed-list.is-list .market-feed-row.is-wta .market-feed-status {
-    flex: 1 1 165px !important;
+    display: flex !important;
     flex-wrap: wrap !important;
     align-items: center !important;
-    gap: 4px 6px !important;
+    gap: 5px 6px !important;
     min-width: 0 !important;
   }
   .market-feed-list.is-list .market-feed-row.is-wta .market-feed-price {
-    flex: 0 0 auto !important;
+    display: flex !important;
     flex-direction: column !important;
     align-items: flex-end !important;
-    margin-left: auto !important;
+    justify-content: center !important;
+    gap: 2px !important;
     text-align: right !important;
   }
+  .market-feed-list.is-list .market-feed-row.is-wta .market-feed-price strong {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    gap: 2px !important;
+    font-size: 14px !important;
+    line-height: 1.2 !important;
+  }
+
+  /* 1b. Feed 2-Col Grid View: Auction (WTA) 3-tier vertical footer */
+  .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-trade {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 7px !important;
+    padding-top: 8px !important;
+  }
+  .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-status {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 4px 5px !important;
+    width: 100% !important;
+  }
+  .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-auction-timer {
+    margin-left: auto !important;
+    font-size: 10.5px !important;
+    font-weight: 750 !important;
+  }
+  .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-price {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding-top: 4px !important;
+    border-top: 1px solid color-mix(in srgb, var(--line) 48%, transparent) !important;
+    text-align: left !important;
+  }
+  .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-price strong {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2px !important;
+    font-size: 13.5px !important;
+    line-height: 1.2 !important;
+  }
   .market-feed-list .market-feed-row.is-wta .market-feed-bin-inline {
-    display: block !important;
-    font-size: 11px !important;
-    font-weight: 650 !important;
+    display: inline-block !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
     color: var(--muted) !important;
     line-height: 1.25 !important;
   }
 
-  /* Auction (WTA) in feed 2-column grid view: stack status chips above price so neither is crushed */
-  .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-trade {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 6px !important;
-  }
-  .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-status {
-    width: 100% !important;
-    flex-wrap: wrap !important;
-    align-items: center !important;
-    gap: 4px !important;
-  }
-  .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-price {
-    width: 100% !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    margin-left: 0 !important;
-    text-align: left !important;
-  }
-  .market-feed-list.is-grid .market-feed-row.is-wta .market-feed-price strong {
-    font-size: 13px !important;
-    line-height: 1.25 !important;
-  }
-
-  /* Listing Owner Social Status Bar & Detail Modal */
+  /* 2. Listing Owner Social Status Bar (Card-style compact bar on mobile) */
   .market-listing-social-bar {
-    flex-direction: column !important;
-    align-items: stretch !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     gap: 10px !important;
     margin: 0 0 14px !important;
     padding: 12px !important;
+    border-radius: 12px !important;
   }
   .market-listing-social-bar-left {
+    display: grid !important;
     gap: 8px !important;
+    min-width: 0 !important;
   }
   .market-listing-social-pills {
-    width: 100% !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 6px !important;
+    padding-bottom: 2px !important;
+    scrollbar-width: none !important;
   }
+  .market-listing-social-pills::-webkit-scrollbar { display: none; }
   .market-listing-social-pill {
-    min-height: 32px !important;
+    flex: 0 0 auto !important;
+    min-height: 34px !important;
+    padding: 4px 10px !important;
+    white-space: nowrap !important;
   }
   .market-listing-social-bar-actions {
-    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
     justify-content: space-between !important;
+    gap: 10px !important;
+    width: 100% !important;
     padding-top: 8px !important;
     border-top: 1px dashed color-mix(in srgb, var(--line) 75%, transparent) !important;
   }
   .market-listing-social-detail-btn {
-    min-height: 36px !important;
+    flex: 1 1 auto !important;
+    min-height: 38px !important;
     padding: 6px 12px !important;
+    text-align: center !important;
   }
   .market-listing-social-manage-link {
-    min-height: 36px !important;
+    flex: 0 0 auto !important;
+    min-height: 38px !important;
+    padding: 0 6px !important;
     display: inline-flex !important;
     align-items: center !important;
-  }
-  .social-post-detail-backdrop {
-    padding: 12px !important;
-  }
-  .social-post-detail-modal {
-    max-height: 90dvh !important;
-    padding: 16px !important;
-    border-radius: 14px !important;
+    white-space: nowrap !important;
   }
 
-  /* WTA Auction Panel */
+  /* 2b. Social Post Detail Modal -> Bottom Sheet on Mobile */
+  .social-post-detail-backdrop {
+    align-items: end !important;
+    justify-items: stretch !important;
+    padding: 0 !important;
+  }
+  .social-post-detail-modal {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 88dvh !important;
+    padding: 16px 16px calc(18px + env(safe-area-inset-bottom)) !important;
+    border: 0 !important;
+    border-top: 1px solid var(--line) !important;
+    border-radius: 18px 18px 0 0 !important;
+  }
+  .social-post-detail-close {
+    width: 38px !important;
+    height: 38px !important;
+    flex: none !important;
+  }
+  .social-post-detail-actions {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .social-post-detail-actions > a,
+  .social-post-detail-actions > button {
+    min-height: 40px !important;
+    justify-content: center !important;
+  }
+
+  /* 3. WTA Auction Panel (Live Bidding Sheet UX on Mobile) */
   .market-auction-panel {
     gap: 12px !important;
     margin: 14px 0 !important;
     padding: 14px !important;
+    border-radius: 14px !important;
+  }
+  .market-auction-header {
+    display: grid !important;
+    gap: 8px !important;
+  }
+  .market-auction-header-meta {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 6px 8px !important;
+  }
+  .market-auction-edit-btn {
+    margin-left: auto !important;
+    min-height: 32px !important;
   }
   .market-auction-stats {
-    gap: 10px !important;
-    padding: 10px 12px !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    padding: 12px !important;
+  }
+  .market-auction-stats > div:nth-child(2) {
+    padding-left: 12px !important;
+    border-left: 1px solid var(--line) !important;
   }
   .market-auction-stats strong {
-    font-size: 17px !important;
+    font-size: clamp(15px, 4.4vw, 18px) !important;
     overflow-wrap: anywhere !important;
   }
+  /* Symmetrical 2x2 Quick-Bid Grid for effortless thumb tapping */
+  .market-auction-quick-bids {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
   .market-auction-quick-bids button {
-    min-height: 36px !important;
-    padding: 0 12px !important;
+    width: 100% !important;
+    min-height: 40px !important;
+    padding: 6px 8px !important;
+    font-size: 11.5px !important;
+    text-align: center !important;
   }
   .market-auction-bid-row {
     grid-template-columns: 1fr !important;
@@ -6022,10 +6121,44 @@ html[data-theme='dark'] .market-game-switch.market-scope-switch .market-scope-pi
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 10px !important;
+    padding: 12px !important;
   }
   .market-auction-buyout-row .button,
   .market-auction-winner-banner .button {
     width: 100% !important;
+    min-height: 42px !important;
+    justify-content: center !important;
+  }
+  /* Bid History: bidder + time stacked left, bold amount aligned right */
+  .market-auction-history li {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-rows: auto auto !important;
+    gap: 2px 10px !important;
+    padding: 9px 10px !important;
+  }
+  .market-auction-history-bidder {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+  .market-auction-history li small {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+  }
+  .market-auction-history li strong {
+    grid-column: 2 !important;
+    grid-row: 1 / span 2 !important;
+    align-self: center !important;
+    text-align: right !important;
+    white-space: nowrap !important;
+  }
+  /* Sticky Auction Footer on Mobile */
+  .market-auction-sticky-footer .market-listing-selection-actions {
+    display: flex !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+  .market-auction-sticky-footer .market-listing-selection-actions .button {
+    flex: 1 1 0 !important;
     min-height: 42px !important;
     justify-content: center !important;
   }
@@ -6034,5 +6167,11 @@ html[data-theme='dark'] .market-game-switch.market-scope-switch .market-scope-pi
 @media (max-width: 390px) {
   .market-auction-stats {
     grid-template-columns: 1fr !important;
+  }
+  .market-auction-stats > div:nth-child(2) {
+    padding-left: 0 !important;
+    padding-top: 10px !important;
+    border-left: 0 !important;
+    border-top: 1px solid var(--line) !important;
   }
 }

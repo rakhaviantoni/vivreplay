@@ -1910,8 +1910,8 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                           const isNearBin=!isScheduled&&a.status==='ACTIVE'&&Boolean(a.buyNowPrice)&&a.bidCount>0&&livePrice>=(a.buyNowPrice??0)*0.85;
                           const isHot=!isScheduled&&a.status==='ACTIVE'&&totalBids>=5;
                           return <>
-                            {!isScheduled&&<span className="market-feed-held-count">{totalBids>0?(locale==='ID'?`${totalBids} bid`:`${totalBids} ${totalBids===1?'bid':'bids'}`):(locale==='ID'?'Belum ada bid':'No bids yet')}</span>}
                             <span className="market-feed-auction-timer">{timeLabel}</span>
+                            {!isScheduled&&<span className="market-feed-held-count">{totalBids>0?(locale==='ID'?`${totalBids} bid`:`${totalBids} ${totalBids===1?'bid':'bids'}`):(locale==='ID'?'Belum ada bid':'No bids yet')}</span>}
                             {isScheduled?<span className="market-feed-auction-tag is-scheduled">{locale==='ID'?'Akan datang':'Upcoming'}</span>:isEndingSoon?<span className="market-feed-auction-tag is-ending">{locale==='ID'?'Segera berakhir':'Ending soon'}</span>:isNearBin?<span className="market-feed-auction-tag is-close-bin">{locale==='ID'?'Dekat Buy Out':'Near Buy Out'}</span>:isHot?<span className="market-feed-auction-tag is-hot">{locale==='ID'?'Ramai':'Hot'}</span>:null}
                           </>;
                         })()}
@@ -1932,7 +1932,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                                 <strong>
                                   {locale==='ID'?'Mulai ':'From '}
                                   {formatMoney(minBid,baseCurr)}
-                                  {minBin>0&&<span className="market-feed-bin-inline"> / BIN {formatMoney(minBin,baseCurr)}</span>}
+                                  {minBin>0&&<span className="market-feed-bin-inline">BIN {formatMoney(minBin,baseCurr)}</span>}
                                 </strong>
                                 {showAlt&&minBid>0&&<span>≈ {formatMoney(convertMoney(minBid,baseCurr,altCurr),altCurr)}</span>}
                               </>;
@@ -1942,7 +1942,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                             return <>
                               <strong>
                                 {formatMoney(liveBid,baseCurr)}
-                                {bin>0&&<span className="market-feed-bin-inline"> / BIN {formatMoney(bin,baseCurr)}</span>}
+                                {bin>0&&<span className="market-feed-bin-inline">BIN {formatMoney(bin,baseCurr)}</span>}
                               </strong>
                               {showAlt&&liveBid>0&&<span>≈ {formatMoney(convertMoney(liveBid,baseCurr,altCurr),altCurr)}</span>}
                             </>;

@@ -600,7 +600,7 @@ export function MarketAuctionPanel({
               <small>{auction.bidCount>0?(locale==='ID'?'Bid tertinggi:':'Current bid:'):(locale==='ID'?'Bid awal:':'Starting bid:')}</small>
               <strong>{formatMoney(auction.bidCount>0?auction.currentBid:auction.startingBid,currency)}</strong>
               {auction.buyNowPrice&&auction.buyNowPrice>auction.currentBid&&(
-                <span className="market-feed-bin-inline"> / BIN {formatMoney(auction.buyNowPrice,currency)}</span>
+                <span className="market-feed-bin-inline">BIN {formatMoney(auction.buyNowPrice,currency)}</span>
               )}
             </div>
           </div>

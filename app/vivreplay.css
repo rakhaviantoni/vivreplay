@@ -4768,6 +4768,7 @@ html[data-theme='dark'] .market-listing-status.is-wta{color:#e87a4d}
 .market-auction-buyout-row.is-readonly{border-color:var(--line);background:var(--surface-raised)}
 .market-auction-buyout-status{font-size:12px;font-weight:700;color:var(--muted)}
 .market-feed-bin-inline{color:var(--muted);font-size:12px;font-weight:700}
+@media(min-width:761px){.market-feed-bin-inline::before{content:" / ";font-weight:600}}
 .market-feed-auction-timer{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:700;background:color-mix(in srgb,#b84a1e 11%,transparent);color:#b84a1e}
 .market-feed-auction-tag{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
 .market-feed-auction-tag.is-ending{background:color-mix(in srgb,#d93829 14%,transparent);color:#c62828}
