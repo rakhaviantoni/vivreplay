@@ -82,6 +82,10 @@ export function MarketAuctionPanel({
   const [watchers,setWatchers]=useState<AuctionWatcher[]>(initialWatchers);
 
   useEffect(()=>{
+    setAuction(initialAuction);
+  },[initialAuction.status,initialAuction.endsAt,initialAuction.bidCount,initialAuction.currentBid,initialAuction.buyNowPrice]);
+
+  useEffect(()=>{
     const onSavedChanged=(event:Event)=>{
       const detail=(event as CustomEvent<{listingId?:string;saved?:boolean}>).detail;
       if(!currentUserId||detail?.listingId!==listingId||typeof detail.saved!=='boolean')return;

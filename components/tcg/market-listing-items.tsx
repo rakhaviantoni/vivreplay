@@ -1080,7 +1080,11 @@ export function MarketListingDetailView({
   const isExpired = status !== 'ACTIVE' || (expiresAt ? isListingExpired(expiresAt) : false);
   const isPro = renewDurationDays > 7;
   const maxEarlyExtendDays = isPro ? 5 : 2;
-  const canExtend = isExpired || (daysLeft !== null && daysLeft <= maxEarlyExtendDays);
+  const activeAuctionSlots = auctionSlots.length > 0 ? auctionSlots : auctionDetail ? [auctionDetail] : [];
+  const hasEndedZeroBidAuction = listing.type === 'WTA'
+    && activeAuctionSlots.length > 0
+    && activeAuctionSlots.every(slot => slot.auction.bidCount === 0 && (slot.auction.status !== 'ACTIVE' || Date.parse(slot.auction.endsAt) <= Date.now()));
+  const canExtend = isExpired || hasEndedZeroBidAuction || (daysLeft !== null && daysLeft <= maxEarlyExtendDays);
 
   const listingLanguages = useMemo(() => {
     const raw = [...new Set(editableCards.map(item => item.language).filter(Boolean))];
@@ -1098,6 +1102,7 @@ export function MarketListingDetailView({
       if (!res.ok) throw new Error(data.error || 'Failed to renew listing');
       setExpiresAt(data.expiresAt);
       setStatus('ACTIVE');
+      router.refresh();
       toast.success(language === 'ID' ? `Listing diperbarui untuk ${data.durationDays || renewDurationDays} hari ke depan` : `Listing renewed for ${data.durationDays || renewDurationDays} days`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not renew listing');

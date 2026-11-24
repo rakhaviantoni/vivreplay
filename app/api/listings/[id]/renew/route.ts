@@ -2,6 +2,8 @@ import {user,db,errorResponse,guard,HttpError} from '@/lib/server/store';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
 import {listingLimitMessage} from '@/lib/market/listing-limits';
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
+import {computeInitialAuctionEndsAtMs,type AuctionDurationMode} from '@/lib/market/auction';
+import {ensureAuctionSchema,getAuctionRoomStub} from '@/lib/server/auctions';
 
 export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
   try{
@@ -12,8 +14,8 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
     const policy=await getDynamicListingPolicy(p.tier,d,p.pro_billing_period);
 
     const listing=await d.prepare(
-      'SELECT id,seller_id,status,expires_at,instance_id AS instanceId,sealed_product_id AS sealedProductId,quantity,items FROM listings WHERE id=? AND seller_id=?'
-    ).bind(id,p.id).first<{id:string;seller_id:string;status:string;expires_at:string|null;instanceId:string|null;sealedProductId:string|null;quantity:number;items:string|null}>();
+      'SELECT id,seller_id,type,status,expires_at,instance_id AS instanceId,sealed_product_id AS sealedProductId,quantity,items FROM listings WHERE id=? AND seller_id=?'
+    ).bind(id,p.id).first<{id:string;seller_id:string;type:string;status:string;expires_at:string|null;instanceId:string|null;sealedProductId:string|null;quantity:number;items:string|null}>();
 
     if(!listing){
       throw new HttpError(404,'Listing not found or you are not authorized to renew it.');
@@ -23,12 +25,29 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
       throw new HttpError(400,'Sold listings cannot be renewed.');
     }
 
+    type AuctionSlotRow={itemKey:string;startingBid:number;buyNowPrice:number|null;minIncrement:number;bidCount:number;durationMode:string;endsAt:string;status:string};
+    let auctionSlots:AuctionSlotRow[]=[];
+    let hasEndedZeroBidAuction=false;
+    if(listing.type==='WTA'){
+      await ensureAuctionSchema(d);
+      auctionSlots=(await d.prepare(
+        `SELECT item_key AS itemKey,starting_bid AS startingBid,buy_now_price AS buyNowPrice,min_increment AS minIncrement,
+          bid_count AS bidCount,duration_mode AS durationMode,ends_at AS endsAt,status
+         FROM market_auctions WHERE listing_id=?`
+      ).bind(id).all<AuctionSlotRow>()).results??[];
+      const nowMs=Date.now();
+      if(auctionSlots.some(slot=>Number(slot.bidCount)>0&&(slot.status!=='ACTIVE'||Date.parse(slot.endsAt)<=nowMs))){
+        throw new HttpError(409,'An ended auction with bids cannot be renewed.');
+      }
+      hasEndedZeroBidAuction=auctionSlots.length>0&&auctionSlots.every(slot=>Number(slot.bidCount)===0&&(slot.status!=='ACTIVE'||Date.parse(slot.endsAt)<=nowMs));
+    }
+
     const currentExpires = listing.expires_at ? new Date(listing.expires_at.includes('T') ? listing.expires_at : `${listing.expires_at.replace(' ', 'T')}Z`).getTime() : 0;
     const msLeft = currentExpires - Date.now();
     const maxEarlyExtendDays = policy.tier === 'pro' ? 5 : 2;
     const maxEarlyRenewMs = maxEarlyExtendDays * 24 * 60 * 60 * 1000;
 
-    if (listing.status === 'ACTIVE' && msLeft > maxEarlyRenewMs) {
+    if (listing.status === 'ACTIVE' && msLeft > maxEarlyRenewMs && !hasEndedZeroBidAuction) {
       const daysRemaining = Math.max(1, Math.ceil(msLeft / (24 * 60 * 60 * 1000)));
       throw new HttpError(400, `Listings can only be extended when nearing expiration (${maxEarlyExtendDays} days or less remaining). This listing currently has ${daysRemaining} days left.`);
     }
@@ -54,9 +73,49 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
 
     const newExpiresAt=computeListingExpiration(policy.durationDays);
 
-    await db().prepare(
+    await d.prepare(
       "UPDATE listings SET status='ACTIVE', expires_at=? WHERE id=? AND seller_id=?"
     ).bind(newExpiresAt,id,p.id).run();
+
+    if(listing.type==='WTA'&&auctionSlots.length>0){
+      const nowMs=Date.now();
+      const listingExpMs=new Date(`${newExpiresAt.replace(' ','T')}Z`).getTime();
+      for(const slot of auctionSlots){
+        if(Number(slot.bidCount)>0)continue;
+        const mode=(slot.durationMode==='ROLLING_48H'||slot.durationMode==='FIXED'?slot.durationMode:'ROLLING_24H') as AuctionDurationMode;
+        const endsAtMs=mode==='FIXED'?listingExpMs:computeInitialAuctionEndsAtMs(mode,nowMs);
+        const endsAtIso=new Date(endsAtMs).toISOString();
+        await d.prepare(
+          `UPDATE market_auctions
+           SET status='ACTIVE', starts_at=NULL, winner_order_id=NULL, ends_at=?, updated_at=CURRENT_TIMESTAMP
+           WHERE listing_id=? AND item_key=? AND bid_count=0`
+        ).bind(endsAtIso,id,slot.itemKey).run();
+        const stub=getAuctionRoomStub(id,slot.itemKey);
+        if(stub){
+          await stub.fetch('https://auction.internal/init',{
+            method:'POST',
+            headers:{'content-type':'application/json'},
+            body:JSON.stringify({
+              listingId:id,
+              itemKey:slot.itemKey,
+              sellerId:p.id,
+              startingBid:Number(slot.startingBid),
+              buyNowPrice:slot.buyNowPrice??null,
+              minIncrement:Number(slot.minIncrement),
+              currentBid:0,
+              highestBidderId:null,
+              highestBidderName:null,
+              bidCount:0,
+              durationMode:mode,
+              startsAt:null,
+              endsAt:endsAtIso,
+              endsAtMs,
+              status:'ACTIVE',
+            }),
+          }).catch(()=>undefined);
+        }
+      }
+    }
 
     return Response.json({
       ok:true,
