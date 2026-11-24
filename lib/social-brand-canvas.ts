@@ -516,3 +516,239 @@ export async function renderBrandSocialCanvas(
     ctx.fillText(config.ctaUrl, width - pad - urlW, height - 12);
   }
 }
+
+export type CommunityAssetId =
+  | 'community-hub'
+  | 'group-announcements'
+  | 'group-one-piece'
+  | 'group-pokemon'
+  | 'group-pulls-slabs'
+  | 'group-deck-arena'
+  | 'wa-business-banner'
+  | 'wa-chat-wallpaper';
+
+export const COMMUNITY_ASSET_ITEMS: Array<{
+  id: CommunityAssetId;
+  label: string;
+  sizeLabel: string;
+  width: number;
+  height: number;
+}> = [
+  { id: 'community-hub', label: 'Community Icon', sizeLabel: '512×512', width: 512, height: 512 },
+  { id: 'group-announcements', label: 'Announcements Group', sizeLabel: '512×512', width: 512, height: 512 },
+  { id: 'group-one-piece', label: 'One Piece Market Group', sizeLabel: '512×512', width: 512, height: 512 },
+  { id: 'group-pokemon', label: 'Pokémon Market Group', sizeLabel: '512×512', width: 512, height: 512 },
+  { id: 'group-pulls-slabs', label: 'Pulls & Slabs Group', sizeLabel: '512×512', width: 512, height: 512 },
+  { id: 'group-deck-arena', label: 'Deck & Arena Group', sizeLabel: '512×512', width: 512, height: 512 },
+  { id: 'wa-business-banner', label: 'WA Business Banner', sizeLabel: '1500×500', width: 1500, height: 500 },
+  { id: 'wa-chat-wallpaper', label: 'Chat Theme Wallpaper', sizeLabel: '1080×1920', width: 1080, height: 1920 },
+];
+
+export async function renderCommunityAssetCanvas(
+  canvas: HTMLCanvasElement,
+  assetId: CommunityAssetId,
+  theme: 'dark' | 'light',
+  cardImageUrls: string[] = [],
+): Promise<void> {
+  const item = COMMUNITY_ASSET_ITEMS.find((i) => i.id === assetId) ?? COMMUNITY_ASSET_ITEMS[0];
+  const { width, height } = item;
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  if (typeof document !== 'undefined' && document.fonts) {
+    try {
+      await document.fonts.ready;
+    } catch {
+      // Ignore font load errors
+    }
+  }
+
+  const palette =
+    theme === 'light'
+      ? {
+          bgStart: '#f5f0e6',
+          bgMid: '#eee7d9',
+          bgEnd: '#e8dfcf',
+          panel: 'rgba(255, 250, 240, 0.9)',
+          line: '#d8cbb5',
+          ink: '#28251f',
+          muted: '#716a5e',
+          accent: '#b77a19',
+          accentSoft: 'rgba(183, 122, 25, 0.14)',
+          cardFallback: '#e8dfcf',
+          shadow: 'rgba(49, 38, 19, 0.22)',
+        }
+      : {
+          bgStart: '#10141a',
+          bgMid: '#131922',
+          bgEnd: '#171f2b',
+          panel: 'rgba(16, 22, 31, 0.88)',
+          line: '#273344',
+          ink: '#f6f2ea',
+          muted: '#aab4c2',
+          accent: '#e8c47d',
+          accentSoft: 'rgba(232, 196, 125, 0.14)',
+          cardFallback: '#17202c',
+          shadow: 'rgba(0, 0, 0, 0.5)',
+        };
+
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+  bgGrad.addColorStop(0, palette.bgStart);
+  bgGrad.addColorStop(0.5, palette.bgMid);
+  bgGrad.addColorStop(1, palette.bgEnd);
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, width, height);
+
+  if (assetId === 'wa-business-banner') {
+    await renderBrandSocialCanvas(
+      canvas,
+      {
+        template: 'market',
+        format: 'banner',
+        theme,
+        locale: 'ID',
+        eyebrow: 'VIVREPLAY OFFICIAL',
+        headline: 'VivrePlay Collector Market & Community',
+        subheadline: 'Scan kartu, kelola Vault, dan jual beli One Piece & Pokémon TCG dengan aman.',
+        chips: ['One Piece TCG', 'Pokémon TCG', 'Live Auctions'],
+        ctaUrl: 'vivreplay.com/market',
+        showMarketBadge: true,
+      },
+      cardImageUrls,
+    );
+    return;
+  }
+
+  const [compassImg, opLogoImg, pkmnLogoImg, card0, card1, card2] = await Promise.all([
+    loadCanvasImage('/brand/vivreplay-compass.png'),
+    loadCanvasImage(GAME_LOGOS['one-piece']),
+    loadCanvasImage(GAME_LOGOS.pokemon),
+    cardImageUrls[0] ? loadCanvasImage(cardImageUrls[0]) : Promise.resolve(null),
+    cardImageUrls[1] ? loadCanvasImage(cardImageUrls[1]) : Promise.resolve(null),
+    cardImageUrls[2] ? loadCanvasImage(cardImageUrls[2]) : Promise.resolve(null),
+  ]);
+
+  if (assetId === 'wa-chat-wallpaper') {
+    // Subtle, high-readability WhatsApp chat theme wallpaper
+    const glow = ctx.createRadialGradient(width * 0.5, height * 0.42, 20, width * 0.5, height * 0.42, width * 0.65);
+    glow.addColorStop(0, theme === 'light' ? 'rgba(183, 122, 25, 0.08)' : 'rgba(232, 196, 125, 0.08)');
+    glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.strokeStyle = palette.line;
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.35;
+    for (let gx = 90; gx < width; gx += 180) {
+      ctx.beginPath();
+      ctx.moveTo(gx, 0);
+      ctx.lineTo(gx, height);
+      ctx.stroke();
+    }
+    for (let gy = 120; gy < height; gy += 180) {
+      ctx.beginPath();
+      ctx.moveTo(0, gy);
+      ctx.lineTo(width, gy);
+      ctx.stroke();
+    }
+
+    if (compassImg) {
+      ctx.globalAlpha = theme === 'light' ? 0.07 : 0.06;
+      const markSize = 420;
+      ctx.drawImage(compassImg, (width - markSize) / 2, (height - markSize) / 2 - 40, markSize, markSize);
+    }
+    ctx.globalAlpha = 0.28;
+    ctx.font = '700 22px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = palette.muted;
+    const wm = 'VIVREPLAY COLLECTOR COMMUNITY';
+    ctx.fillText(wm, (width - ctx.measureText(wm).width) / 2, height - 80);
+    ctx.globalAlpha = 1;
+    return;
+  }
+
+  // 512x512 Square Icon (Community Hub + 5 Topic Groups)
+  const glow = ctx.createRadialGradient(width * 0.5, height * 0.38, 10, width * 0.5, height * 0.38, width * 0.58);
+  glow.addColorStop(0, theme === 'light' ? 'rgba(183, 122, 25, 0.14)' : 'rgba(232, 196, 125, 0.15)');
+  glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.strokeStyle = palette.line;
+  ctx.lineWidth = 3;
+  drawRoundedRect(ctx, 18, 18, width - 36, height - 36, 48);
+  ctx.stroke();
+
+  // Inner brass accent ring for Community Hub
+  if (assetId === 'community-hub') {
+    ctx.strokeStyle = palette.accent;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(width / 2, 196, 104, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Center visual per group
+  if (assetId === 'group-pulls-slabs') {
+    drawFannedCards(
+      ctx,
+      [card0, card1, card2],
+      width / 2,
+      198,
+      104,
+      145,
+      palette.line,
+      palette.cardFallback,
+      palette.shadow,
+    );
+    if (compassImg) {
+      ctx.drawImage(compassImg, 44, 42, 46, 46);
+    }
+  } else {
+    if (compassImg) {
+      const markSize = assetId === 'community-hub' ? 164 : 138;
+      ctx.drawImage(compassImg, (width - markSize) / 2, assetId === 'community-hub' ? 114 : 76, markSize, markSize);
+    }
+    if (assetId === 'group-one-piece' && opLogoImg) {
+      const scale = Math.min(230 / (opLogoImg.naturalWidth || 1), 54 / (opLogoImg.naturalHeight || 1));
+      const dw = opLogoImg.naturalWidth * scale;
+      const dh = opLogoImg.naturalHeight * scale;
+      ctx.save();
+      if (theme === 'dark') ctx.filter = 'invert(1)';
+      ctx.drawImage(opLogoImg, (width - dw) / 2, 232, dw, dh);
+      ctx.restore();
+    } else if (assetId === 'group-pokemon' && pkmnLogoImg) {
+      const scale = Math.min(230 / (pkmnLogoImg.naturalWidth || 1), 58 / (pkmnLogoImg.naturalHeight || 1));
+      const dw = pkmnLogoImg.naturalWidth * scale;
+      const dh = pkmnLogoImg.naturalHeight * scale;
+      ctx.drawImage(pkmnLogoImg, (width - dw) / 2, 230, dw, dh);
+    }
+  }
+
+  const labelMap: Record<Exclude<CommunityAssetId, 'wa-business-banner' | 'wa-chat-wallpaper'>, { title: string; badge: string }> = {
+    'community-hub': { title: 'VivrePlay', badge: 'COMMUNITY' },
+    'group-announcements': { title: 'VivrePlay', badge: 'ANNOUNCEMENTS' },
+    'group-one-piece': { title: 'One Piece', badge: 'MARKET GROUP' },
+    'group-pokemon': { title: 'Pokémon TCG', badge: 'MARKET GROUP' },
+    'group-pulls-slabs': { title: 'Pulls & Slabs', badge: 'PRICE CHECK' },
+    'group-deck-arena': { title: 'Deck & Arena', badge: 'META & PLAY' },
+  };
+  const meta = labelMap[assetId];
+
+  ctx.font = '800 40px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = palette.ink;
+  const titleW = ctx.measureText(meta.title).width;
+  ctx.fillText(meta.title, (width - titleW) / 2, 366);
+
+  ctx.font = '800 15px "Plus Jakarta Sans", sans-serif';
+  const badgePillW = ctx.measureText(meta.badge).width + 26;
+  drawEyebrowPill(
+    ctx,
+    meta.badge,
+    (width - badgePillW) / 2,
+    392,
+    15,
+    palette,
+  );
+}

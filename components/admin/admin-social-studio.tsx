@@ -28,7 +28,12 @@ import {
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { cardPrintingImageUrl } from '@/components/tcg/card-art';
-import { renderBrandSocialCanvas } from '@/lib/social-brand-canvas';
+import {
+  COMMUNITY_ASSET_ITEMS,
+  renderBrandSocialCanvas,
+  renderCommunityAssetCanvas,
+  type CommunityAssetId,
+} from '@/lib/social-brand-canvas';
 import {
   SOCIAL_ASSET_DIMENSIONS,
   SOCIAL_BIOS_AND_DESCRIPTIONS,
@@ -86,7 +91,11 @@ function toLocalDateKey(value: string | Date): string {
 
 export function AdminSocialStudio() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const communityCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const firstPreset = SOCIAL_CAMPAIGN_PRESETS[0];
+
+  const [communityAssetId, setCommunityAssetId] = useState<CommunityAssetId>('community-hub');
+  const [communityTheme, setCommunityTheme] = useState<SocialAssetTheme>('dark');
 
   const [assetLocale, setAssetLocale] = useState<SocialAssetLocale>('EN');
   const [assetFormat, setAssetFormat] = useState<SocialAssetFormat>(firstPreset.defaultFormat);
@@ -154,6 +163,12 @@ export function AdminSocialStudio() {
     if (!canvas) return;
     void renderBrandSocialCanvas(canvas, assetConfig, activeCardUrls);
   });
+
+  useEffect(() => {
+    const canvas = communityCanvasRef.current;
+    if (!canvas) return;
+    void renderCommunityAssetCanvas(canvas, communityAssetId, communityTheme, activeCardUrls);
+  }, [communityAssetId, communityTheme, activeCardUrls]);
 
   useEffect(() => {
     let active = true;
@@ -959,6 +974,71 @@ export function AdminSocialStudio() {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* WhatsApp Business & Community Assets */}
+      <section className="admin-social-panel">
+        <header className="admin-social-panel-head">
+          <div>
+            <h2>
+              <WhatsappLogo size={17} weight="fill" />
+              <span>WhatsApp Business, Community &amp; Group Assets</span>
+            </h2>
+            <p>
+              Consistent icons for your WhatsApp Community, each topic group, Business cover banner, and readable chat wallpapers.
+            </p>
+          </div>
+          <div className="admin-social-toggle-group">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={communityTheme === 'light'}
+              onClick={() => setCommunityTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+              className="admin-social-switch"
+              title="Toggle Dark / Light"
+            >
+              <span className={communityTheme === 'dark' ? 'is-on' : ''}>
+                <Moon size={12} weight="fill" /> Dark
+              </span>
+              <span className={communityTheme === 'light' ? 'is-on' : ''}>
+                <Sun size={12} weight="fill" /> Light
+              </span>
+            </button>
+            <button
+              type="button"
+              className="button"
+              onClick={() => {
+                const canvas = communityCanvasRef.current;
+                if (!canvas) return;
+                const link = document.createElement('a');
+                link.download = `vivreplay-${communityAssetId}-${communityTheme}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+              }}
+            >
+              <DownloadSimple size={15} />
+              <span>Download PNG</span>
+            </button>
+          </div>
+        </header>
+
+        <div className="admin-social-toggle-group">
+          {COMMUNITY_ASSET_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setCommunityAssetId(item.id)}
+              className={`admin-social-chip${communityAssetId === item.id ? ' is-active' : ''}`}
+            >
+              <span>{item.label}</span>
+              <small style={{ opacity: 0.7 }}>{item.sizeLabel}</small>
+            </button>
+          ))}
+        </div>
+
+        <div className="admin-social-canvas-stage">
+          <canvas ref={communityCanvasRef} />
         </div>
       </section>
     </div>
