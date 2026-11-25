@@ -5,6 +5,7 @@ import Link from '@/components/ui/localized-link';
 import {useEffect, useState} from 'react';
 import {ArrowUpRightIcon as ArrowUpRight, CardsIcon as Cards, StackIcon as Stack, StorefrontIcon as Storefront, BooksIcon as Books, GameControllerIcon as GameController, QuestionIcon as Question} from '@phosphor-icons/react';
 import {GAME_LOGOS, VivreMark} from './brand-assets';
+import {HeroFloatingCards} from './hero-floating-cards';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 
 type Locale = 'EN' | 'ID';
@@ -52,6 +53,7 @@ export function AboutExperience() {
   return (
     <main className="page about-page">
       <header className="directory-hero page-intro-surface about-intro">
+        <HeroFloatingCards />
         <p className="eyebrow about-intro-label"><VivreMark size={24}/>{isId ? 'TENTANG VIVREPLAY' : 'ABOUT VIVREPLAY'}</p>
         <h1>{isId ? 'Kartu untuk dimainkan. Koleksi untuk disimpan.' : 'Cards to play. Collections to keep.'}</h1>
         <p>

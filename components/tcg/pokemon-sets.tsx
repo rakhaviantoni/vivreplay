@@ -6,6 +6,7 @@ import Link from '@/components/ui/localized-link';
 import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {ArrowUpRightIcon, MagnifyingGlassIcon, StackIcon, XIcon} from '@phosphor-icons/react';
 import {CardArt} from '@/components/tcg/card-art';
+import {HeroFloatingCards} from '@/components/tcg/hero-floating-cards';
 import {DepthCarousel} from '@/components/tcg/depth-carousel';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import type {Card} from '@/packages/card-data/catalog';
@@ -68,6 +69,7 @@ export function PokemonSets(){
 
   return <main className="page sets-page pokemon-sets-page">
     <header className="directory-hero sets-hero page-intro-surface">
+      <HeroFloatingCards />
       <p className="eyebrow"><StackIcon size={15}/>{id?'Set Pokémon':'Pokémon sets'}</p>
       <h1>{id?'Set dan rilisan':'Sets and releases'}</h1>
       <p>{id?'Cari set berdasarkan nama atau kode, lalu jelajahi kartu unggulannya.':'Find a set by name or code, then browse its featured cards.'}</p>

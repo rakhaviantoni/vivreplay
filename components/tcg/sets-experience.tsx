@@ -6,6 +6,7 @@ import Link from '@/components/ui/localized-link';
 import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {ArrowUpRightIcon as ArrowUpRight, MagnifyingGlassIcon as Search, StackIcon as Stack, XIcon as X} from '@phosphor-icons/react';
 import {CardArt} from './card-art';
+import {HeroFloatingCards} from './hero-floating-cards';
 import {displayCardName} from './card-name';
 import {DepthCarousel} from './depth-carousel';
 import type {Card} from '@/packages/card-data/catalog';
@@ -64,6 +65,7 @@ export function SetsExperience({compact=false}:{compact?:boolean}){
   return <Wrapper ref={rootRef} className={compact?'home-sets home-reveal':'page sets-page'}>
     {!compact ? (
       <header className="directory-hero sets-hero page-intro-surface">
+        <HeroFloatingCards />
         <p className="eyebrow"><Stack size={15}/> {id?'Arsip rilis':'Set archive'}</p>
         <h1>{id?'Setiap rilis, kartu demi kartu':'Every release, card by card'}</h1>
         <p>{id?'Cari berdasarkan nama atau kode set, saring kelompok rilis, lalu buka seluruh kartu yang tersedia.':'Search by set name or code, filter the release family, then open the exact card pool.'}</p>

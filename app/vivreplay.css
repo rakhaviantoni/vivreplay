@@ -5031,3 +5031,81 @@ html[data-theme='dark'] .market-listing-type-badge.is-auction{color:#e87a4d}
 .admin-social-switch{display:inline-flex;align-items:center;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--surface-raised);cursor:pointer;gap:2px}
 .admin-social-switch span{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:700;color:var(--muted);transition:background .15s,color .15s}
 .admin-social-switch span.is-on{background:var(--accent);color:#14171c}
+
+/* Looping radial auras & subtle floating OPTCG/Pokemon card thumbnails on hero/banner surfaces */
+@keyframes hero-radial-loop{
+  0%{transform:translate3d(-3%,-2%,0) scale(1);opacity:.72}
+  50%{transform:translate3d(2%,3%,0) scale(1.07);opacity:1}
+  100%{transform:translate3d(4%,-1%,0) scale(1.03);opacity:.82}
+}
+@keyframes hero-card-drift{
+  0%{transform:translate3d(0,0,0) rotate(var(--card-rot,0deg))}
+  50%{transform:translate3d(var(--card-dx,4px),var(--card-dy,-7px),0) rotate(calc(var(--card-rot,0deg) + 1.8deg))}
+  100%{transform:translate3d(calc(var(--card-dx,4px) * -0.6),calc(var(--card-dy,-7px) * -0.5),0) rotate(calc(var(--card-rot,0deg) - 1.4deg))}
+}
+:is(.page-intro-surface,.meta-hero,.library-intro,.builder-hero,.deck-library-intro){position:relative;isolation:isolate;overflow:hidden}
+:is(.page-intro-surface,.meta-hero,.library-intro,.builder-hero,.deck-library-intro)>:not(.hero-floating-cards){position:relative;z-index:2}
+:is(.page-intro-surface,.meta-hero,.library-intro,.builder-hero,.deck-library-intro)::after{
+  content:"";
+  position:absolute;
+  inset:-18% -10%;
+  z-index:1;
+  pointer-events:none;
+  background:
+    radial-gradient(46% 62% at 82% 24%,rgba(216,166,59,.18) 0%,transparent 72%),
+    radial-gradient(38% 54% at 18% 82%,rgba(28,122,98,.14) 0%,transparent 74%),
+    radial-gradient(34% 48% at 54% 12%,rgba(45,108,142,.11) 0%,transparent 70%);
+  animation:hero-radial-loop 11s ease-in-out infinite alternate;
+  will-change:transform,opacity;
+}
+html[data-theme='dark'] :is(.page-intro-surface,.meta-hero,.library-intro,.builder-hero,.deck-library-intro)::after{
+  background:
+    radial-gradient(46% 62% at 82% 24%,rgba(233,179,75,.2) 0%,transparent 72%),
+    radial-gradient(38% 54% at 18% 82%,rgba(34,158,126,.18) 0%,transparent 74%),
+    radial-gradient(34% 48% at 54% 12%,rgba(56,132,172,.14) 0%,transparent 70%);
+}
+.hero-floating-cards{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  overflow:hidden;
+}
+.hero-floating-card{
+  position:absolute;
+  width:clamp(46px,5vw,66px);
+  aspect-ratio:63/88;
+  border-radius:7px;
+  overflow:hidden;
+  opacity:.19;
+  border:1px solid rgba(255,255,255,.28);
+  box-shadow:0 10px 24px rgba(0,0,0,.18);
+  animation:hero-card-drift var(--card-dur,15s) ease-in-out infinite alternate;
+  will-change:transform;
+}
+html[data-theme='dark'] .hero-floating-card{
+  opacity:.22;
+  border-color:rgba(255,255,255,.16);
+  box-shadow:0 12px 26px rgba(0,0,0,.42);
+}
+.hero-floating-card img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.hero-floating-card--1{top:10%;right:5%;--card-rot:-7deg;--card-dx:6px;--card-dy:-8px;--card-dur:14s}
+.hero-floating-card--2{bottom:10%;right:15%;--card-rot:6deg;--card-dx:-5px;--card-dy:7px;--card-dur:17s;animation-delay:-3s}
+.hero-floating-card--3{top:16%;right:24%;--card-rot:4deg;--card-dx:4px;--card-dy:6px;--card-dur:16s;animation-delay:-6s}
+.hero-floating-card--4{bottom:14%;right:3.5%;--card-rot:-4deg;--card-dx:-6px;--card-dy:-5px;--card-dur:18s;animation-delay:-9s}
+@media(max-width:640px){
+  .hero-floating-card{width:42px;opacity:.13}
+  html[data-theme='dark'] .hero-floating-card{opacity:.15}
+  .hero-floating-card--3,.hero-floating-card--4{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  :is(.page-intro-surface,.meta-hero,.library-intro,.builder-hero,.deck-library-intro)::after,
+  .hero-floating-card{
+    animation:none!important;
+  }
+}

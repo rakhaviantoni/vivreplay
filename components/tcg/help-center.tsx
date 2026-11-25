@@ -4,6 +4,7 @@ import Link from '@/components/ui/localized-link';
 import {ArrowRight, MagnifyingGlass, X} from '@phosphor-icons/react';
 import {useMemo, useState} from 'react';
 import {helpArticles, helpCategories, type HelpLocale} from '@/lib/help/articles';
+import {HeroFloatingCards} from '@/components/tcg/hero-floating-cards';
 
 function localizedHref(path: string, locale: HelpLocale) {
   return locale === 'id' ? (path === '/' ? '/id' : `/id${path}`) : path;
@@ -24,6 +25,7 @@ export function HelpCenter({locale}: {locale: HelpLocale}) {
 
   return <main className="page help-page">
     <header className="directory-hero page-intro-surface help-hero">
+      <HeroFloatingCards />
       <p className="eyebrow">{id ? 'PUSAT BANTUAN' : 'HELP CENTER'}</p>
       <h1>{id ? 'Butuh bantuan?' : 'What do you need help with?'}</h1>
       <p>{id ? 'Cari langkah untuk pesanan, kartu, akun, dan Market.' : 'Find clear steps for orders, cards, your account, and Market.'}</p>
