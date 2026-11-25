@@ -92,6 +92,7 @@ function toLocalDateKey(value: string | Date): string {
 export function AdminSocialStudio() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const communityCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const kitImportInputRef = useRef<HTMLInputElement | null>(null);
   const firstPreset = SOCIAL_CAMPAIGN_PRESETS[0];
 
   const [communityAssetId, setCommunityAssetId] = useState<CommunityAssetId>('community-hub');
@@ -424,6 +425,48 @@ export function AdminSocialStudio() {
     }
   };
 
+  const handleImportKitJson = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const raw = JSON.parse(await file.text()) as {
+        title?: string;
+        pillar?: string;
+        locale?: SocialAssetLocale;
+        caption?: string;
+        recommendedTime?: string;
+        assetConfig?: Partial<SocialAssetConfig>;
+        variants?: Partial<
+          Record<
+            SocialAssetLocale,
+            { title?: string; caption?: string; assetConfig?: Partial<SocialAssetConfig> }
+          >
+        >;
+      };
+      const targetLocale: SocialAssetLocale = assetLocale;
+      const variant = raw.variants?.[targetLocale] ?? raw;
+      const cfg = { ...(raw.assetConfig ?? {}), ...(variant.assetConfig ?? {}) };
+      setEditingId(undefined);
+      if (cfg.template) setAssetTemplate(cfg.template);
+      if (cfg.format) setAssetFormat(cfg.format);
+      if (cfg.theme) setAssetTheme(cfg.theme);
+      if (cfg.eyebrow) setEyebrow(cfg.eyebrow);
+      if (cfg.headline) setHeadline(cfg.headline);
+      if (cfg.subheadline) setSubheadline(cfg.subheadline);
+      if (Array.isArray(cfg.chips)) setChipsText(cfg.chips.join(', '));
+      if (cfg.ctaUrl) setCtaUrl(cfg.ctaUrl);
+      if (typeof cfg.showMarketBadge === 'boolean') setShowMarketBadge(cfg.showMarketBadge);
+      if (variant.title ?? raw.title) setPostTitle(variant.title ?? raw.title ?? 'VivrePlay Post');
+      if (raw.pillar) setPostPillar(raw.pillar);
+      if (variant.caption ?? raw.caption) setCaption(variant.caption ?? raw.caption ?? '');
+      if (raw.recommendedTime) setScheduleTime(raw.recommendedTime);
+      toast.success(`Imported campaign kit (${targetLocale})`);
+    } catch {
+      toast.error('Invalid campaign kit JSON file.');
+    }
+  };
+
   const handleCopy = async (id: string, value: string) => {
     await navigator.clipboard.writeText(value);
     setCopiedId(id);
@@ -577,7 +620,25 @@ export function AdminSocialStudio() {
               <h2>Official Post Composer &amp; Scheduler</h2>
               <p>Publish now or schedule posts to VivrePlay&apos;s connected social channels.</p>
             </div>
-            {editingId && <span className="admin-social-status is-scheduled">Editing post</span>}
+            <div className="admin-social-toggle-group">
+              <input
+                ref={kitImportInputRef}
+                type="file"
+                accept="application/json,.json"
+                onChange={handleImportKitJson}
+                style={{ display: 'none' }}
+              />
+              <button
+                type="button"
+                className="admin-social-chip"
+                onClick={() => kitImportInputRef.current?.click()}
+                title="Import admin-studio-post.json from campaigns/"
+              >
+                <UploadSimple size={13} />
+                <span>Import Kit JSON</span>
+              </button>
+              {editingId && <span className="admin-social-status is-scheduled">Editing post</span>}
+            </div>
           </header>
 
           <div className="admin-social-accounts-box">

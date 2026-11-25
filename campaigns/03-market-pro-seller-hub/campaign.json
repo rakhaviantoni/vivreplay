@@ -1,0 +1,32 @@
+{
+  "slug": "03-market-pro-seller-hub",
+  "pillar": "Market Pro",
+  "template": "pro",
+  "defaultFormat": "square",
+  "recommendedTime": "19:30",
+  "platforms": ["instagram", "threads", "twitter", "facebook"],
+  "en": {
+    "title": "Market Pro: 0.75% Fee for Active Sellers",
+    "caption": "Selling One Piece or Pokémon cards every week?\n\nMarket Pro is built for high-volume collectors and shops:\n- 0.75% service fee instead of 1.75%\n- Up to 500 active listings with 30-day lifespan\n- Monthly Spotlight boost credits and shipping vouchers\n- Scheduled social auto-posts for every new listing\n\nCompare plans at https://vivreplay.com/market",
+    "asset": {
+      "eyebrow": "MARKET PRO",
+      "headline": "0.75% Fee. Built for Active Sellers.",
+      "subheadline": "Up to 500 active listings, 30-day duration, Spotlight credits, vouchers, and social auto-post.",
+      "chips": ["0.75% Fee", "500 Listings", "Spotlight Credits", "Auto-Post"],
+      "ctaUrl": "vivreplay.com/market",
+      "showMarketBadge": true
+    }
+  },
+  "id": {
+    "title": "Market Pro: Biaya 0,75% untuk Seller Aktif",
+    "caption": "Rutin jualan kartu One Piece atau Pokémon tiap minggu?\n\nMarket Pro dirancang untuk kolektor aktif dan toko kartu:\n- Biaya layanan 0,75% (lebih hemat dari 1,75%)\n- Hingga 500 listing aktif dengan durasi 30 hari\n- Kredit Sorotan bulanan dan voucher ongkir\n- Jadwal auto-post ke media sosial untuk setiap listing\n\nLihat detail paket di https://vivreplay.com/id/market",
+    "asset": {
+      "eyebrow": "MARKET PRO",
+      "headline": "Biaya 0,75%. Lebih Hemat untuk Seller.",
+      "subheadline": "Hingga 500 listing aktif, durasi 30 hari, kredit Sorotan, voucher ongkir, dan auto-post.",
+      "chips": ["Biaya 0,75%", "500 Listing", "Kredit Sorotan", "Auto-Post"],
+      "ctaUrl": "vivreplay.com/id/market",
+      "showMarketBadge": true
+    }
+  }
+}

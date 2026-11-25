@@ -1,0 +1,32 @@
+{
+  "slug": "01-scan-to-vault-market",
+  "pillar": "Scanner & Vault",
+  "template": "scanner",
+  "defaultFormat": "square",
+  "recommendedTime": "12:15",
+  "platforms": ["instagram", "threads", "facebook", "twitter", "tiktok"],
+  "en": {
+    "title": "Scan Once. Sync to Vault & Market.",
+    "caption": "Fresh pull? List it in under 60 seconds.\n\n1. Point your camera to identify EN, JP, or ID printings\n2. Save raw singles and graded slabs into your Digital Vault\n3. Publish to VivrePlay Market at fixed price or live auction\n\nNo manual set-code typing. Start at https://vivreplay.com/vault",
+    "asset": {
+      "eyebrow": "SCANNER & VAULT",
+      "headline": "Scan Once. Sync to Vault & Market.",
+      "subheadline": "Identify EN, JP & ID printings by camera, track graded slabs, and list in one tap.",
+      "chips": ["Camera Scanner", "EN / JP / ID", "PSA / BGS / EGS", "1-Tap Listing"],
+      "ctaUrl": "vivreplay.com/vault",
+      "showMarketBadge": false
+    }
+  },
+  "id": {
+    "title": "Scan Sekali. Masuk Vault & Siap Jual.",
+    "caption": "Baru dapat pull bagus? Pasang listing kurang dari 60 detik.\n\n1. Arahkan kamera untuk kenali cetakan EN, JP, atau ID\n2. Simpan kartu raw dan graded slab ke Vault Koleksi\n3. Jual di VivrePlay Market dengan harga pas atau lelang live\n\nTanpa ketik kode set manual. Coba di https://vivreplay.com/id/vault",
+    "asset": {
+      "eyebrow": "SCANNER & VAULT",
+      "headline": "Scan Sekali. Masuk Vault & Siap Jual.",
+      "subheadline": "Kenali cetakan EN, JP & ID lewat kamera, catat graded slab, dan pasang listing 1 klik.",
+      "chips": ["Scan Kamera", "Kartu EN / JP / ID", "PSA / BGS / EGS", "Jual 1 Klik"],
+      "ctaUrl": "vivreplay.com/id/vault",
+      "showMarketBadge": false
+    }
+  }
+}

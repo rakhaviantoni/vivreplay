@@ -1,0 +1,32 @@
+{
+  "slug": "02-anti-snipe-live-auctions",
+  "pillar": "Live Auctions",
+  "template": "auctions",
+  "defaultFormat": "square",
+  "recommendedTime": "20:30",
+  "platforms": ["instagram", "threads", "facebook", "twitter"],
+  "en": {
+    "title": "Fair Live Auctions with +2m Anti-Snipe",
+    "caption": "Tired of losing auctions in the last 2 seconds?\n\nVivrePlay Market live auctions give every collector a fair shot:\n- 24h or 48h rolling timers, or fixed end times\n- Automatic +2m anti-snipe extension on late bids\n- Instant Buy Out option and automatic courier shipping\n- 48-hour buyer inspection before funds settle\n\nBrowse active auctions: https://vivreplay.com/market",
+    "asset": {
+      "eyebrow": "LIVE AUCTIONS",
+      "headline": "Real-Time Bidding. Zero Last-Second Sniping.",
+      "subheadline": "24h or 48h rolling timers, fixed end times, +2m anti-snipe protection, and 48h inspection.",
+      "chips": ["Anti-Snipe +2m", "Rolling 24h / 48h", "Buy Out Ready", "48h Inspection"],
+      "ctaUrl": "vivreplay.com/market",
+      "showMarketBadge": true
+    }
+  },
+  "id": {
+    "title": "Lelang Live Adil dengan Anti-Snipe +2m",
+    "caption": "Kesal kalah lelang di 2 detik terakhir?\n\nLelang live di VivrePlay Market dibuat adil untuk semua kolektor:\n- Durasi rolling 24/48 jam atau waktu tutup tetap\n- Perpanjangan otomatis +2m jika ada bid di detik akhir\n- Opsi Buy Out instan dan cek ongkir otomatis\n- Masa inspeksi pembeli 48 jam sebelum dana diteruskan\n\nPantau lelang aktif sekarang: https://vivreplay.com/id/market",
+    "asset": {
+      "eyebrow": "LELANG LIVE",
+      "headline": "Bid Real-Time. Tanpa Drama Sniping.",
+      "subheadline": "Durasi rolling 24/48 jam atau waktu tetap, proteksi anti-snipe +2m, dan inspeksi 48 jam.",
+      "chips": ["Anti-Snipe +2m", "Rolling 24 / 48 Jam", "Opsi Buy Out", "Inspeksi 48 Jam"],
+      "ctaUrl": "vivreplay.com/id/market",
+      "showMarketBadge": true
+    }
+  }
+}
